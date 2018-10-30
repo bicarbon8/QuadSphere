@@ -41,6 +41,9 @@ public class QuadSphere : MonoBehaviour
     private MeshCollider _meshCollider;
     private MeshRenderer _meshRenderer;
 
+    private Vector3 _position;
+    private Quaternion _rotation;
+
     private void Start()
     {
         _faces = new QuadFace[6];
@@ -90,6 +93,9 @@ public class QuadSphere : MonoBehaviour
     private Task<List<int>> _updateTask;
     private void Update()
     {
+        _position = transform.position;
+        _rotation = transform.rotation;
+
         if (_updateTask == null)
         {
             // TODO: only send if player position or quadsphere position changed
@@ -144,10 +150,12 @@ public class QuadSphere : MonoBehaviour
 
             _meshFilter.mesh.RecalculateNormals();
             _meshFilter.mesh.RecalculateBounds();
+
+            _meshCollider.sharedMesh = _meshFilter.mesh;
         }
     }
 
-    private Vector3[] ApplyCurve(Vector3[] vertices)
+    public Vector3[] ApplyCurve(params Vector3[] vertices)
     {
         Vector3[] verts = new Vector3[vertices.Length];
         for (int i = 0; i < vertices.Length; i++)
@@ -167,6 +175,20 @@ public class QuadSphere : MonoBehaviour
         elevation += Mathf.PerlinNoise(offsetLocation.x * smooth, offsetLocation.z * smooth);
 
         return elevation * 10F;
+    }
+
+    public Vector3[] ApplyRotation(params Vector3[] vertices)
+    {
+        Vector3[] verts = new Vector3[vertices.Length];
+        for (int i = 0; i < vertices.Length; i++)
+        {
+            var pivot = _position;
+            var angles = _rotation;
+            var dir = vertices[i] - pivot; // get point direction relative to pivot
+            dir = angles * dir; // rotate it
+            verts[i] = dir + pivot; // calculate rotated point
+        }
+        return verts;
     }
 
     private void AddFace(QuadFace face)

@@ -1,4 +1,4 @@
-﻿/************************************************************************
+/************************************************************************
 * Copyright (c) 2018 Jason Holt Smith <bicarbon8@gmail.com>
 *************************************************************************
 * This program is free software: you can redistribute it and/or modify
@@ -66,14 +66,14 @@ public class QuadFace
                         z = -_size / 2;
                         break;
                     case QuadFaceType.ZPosFront:
-                        x = (_size / 2) + ((_size / _quadsPerRow) * col);
+                        x = (_size / 2) - ((_size / _quadsPerRow) * col);
                         y = (-_size / 2) + ((_size / _quadsPerRow) * row);
                         z = _size / 2;
                         break;
                     case QuadFaceType.XNegLeft:
                         x = -_size / 2;
                         y = (-_size / 2) + ((_size / _quadsPerRow) * row);
-                        z = (_size / 2) + ((_size / _quadsPerRow) * col);
+                        z = (_size / 2) - ((_size / _quadsPerRow) * col);
                         break;
                     case QuadFaceType.XPosRight:
                         x = _size / 2;
@@ -83,16 +83,16 @@ public class QuadFace
                     case QuadFaceType.YPosTop:
                         x = (-_size / 2) + ((_size / _quadsPerRow) * col);
                         y = _size / 2;
-                        z = -(_size / 2) + ((_size / _quadsPerRow) * col);
+                        z = -(_size / 2) + ((_size / _quadsPerRow) * row);
                         break;
                     case QuadFaceType.YNegBottom:
                         x = (-_size / 2) + ((_size / _quadsPerRow) * col);
                         y = -_size / 2;
-                        z = (_size / 2) + ((_size / _quadsPerRow) * col);
+                        z = (_size / 2) - ((_size / _quadsPerRow) * row);
                         break;
                 }
                 
-                var q = new Quad(this, 0, null, QuadType.Root, 0, _size, _startingSubdivisions, _subdivisionDistances, ref _map, new Vector3(x, y, z));
+                var q = new Quad(this, 0, null, QuadType.Root, 0, _size / _quadsPerRow, _startingSubdivisions, _subdivisionDistances, ref _map, new Vector3(x, y, z));
 
                 _quads[index] = q;
             }
@@ -112,6 +112,11 @@ public class QuadFace
     public Quad[] GetQuads()
     {
         return _quads;
+    }
+
+    public QuadSphere GetParent()
+    {
+        return _parent;
     }
 
     public async Task<bool> UpdateAsync(Vector3 playerPosition)

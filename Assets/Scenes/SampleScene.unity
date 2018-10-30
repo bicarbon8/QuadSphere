@@ -391,13 +391,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Player: {fileID: 953833646}
   Radius: 100
-  QuadsPerFace: 1
+  QuadsPerFace: 3
   StartingSubdivisionsPerQuad: 3
   SubdivisionDistances:
-  - 75
-  - 40
-  - 25
+  - 10
   - 5
+  - 1
   SphereMaterial: {fileID: 2100000, guid: 859dc31dc21239b4e9ff8e46c8273e81, type: 2}
 --- !u!4 &1382464770
 Transform:

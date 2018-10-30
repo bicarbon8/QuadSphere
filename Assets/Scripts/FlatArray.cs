@@ -33,6 +33,26 @@ public static class FlatArray
         return currentIndex - columnSize;
     }
 
+    public static int GetTopLeftIndex(int rowSize, int columnSize)
+    {
+        return GetTopRightIndex(rowSize, columnSize) - (columnSize - 1);
+    }
+
+    public static int GetTopRightIndex(int rowSize, int columnSize)
+    {
+        return (rowSize * columnSize) - 1;
+    }
+
+    public static int GetBottomLeftIndex()
+    {
+        return 0;
+    }
+
+    public static int GetBottomRightIndex(int columnSize)
+    {
+        return columnSize - 1;
+    }
+
     public static int GetMidpointIndex(int rowSize, int columnSize)
     {
         return Mathf.FloorToInt(((rowSize * columnSize) - 1) / 2);

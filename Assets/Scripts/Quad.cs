@@ -26,68 +26,99 @@ public class Quad : IDisposable
     private QuadVert[][] _centreVertices; // starts disabled
 
     public QuadVert BottomLeft { get { return Vertices[0]; } }
-    public QuadVert BottomRight { get { return Vertices[_subdivisions + 1]; } }
-    public QuadVert TopLeft { get { return Vertices[(((_subdivisions + 2) * (_subdivisions + 2)) - 1) - (_subdivisions + 1)]; } }
-    public QuadVert TopRight { get { return Vertices[Vertices.Length - 1]; } }
-    public QuadVert Centre { get { return Vertices[FlatArray.GetMidpointIndex(_subdivisions + 2, _subdivisions + 2)]; } }
+    public QuadVert BottomRight { get { return Vertices[FlatArray.GetBottomRightIndex(_subdivisions + 2)]; } }
+    public QuadVert TopLeft { get { return Vertices[FlatArray.GetTopLeftIndex(_subdivisions + 2, _subdivisions + 2)]; } }
+    public QuadVert TopRight { get { return Vertices[FlatArray.GetTopRightIndex(_subdivisions + 2, _subdivisions + 2)]; } }
+    private QuadVert _centre;
+    public QuadVert Centre
+    {
+        get
+        {
+            if (_centre == null)
+            {
+                _centre = Vertices[FlatArray.GetMidpointIndex(_subdivisions + 2, _subdivisions + 2)];
+            }
+            return _centre;
+        }
+    }
     public QuadVert Left { get { return Vertices[FlatArray.GetLeftMidpointIndex(_subdivisions + 2, _subdivisions + 2)]; } }
     public QuadVert Right { get { return Vertices[FlatArray.GetRightMidpointIndex(_subdivisions + 2, _subdivisions + 2)]; } }
     public QuadVert Top { get { return Vertices[FlatArray.GetTopMidpointIndex(_subdivisions + 2, _subdivisions + 2)]; } }
     public QuadVert Bottom { get { return Vertices[FlatArray.GetBottomMidpointIndex(_subdivisions + 2, _subdivisions + 2)]; } }
+    private QuadVert[] _leftEdge;
     public QuadVert[] LeftEdge
     {
         get
         {
-            List<QuadVert> leftEdgeVerts = new List<QuadVert>();
-            int index = 0;
-            while (index < Vertices.Length)
+            if (_leftEdge == null)
             {
-                leftEdgeVerts.Add(Vertices[index]);
-                index = FlatArray.GetIndexOnNextRow(index, _subdivisions + 2);
+                List<QuadVert> leftEdgeVerts = new List<QuadVert>();
+                int index = 0;
+                while (index < Vertices.Length)
+                {
+                    leftEdgeVerts.Add(Vertices[index]);
+                    index = FlatArray.GetIndexOnNextRow(index, _subdivisions + 2);
+                }
+                _leftEdge = leftEdgeVerts.ToArray();
             }
-            return leftEdgeVerts.ToArray();
+            return _leftEdge;
         }
     }
+    private QuadVert[] _rightEdge;
     public QuadVert[] RightEdge
     {
         get
         {
-            List<QuadVert> rightEdgeVerts = new List<QuadVert>();
-            int index = _subdivisions + 1;
-            while (index < Vertices.Length)
+            if (_rightEdge == null)
             {
-                rightEdgeVerts.Add(Vertices[index]);
-                index = FlatArray.GetIndexOnNextRow(index, _subdivisions + 2);
+                List<QuadVert> rightEdgeVerts = new List<QuadVert>();
+                int index = FlatArray.GetBottomRightIndex(_subdivisions + 2);
+                while (index < Vertices.Length)
+                {
+                    rightEdgeVerts.Add(Vertices[index]);
+                    index = FlatArray.GetIndexOnNextRow(index, _subdivisions + 2);
+                }
+                _rightEdge = rightEdgeVerts.ToArray();
             }
-            return rightEdgeVerts.ToArray();
+            return _rightEdge;
         }
     }
+    private QuadVert[] _topEdge;
     public QuadVert[] TopEdge
     {
         get
         {
-            List<QuadVert> topEdgeVerts = new List<QuadVert>();
-            int index = (((_subdivisions + 2) * (_subdivisions + 2)) - 1) - (_subdivisions + 1);
-            while (index < Vertices.Length)
+            if (_topEdge == null)
             {
-                topEdgeVerts.Add(Vertices[index]);
-                index++;
+                List<QuadVert> topEdgeVerts = new List<QuadVert>();
+                int index = FlatArray.GetTopLeftIndex(_subdivisions + 2, _subdivisions + 2);
+                while (index < Vertices.Length)
+                {
+                    topEdgeVerts.Add(Vertices[index]);
+                    index++;
+                }
+                _topEdge = topEdgeVerts.ToArray();
             }
-            return topEdgeVerts.ToArray();
+            return _topEdge;
         }
     }
+    private QuadVert[] _bottomEdge;
     public QuadVert[] BottomEdge
     {
         get
         {
-            List<QuadVert> bottomEdgeVerts = new List<QuadVert>();
-            int index = 0;
-            while (index < _subdivisions)
+            if (_bottomEdge == null)
             {
-                bottomEdgeVerts.Add(Vertices[index]);
-                index++;
+                List<QuadVert> bottomEdgeVerts = new List<QuadVert>();
+                int index = 0;
+                while (index < _subdivisions + 2)
+                {
+                    bottomEdgeVerts.Add(Vertices[index]);
+                    index++;
+                }
+                _bottomEdge = bottomEdgeVerts.ToArray();
             }
-            return bottomEdgeVerts.ToArray();
+            return _bottomEdge;
         }
     }
 
@@ -132,7 +163,15 @@ public class Quad : IDisposable
             _subdivisions++;
         }
         _subdivisionDistances = subdivisionDistances;
-        _subdivisionDist = (_subdivisionDistances.Length > _level) ? _subdivisionDistances[_level] : -1;
+        if (_subdivisionDistances.Length > _level)
+        {
+            float minimumDistance = Mathf.Sqrt(Mathf.Pow(_size / 2, 2) + Mathf.Pow(_size / 2, 2));
+            _subdivisionDist = _subdivisionDistances[_level] + minimumDistance;
+        }
+        else
+        {
+            _subdivisionDist = -1;
+        }
 
         _map = map;
         _bottomLeft = bottomLeft;
@@ -339,7 +378,13 @@ public class Quad : IDisposable
 
     private bool IsWithinSubdivisionDistance(Vector3 playerPosition)
     {
-        return Vertices.Any(v => Vector3.Distance(v.Point, playerPosition) <= _subdivisionDist);
+        Vector3 adjustedCentre = GetDistanceTestLocation();
+        return Vector3.Distance(adjustedCentre, playerPosition) <= _subdivisionDist;
+    }
+
+    private Vector3 GetDistanceTestLocation()
+    {
+        return _face.GetParent().ApplyRotation(_face.GetParent().ApplyCurve(Centre.Point))[0];
     }
 
     public bool ShouldRemainSubdividedForNeighbor(Vector3 playerPosition)
