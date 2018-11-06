@@ -22,7 +22,7 @@ using UnityEngine;
 public class Quad : IDisposable
 {
     public QuadVert[] Vertices; // all the standard verts
-    private QuadVert[][] _edgeVertices;
+    private QuadVert[][] _edgeFanVertices;
     private QuadVert[][] _centreVertices; // starts disabled
 
     public QuadVert BottomLeft { get { return Vertices[0]; } }
@@ -139,6 +139,7 @@ public class Quad : IDisposable
     private float _subdivisionDist;
     private readonly Vector3 _bottomLeft;
     private int _id;
+    private float _tolerance; // snapping tolerance for similar QuadVerts
 
     // Are we subdivided
     public bool HasChildren { get { return _children != null && _children.Any(c => c != null); } }
@@ -178,15 +179,15 @@ public class Quad : IDisposable
 
         Vertices = new QuadVert[(_subdivisions + 2) * (_subdivisions + 2)];
         _children = new Quad[4];
-        _edgeVertices = new QuadVert[4][];
-        for (int i = 0; i < _edgeVertices.Length; i++)
+        _edgeFanVertices = new QuadVert[4][];
+        for (int i = 0; i < _edgeFanVertices.Length; i++)
         {
-            _edgeVertices[i] = new QuadVert[_subdivisions+1];
+            _edgeFanVertices[i] = new QuadVert[_subdivisions + 1];
         }
         _centreVertices = new QuadVert[4][];
         for (int i = 0; i < _centreVertices.Length; i++)
         {
-            _centreVertices[i] = new QuadVert[_subdivisions+1];
+            _centreVertices[i] = new QuadVert[_subdivisions + 1];
         }
         _neighborCache = new HashSet<Quad>[4];
         for (int i = 0; i < _neighborCache.Length; i++)
@@ -197,8 +198,6 @@ public class Quad : IDisposable
         AddVertices();
 
         UpdateNeighborCache();
-
-        ActivateEdgeFanVerts();
     }
 
     /// <summary>
@@ -240,143 +239,61 @@ public class Quad : IDisposable
         return _type;
     }
 
-    public bool Update(Vector3 playerPosition)
-    {
-        List<bool> updated = new List<bool>();
-        UpdateNeighborCache();
-
-        if (Active)
-        {
-            DeactivateEdgeFanVerts();
-            ActivateEdgeFanVerts();
-
-            if (_subdivisionDistances.Length > _level)
-            {
-                if (ShouldSubdivide(playerPosition))
-                {
-                    Subdivide();
-                    updated.Add(true);
-                }
-            }
-        }
-        else
-        { 
-            if (ShouldUnify(playerPosition))
-            {
-                Unify(playerPosition);
-                updated.Add(true);
-            }
-
-            foreach (Quad child in _children)
-            {
-                if (child != null)
-                {
-                    updated.Add(child.Update(playerPosition));
-                }
-            }
-        }
-
-        return updated.Any(u => u == true);
-    }
-
-    public bool ShouldSubdivide(Vector3 playerPosition)
-    {
-        if (Active && _subdivisionDistances.Length > _level)
-        {
-            if (IsWithinSubdivisionDistance(playerPosition))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public bool ShouldUnify(Vector3 playerPosition)
-    {
-        if (!Active)
-        {
-            if (IsWithinSubdivisionDistance(playerPosition))
-            {
-                return false;
-            }
-
-            if (ShouldRemainSubdividedForNeighbor(playerPosition))
-            {
-                return false;
-            }
-            return true;
-        }
-        return false;
-    }
-
     /// <summary>
     /// called when adding LoD to mesh
     /// </summary>
     public void Subdivide()
     {
-        // on Subdivision, all edge Vertices are always enabled
-        ActivateAllQuadVerts();
+        UpdateNeighborCache();
+
         CreateChildQuads();
 
         // update neighbors
-        UpdateNeighborsForSubdivision();
-
-        UpdateNeighborCache();
-        ActivateEdgeFanVerts();
+        UpdateNeighborsFollowingSubdivision();
     }
 
-    private void UpdateNeighborsForSubdivision()
+    private void UpdateNeighborsFollowingSubdivision()
     {
-        var neighbors = GetAllNeighbors();
-        foreach (Quad neighbor in neighbors)
+        bool neighborSubdivided = false;
+        for (int i = 0; i < 4; i++)
         {
-            if (neighbor.GetLevel() < _level)
-            {
-                neighbor.Subdivide();
-            }
-            if (neighbor.GetLevel() <= _level)
+            EdgeType edge = (EdgeType)i;
+            var neighbors = GetNeighborSharingEdge(edge);
+            foreach (Quad neighbor in neighbors)
             {
                 neighbor.UpdateNeighborCache();
-                neighbor.ActivateEdgeFanVerts();
+                if (neighbor.GetLevel() < _level)
+                {
+                    neighbor.Subdivide();
+                    neighborSubdivided = true;
+                }
             }
         }
-    }
 
-    /// <summary>
-    /// called when removing LoD from mesh
-    /// </summary>
-    public void Unify(Vector3 playerPosition)
-    {
-        RemoveChildren();
-        DeactivateEdgeFanVerts();
-
-        // update neighbors
-        UpdateNeighborsForUnification(playerPosition);
-
-        DeactivateEdgeFanVerts();
-        ActivateEdgeFanVerts();
-    }
-
-    private void UpdateNeighborsForUnification(Vector3 playerPosition)
-    {
-        var neighbors = GetAllNeighbors();
-        foreach (Quad neighbor in neighbors)
+        if (neighborSubdivided)
         {
-            // can't unify neighbor if the player is causing them to subdivide
-            if (neighbor.GetParent() != null && neighbor.GetLevel() > _level + 1 && !neighbor.GetParent().IsWithinSubdivisionDistance(playerPosition))
-            {
-                neighbor.GetParent().Unify(playerPosition);
-            }
-            if (neighbor.GetParent() == null && neighbor.GetLevel() > _level + 1)
-            {
-                neighbor.GetParent().Unify(playerPosition);
-            }
+            UpdateNeighborCache();
+        }
 
-            neighbor.DeactivateEdgeFanVerts();
+        for (int i = 0; i < 4; i++)
+        {
+            EdgeType edge = (EdgeType)i;
+            
+            var neighbors = GetNeighborSharingEdge(edge);
+            foreach (Quad neighbor in neighbors)
+            {
+                neighbor.ActivateEdgeFanVertsIfNeeded();
+            }
         }
     }
 
-    private bool IsWithinSubdivisionDistance(Vector3 playerPosition)
+    public float GetDistanceToPlayer(Vector3 playerPosition)
+    {
+        Vector3 adjustedCentre = GetDistanceTestLocation();
+        return Vector3.Distance(playerPosition, adjustedCentre);
+    }
+
+    public bool IsWithinSubdivisionDistance(Vector3 playerPosition)
     {
         Vector3 adjustedCentre = GetDistanceTestLocation();
         return Vector3.Distance(adjustedCentre, playerPosition) <= _subdivisionDist;
@@ -384,32 +301,7 @@ public class Quad : IDisposable
 
     private Vector3 GetDistanceTestLocation()
     {
-        return _face.GetParent().ApplyRotation(_face.GetParent().ApplyCurve(Centre.Point))[0];
-    }
-
-    public bool ShouldRemainSubdividedForNeighbor(Vector3 playerPosition)
-    {
-        if (!Active)
-        {
-            Quad[] neighbors = GetAllNeighbors();
-            foreach (Quad neighbor in neighbors)
-            {
-                if (neighbor.GetLevel() > _level)
-                {
-                    // if we are here the neighbor MUST have a parent
-                    if (neighbor.GetParent().IsWithinSubdivisionDistance(playerPosition))
-                    {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
-    private bool HasActiveEdgeVerts(EdgeType type)
-    {
-        return GetEdgeFanVerts(type).Any(v => v.Active);
+        return _face.GetParent().ApplyRotation(_face.GetParent().ApplyPosition(_face.GetParent().ApplyScale(Centre.Point))).First();
     }
 
     public List<int> GetTriangles()
@@ -435,7 +327,7 @@ public class Quad : IDisposable
             {
                 for (int col = 0; col < cols; col++)
                 {
-                    int index = FlatArray.GetIndexFromRowCol(row, col, cols+1);
+                    int index = FlatArray.GetIndexFromRowCol(row, col, cols + 1);
                     //    |   |
                     // ---2---3---
                     //    |   |   
@@ -503,6 +395,7 @@ public class Quad : IDisposable
                 }
             }
         }
+
         return tris;
     }
 
@@ -1121,22 +1014,8 @@ public class Quad : IDisposable
 
         return tris;
     }
-
-    public bool ShouldDeactivateCentreVerts(EdgeType type)
-    {
-        if (Active)
-        {
-            QuadVert[] edgeFanVerts = GetEdgeFanVerts(type);
-            if (edgeFanVerts != null && edgeFanVerts.Any(v => v.Active))
-            {
-                return false;
-            }
-            return true;
-        }
-        return false;
-    }
-
-    public bool ShouldActivateCentreVerts(EdgeType type)
+    
+    private bool ShouldActivateCentreVerts(EdgeType type)
     {
         if (Active && !GetCentreVerts(type).All(v => v.Active))
         {
@@ -1151,35 +1030,13 @@ public class Quad : IDisposable
         return false;
     }
 
-    private bool ShouldDeactivateEdgeFanVerts(EdgeType edge)
-    {
-        if (Active)
-        {
-            QuadVert[] edgeFanVerts = GetEdgeFanVerts(edge);
-            if (edgeFanVerts != null && edgeFanVerts.Any(v => v.Active))
-            {
-                Quad[] neighbors = GetNeighborSharingEdge(edge);
-                foreach (Quad neighbor in neighbors)
-                {
-                    if (neighbor.GetLevel() > _level)
-                    {
-                        return false;
-                    }
-                }
-
-                return true;
-            }
-        }
-        return false;
-    }
-
     private bool ShouldActivateEdgeFanVerts(EdgeType edge)
     {
         if (Active)
         {
             QuadVert[] edgeFanVerts = GetEdgeFanVerts(edge);
             QuadVert[] centreVerts = GetCentreVerts(edge);
-            if (edgeFanVerts != null && (edgeFanVerts.Any(v => !v.Active) || (centreVerts.Any(v => !v.Active))))
+            if (edgeFanVerts != null && (edgeFanVerts.Any(v => !v.Active) || centreVerts.Any(v => !v.Active)))
             {
                 Quad[] neighbors = GetNeighborSharingEdge(edge);
                 foreach (Quad neighbor in neighbors)
@@ -1196,29 +1053,7 @@ public class Quad : IDisposable
         return false;
     }
 
-    private void ActivateAllQuadVerts()
-    {
-        for (int i = 0; i < Vertices.Length; i++)
-        {
-            Vertices[i].Activate();
-        }
-        for (int i = 0; i < _edgeVertices.Length; i++)
-        {
-            foreach (QuadVert qv in _edgeVertices[i])
-            {
-                qv.Activate();
-            }
-        }
-        for (int i = 0; i < _centreVertices.Length; i++)
-        {
-            foreach (QuadVert qv in _centreVertices[i])
-            {
-                qv.Activate();
-            }
-        }
-    }
-
-    public bool ActivateEdgeFanVerts()
+    public bool ActivateEdgeFanVertsIfNeeded()
     {
         bool updated = false;
         for (int i = 0; i < 4; i++)
@@ -1226,117 +1061,31 @@ public class Quad : IDisposable
             EdgeType edge = (EdgeType)i;
             if (ShouldActivateEdgeFanVerts(edge))
             {
-                QuadVert[] edgeFanVerts = GetEdgeFanVerts(edge);
-                QuadVert[] centreVerts = GetCentreVerts(edge);
-                if (edgeFanVerts != null && centreVerts != null)
-                {
-                    for (int j=0; j<edgeFanVerts.Length; j++)
-                    {
-                        edgeFanVerts[j].Activate();
-                        centreVerts[j].Activate();
-                    }
-                }
+                ForceActivateEdgeFanVerts(edge);
                 updated = true;
             }
         }
         return updated;
     }
 
-    public bool DeactivateEdgeFanVerts()
+    public void ForceActivateEdgeFanVerts(EdgeType edge)
     {
-        bool updated = false;
-        for (int i = 0; i < 4; i++)
+        QuadVert[] edgeFanVerts = GetEdgeFanVerts(edge);
+        QuadVert[] centreVerts = GetCentreVerts(edge);
+        if (edgeFanVerts != null && centreVerts != null)
         {
-            EdgeType edge = (EdgeType)i;
-            if (ShouldDeactivateEdgeFanVerts(edge))
+            for (int j = 0; j < edgeFanVerts.Length; j++)
             {
-                QuadVert[] edgeFanVerts = GetEdgeFanVerts(edge);
-                if (edgeFanVerts != null)
-                {
-                    for (int j=0; j<edgeFanVerts.Length; j++)
-                    {
-                        edgeFanVerts[j].Deactivate();
-                    }
-                }
-                updated = true;
+                _map.Activate(edgeFanVerts[j].Point);
+                _map.Activate(centreVerts[j].Point);
             }
         }
-
-        updated = DeactivateCentreVerts() || updated;
-
-        return updated;
-    }
-
-    public bool DeactivateCentreVerts()
-    {
-        bool updated = false;
-        for (int i=0; i<4; i++)
-        {
-            EdgeType edge = (EdgeType)i;
-            if (ShouldDeactivateCentreVerts(edge))
-            {
-                QuadVert[] centreVerts = GetCentreVerts(edge);
-                if (centreVerts != null)
-                {
-                    for (int j=0; j<centreVerts.Length; j++)
-                    {
-                        // need to handle corner centres separately because they are shared between two sides
-                        if (IsCornerCentre(centreVerts[j]))
-                        {
-                            switch ((EdgeType)i)
-                            {
-                                case EdgeType.Top:
-                                case EdgeType.Bottom:
-                                    if (j == 0)
-                                    {
-                                        if (ShouldDeactivateCentreVerts(EdgeType.Left))
-                                        {
-                                            centreVerts[j].Deactivate();
-                                        }
-                                    }
-                                    else
-                                    {
-                                        if (ShouldDeactivateCentreVerts(EdgeType.Right))
-                                        {
-                                            centreVerts[j].Deactivate();
-                                        }
-                                    }
-                                    break;
-                                case EdgeType.Left:
-                                case EdgeType.Right:
-                                    if (j == 0)
-                                    {
-                                        if (ShouldDeactivateCentreVerts(EdgeType.Bottom))
-                                        {
-                                            centreVerts[j].Deactivate();
-                                        }
-                                    }
-                                    else 
-                                    {
-                                        if (ShouldDeactivateCentreVerts(EdgeType.Top))
-                                        {
-                                            centreVerts[j].Deactivate();
-                                        }
-                                    }
-                                    break;
-                            }
-                        }
-                        else
-                        {
-                            centreVerts[j].Deactivate();
-                        }
-                    }
-                }
-                updated = true;
-            }
-        }
-        return updated;
     }
 
     private bool IsCornerCentre(QuadVert qv)
     {
         int references = 0;
-        for (int i=0; i<4; i++)
+        for (int i = 0; i < 4; i++)
         {
             var centres = GetCentreVerts((EdgeType)i);
             if (centres.Contains(qv))
@@ -1383,6 +1132,9 @@ public class Quad : IDisposable
         float xOffset = 0F;
         float yOffset = 0F;
         float zOffset = 0F;
+        Vector2 uvOffset = _face.GetUVOffset();
+        float uvXScalar = 1 / (4 * _face.GetSize());
+        float uvYScalar = 1 / (4 * _face.GetSize());
 
         for (int row = 0; row < rows; row++)
         {
@@ -1391,6 +1143,7 @@ public class Quad : IDisposable
                 int index = FlatArray.GetIndexFromRowCol(row, col, cols);
 
                 Vector3 v = Vector3.zero;
+                Vector2 uv = Vector2.zero;
                 switch (_face.GetFaceType())
                 {
                     case QuadFaceType.ZNegBack:
@@ -1398,41 +1151,55 @@ public class Quad : IDisposable
                         yOffset = _size / (_subdivisions + 1F); // positive
 
                         v = new Vector3((col * xOffset) + _bottomLeft.x, (row * yOffset) + _bottomLeft.y, _bottomLeft.z);
+                        uv = new Vector2((v.x + _face.GetParent().GetRadius()) * uvXScalar, (v.y + _face.GetParent().GetRadius()) * uvYScalar);
                         break;
                     case QuadFaceType.ZPosFront:
                         xOffset = -_size / (_subdivisions + 1F); // negative
                         yOffset = _size / (_subdivisions + 1F); // positive
 
                         v = new Vector3((col * xOffset) + _bottomLeft.x, (row * yOffset) + _bottomLeft.y, _bottomLeft.z);
+                        uv = new Vector2((v.x - _face.GetParent().GetRadius()) * -uvXScalar, (v.y + _face.GetParent().GetRadius()) * uvYScalar);
                         break;
                     case QuadFaceType.XNegLeft:
                         yOffset = _size / (_subdivisions + 1F); // positive
                         zOffset = -_size / (_subdivisions + 1F); // negative
 
                         v = new Vector3(_bottomLeft.x, (row * yOffset) + _bottomLeft.y, (col * zOffset) + _bottomLeft.z);
+                        uv = new Vector2((v.z - _face.GetParent().GetRadius()) * -uvXScalar, (v.y + _face.GetParent().GetRadius()) * uvYScalar);
                         break;
                     case QuadFaceType.XPosRight:
                         yOffset = _size / (_subdivisions + 1F); // positive
                         zOffset = _size / (_subdivisions + 1F); // positive
 
                         v = new Vector3(_bottomLeft.x, (row * yOffset) + _bottomLeft.y, (col * zOffset) + _bottomLeft.z);
+                        uv = new Vector2((v.z + _face.GetParent().GetRadius()) * uvXScalar, (v.y + _face.GetParent().GetRadius()) * uvYScalar);
                         break;
                     case QuadFaceType.YPosTop:
                         xOffset = _size / (_subdivisions + 1F); // positive
                         zOffset = _size / (_subdivisions + 1F); // positive
 
                         v = new Vector3((col * xOffset) + _bottomLeft.x, _bottomLeft.y, (row * zOffset) + _bottomLeft.z);
+                        uv = new Vector2((v.x - _face.GetParent().GetRadius()) * -uvXScalar, (v.z - _face.GetParent().GetRadius()) * -uvYScalar);
                         break;
                     case QuadFaceType.YNegBottom:
                         xOffset = _size / (_subdivisions + 1F); // positive
                         zOffset = -_size / (_subdivisions + 1F); // negative
 
                         v = new Vector3((col * xOffset) + _bottomLeft.x, _bottomLeft.y, (row * zOffset) + _bottomLeft.z);
+                        uv = new Vector2((v.x - _face.GetParent().GetRadius()) * -uvXScalar, (v.z + _face.GetParent().GetRadius()) * uvYScalar);
                         break;
                 }
 
-                float tolerance = (Mathf.Abs(xOffset) / 4F);
-                QuadVert qv = _map.CreateOrGet(v, true, tolerance);
+                float avgOffset = (Mathf.Abs(xOffset) + Mathf.Abs(yOffset) + Mathf.Abs(zOffset)) / 2;
+                _tolerance = (avgOffset / 2.001F);
+                QuadVert qv = new QuadVert
+                {
+                    Point = v,
+                    UV = uv + uvOffset,
+                    User = this,
+                    Active = true
+                };
+                _map.Add(qv);
                 Vertices[index] = qv;
 
                 #region Generate Edge and Centre Verts for LoD blending
@@ -1440,97 +1207,69 @@ public class Quad : IDisposable
                 if (row == 0)
                 {
                     // generate midpoint QuadVert on edge
-                    if (col > 0 && col < cols)
+                    if (col > 0)
                     {
-                        var edgeMidpoint = (v + Vertices[index-1].Point) / 2; // avg between this point and previous
-                        QuadVert midpoint = _map.CreateOrGet(edgeMidpoint, false, tolerance);
-                        AddEdgeVert(EdgeType.Bottom, col-1, midpoint);
+                        QuadVert midpoint = _map.AddMidPoint(false, _tolerance, Vertices[index], Vertices[index - 1]);
+                        AddEdgeVert(EdgeType.Bottom, col - 1, midpoint);
                     }
                 }
                 if (row == 1 && col > 0)
                 {
                     // generate centre QuadVerts for bottom edges
-                    var centrePoint = GenerateCentrePoint(index);
-                    QuadVert centre = _map.CreateOrGet(centrePoint, false, tolerance);
-                    AddCentreVert(EdgeType.Bottom, col-1, centre);
+                    QuadVert centre = GetCentreQuadVert(index, cols, false, _tolerance);
+                    AddCentreVert(EdgeType.Bottom, col - 1, centre);
                 }
 
                 // if last row, add to top edge
                 if (row == (rows - 1))
                 {
                     // generate midpoint QuadVert on edge and generate QuadVert for centre
-                    if (col > 0 && col < cols)
+                    if (col > 0)
                     {
-                        var edgeMidpoint = (v + Vertices[index-1].Point) / 2; // avg between this point and previous
-                        QuadVert midpoint = _map.CreateOrGet(edgeMidpoint, false, tolerance);
-                        AddEdgeVert(EdgeType.Top, col-1, midpoint);
+                        QuadVert midpoint = _map.AddMidPoint(false, _tolerance, Vertices[index], Vertices[index - 1]);
+                        AddEdgeVert(EdgeType.Top, col - 1, midpoint);
                     }
                 }
                 if (row == (rows - 1) && col > 0)
                 {
                     // generate centre QuadVerts for top edges
-                    var centrePoint = GenerateCentrePoint(index);
-                    QuadVert centre = _map.CreateOrGet(centrePoint, false, tolerance);
-                    AddCentreVert(EdgeType.Top, col-1, centre);
+                    QuadVert centre = GetCentreQuadVert(index, cols, false, _tolerance);
+                    AddCentreVert(EdgeType.Top, col - 1, centre);
                 }
 
                 // if first column, add to left edge
                 if (col == 0)
                 {
                     // generate midpoint QuadVert on edge and generate QuadVert for centre
-                    if (row > 0 && row < rows)
+                    if (row > 0)
                     {
-                        var edgeMidpoint = (v + Vertices[FlatArray.GetIndexFromRowCol(row - 1, col, cols)].Point) / 2; // avg between this point and previous
-                        QuadVert midpoint = _map.CreateOrGet(edgeMidpoint, false, tolerance);
-                        AddEdgeVert(EdgeType.Left, row-1, midpoint);
+                        QuadVert midpoint = _map.AddMidPoint(false, _tolerance, Vertices[index], Vertices[FlatArray.GetIndexFromRowCol(row - 1, col, cols)]);
+                        AddEdgeVert(EdgeType.Left, row - 1, midpoint);
                     }
                 }
                 if (col == 1 && row > 0)
                 {
                     // generate centre QuadVerts for left edges
-                    var centrePoint = GenerateCentrePoint(index);
-                    QuadVert centre = _map.CreateOrGet(centrePoint, false, tolerance);
-                    AddCentreVert(EdgeType.Left, row-1, centre);
+                    QuadVert centre = GetCentreQuadVert(index, cols, false, _tolerance);
+                    AddCentreVert(EdgeType.Left, row - 1, centre);
                 }
 
                 // if last column, add to right edge
                 if (col == (cols - 1))
                 {
                     // generate midpoint QuadVert on edge and generate QuadVert for centre
-                    if (row > 0 && row < rows)
+                    if (row > 0)
                     {
-                        var edgeMidpoint = (v + Vertices[FlatArray.GetIndexFromRowCol(row - 1, col, cols)].Point) / 2; // avg between this point and previous
-                        QuadVert midpoint = _map.CreateOrGet(edgeMidpoint, false, tolerance);
-                        AddEdgeVert(EdgeType.Right, row-1, midpoint);
+                        QuadVert midpoint = _map.AddMidPoint(false, _tolerance, Vertices[index], Vertices[FlatArray.GetIndexOnPreviousRow(index, cols)]);
+                        AddEdgeVert(EdgeType.Right, row - 1, midpoint);
                     }
                 }
                 if (col == (cols - 1) && row > 0)
                 {
-                    var centrePoint = GenerateCentrePoint(index);
-                    QuadVert centre = _map.CreateOrGet(centrePoint, false, tolerance);
-                    AddCentreVert(EdgeType.Right, row-1, centre);
+                    QuadVert centre = GetCentreQuadVert(index, cols, false, _tolerance);
+                    AddCentreVert(EdgeType.Right, row - 1, centre);
                 }
                 #endregion
-            }
-        }
-
-        // increment usages of QuadVerts so we know when we can deactivate
-        foreach (QuadVert qv in Vertices)
-        {
-            qv.AddUser(this);
-        }
-        for (int i = 0; i < _edgeVertices.Length; i++)
-        {
-            foreach (QuadVert qv in _edgeVertices[i])
-            {
-                qv.AddUser(this);
-            }
-        }
-        for (int i = 0; i < _centreVertices.Length; i++)
-        {
-            foreach (QuadVert qv in _centreVertices[i])
-            {
-                qv.AddUser(this);
             }
         }
     }
@@ -1538,42 +1277,38 @@ public class Quad : IDisposable
     /// <summary>
     /// starting from a top-right <see cref="QuadVert"/> in the <see cref="Vertices"/> array,
     /// get the previous 4 box forming verts and average them together:
-    /// Ex: index = 3
+    /// Ex: index = 7, totalColumns = 5
     /// 
-    /// 2---3
-    /// |   |
-    /// | C |
-    /// |   |
-    /// 0---1
+    /// |   |   |   |   |
+    /// 5---6---7---8---9
+    /// |   | C |   |   |
+    /// 0---1---2---3---4
+    /// 
+    /// would take the average of points at 7, 6, 2 and 1 and would return point C
     /// 
     /// NOTE: starting index of top-right must be used to ensure other verts already exist
     /// </summary>
     /// <param name="index"></param>
     /// <returns>the midpoint (average) of 4 points where <see cref="index"/> is the top-right</returns>
-    private Vector3 GenerateCentrePoint(int index)
+    private QuadVert GetCentreQuadVert(int index, int totalColumns, bool activated, float tolerance)
     {
-        var centrePoint = (Vertices[index].Point + Vertices[index - 1].Point + Vertices[FlatArray.GetIndexOnPreviousRow(index, _subdivisions + 2)].Point + Vertices[FlatArray.GetIndexOnPreviousRow(index, _subdivisions + 2) - 1].Point) / 4;
+        var centrePoint = _map.AddMidPoint(activated, tolerance, Vertices[index], Vertices[index - 1], Vertices[FlatArray.GetIndexOnPreviousRow(index, totalColumns)], Vertices[FlatArray.GetIndexOnPreviousRow(index, totalColumns) - 1]);
         return centrePoint;
-    }
-
-    private float GetElevation(Vector3 location, float offset)
-    {
-        float smooth = 0.03F;
-        Vector3 offsetLocation = new Vector3(location.x + offset, location.y + offset, location.z + offset);
-        float elevation = Mathf.PerlinNoise(offsetLocation.x * smooth, offsetLocation.y * smooth);
-        elevation += Mathf.PerlinNoise(offsetLocation.x * smooth, offsetLocation.z * smooth);
-
-        return elevation * 10F;
     }
 
     private void AddEdgeVert(EdgeType type, int index, QuadVert qv)
     {
-        _edgeVertices[(int)type][index] = qv;
+        _edgeFanVertices[(int)type][index] = qv;
     }
 
     public QuadVert[] GetEdgeFanVerts(EdgeType type)
     {
-        return _edgeVertices[(int)type];
+        return _edgeFanVertices[(int)type];
+    }
+
+    private bool HasActiveEdgeVerts(EdgeType type)
+    {
+        return GetEdgeFanVerts(type).Any(v => v.Active);
     }
 
     private void AddCentreVert(EdgeType type, int index, QuadVert qv)
@@ -1681,37 +1416,9 @@ public class Quad : IDisposable
         return _children;
     }
 
-    public Quad[] GetChildrenOnEdge(EdgeType edgeType)
-    {
-        List<Quad> chilren = new List<Quad>();
-        if (HasChildren)
-        {
-            switch (edgeType)
-            {
-                case EdgeType.Top:
-                    chilren.Add(GetChild(QuadType.TopLeft));
-                    chilren.Add(GetChild(QuadType.TopRight));
-                    break;
-                case EdgeType.Bottom:
-                    chilren.Add(GetChild(QuadType.BottomLeft));
-                    chilren.Add(GetChild(QuadType.BottomRight));
-                    break;
-                case EdgeType.Left:
-                    chilren.Add(GetChild(QuadType.TopLeft));
-                    chilren.Add(GetChild(QuadType.BottomLeft));
-                    break;
-                case EdgeType.Right:
-                    chilren.Add(GetChild(QuadType.TopRight));
-                    chilren.Add(GetChild(QuadType.BottomRight));
-                    break;
-            }
-        }
-        return chilren.ToArray(); ;
-    }
-
     public void RemoveChildren()
     {
-        for (int i=0; i<_children.Length; i++)
+        for (int i = 0; i < _children.Length; i++)
         {
             if (_children[i] != null)
             {
@@ -1807,7 +1514,7 @@ public class Quad : IDisposable
         var quadFamilyTree = GetDecendants(this);
         foreach (QuadVert qv in edgeVerts)
         {
-            Quad[] otherActiveUsers = qv.GetUsers().Where(u => u.Active && !quadFamilyTree.Contains(u)).ToArray();
+            Quad[] otherActiveUsers = _map.GetUsers(qv.Point, _tolerance).Where(u => u.Active && !quadFamilyTree.Contains(u)).ToArray();
 
             foreach (Quad user in otherActiveUsers)
             {
@@ -1853,21 +1560,21 @@ public class Quad : IDisposable
         // decrement usage of QuadVerts
         foreach (QuadVert qv in Vertices)
         {
-            qv.RemoveUser(this);
+            _map.Remove(qv);
         }
-        for (int i = 0; i < _edgeVertices.Length; i++)
+        for (int i = 0; i < _edgeFanVertices.Length; i++)
         {
-            for (int j = 0; j < _edgeVertices[i].Length; j++)
+            for (int j = 0; j < _edgeFanVertices[i].Length; j++)
             {
-                _edgeVertices[i][j].RemoveUser(this);
+                _map.Remove(_edgeFanVertices[i][j]);
             }
-            _edgeVertices[i] = null;
+            _edgeFanVertices[i] = null;
         }
         for (int i = 0; i < _centreVertices.Length; i++)
         {
             for (int j = 0; j < _centreVertices[i].Length; j++)
             {
-                _centreVertices[i][j].RemoveUser(this);
+                _map.Remove(_centreVertices[i][j]);
             }
             _centreVertices[i] = null;
         }

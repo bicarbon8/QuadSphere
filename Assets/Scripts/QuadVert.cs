@@ -21,35 +21,10 @@ using UnityEngine;
 
 public class QuadVert
 {
-    private HashSet<Quad> _users = new HashSet<Quad>();
-
-    public bool Active { get; private set; }
+    public bool Active { get; set; }
     public Vector3 Point { get; set; }
-    public bool InUse { get { return Usages > 0; } }
-    public int Usages { get { return _users.Count; } }
-
-    public bool AddUser(Quad user)
-    {
-        return _users.Add(user);
-    }
-    public bool RemoveUser(Quad user)
-    {
-        return _users.Remove(user);
-    }
-
-    public void Activate()
-    {
-        Active = true;
-    }
-    public void Deactivate()
-    {
-        Active = false;
-    }
-
-    public Quad[] GetUsers()
-    {
-        return _users.ToArray();
-    }
+    public Vector2 UV { get; set; }
+    public Quad User { get; set; }
 
     public override string ToString()
     {

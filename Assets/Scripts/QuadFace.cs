@@ -17,7 +17,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using UnityEngine;
 
 /// <summary>
@@ -25,6 +24,41 @@ using UnityEngine;
 /// </summary>
 public class QuadFace
 {
+    private Vector3 _centre = Vector3.zero;
+    public Vector3 Centre
+    {
+        get
+        {
+            if (_centre == Vector3.zero)
+            {
+                Vector3 direction = Vector3.zero;
+                switch (_type)
+                {
+                    case QuadFaceType.ZNegBack:
+                        direction = Vector3.back;
+                        break;
+                    case QuadFaceType.ZPosFront:
+                        direction = Vector3.forward;
+                        break;
+                    case QuadFaceType.XNegLeft:
+                        direction = Vector3.left;
+                        break;
+                    case QuadFaceType.XPosRight:
+                        direction = Vector3.right;
+                        break;
+                    case QuadFaceType.YPosTop:
+                        direction = Vector3.up;
+                        break;
+                    case QuadFaceType.YNegBottom:
+                        direction = Vector3.down;
+                        break;
+                }
+                _centre = direction * (_size / 2);
+            }
+            return _centre;
+        }
+    }
+
     private float _size;
     private GameObject _player;
     private int _quadsPerRow;
@@ -119,30 +153,44 @@ public class QuadFace
         return _parent;
     }
 
-    public async Task<bool> UpdateAsync(Vector3 playerPosition)
+    public Vector2 GetUVOffset()
     {
-        var t = Task.Run<bool>(() => Update(playerPosition));
-        return await t;
-    }
-    public bool Update(Vector3 playerPosition)
-    {
-        List<bool> updated = new List<bool>();
-        if (_quads != null)
+        Vector2 offset = Vector2.zero;
+        switch (_type)
         {
-            foreach (Quad q in _quads)
-            {
-                updated.Add(q.Update(playerPosition));
-            }
+            case QuadFaceType.ZNegBack:
+                offset = new Vector2(0.75F, 0.25F);
+                break;
+            case QuadFaceType.ZPosFront:
+                offset = new Vector2(0.25F, 0.25F);
+                break;
+            case QuadFaceType.XNegLeft:
+                offset = new Vector2(0.5F, 0.25F);
+                break;
+            case QuadFaceType.XPosRight:
+                offset = new Vector2(0F, 0.25F);
+                break;
+            case QuadFaceType.YPosTop:
+                offset = new Vector2(0.25F, 0.5F);
+                break;
+            case QuadFaceType.YNegBottom:
+                offset = new Vector2(0.25F, 0F);
+                break;
         }
-
-        return updated.Any(u => u == true);
+        return offset;
     }
 
-    public async Task<List<int>> GetTrianglesAsync()
+    public float GetDistanceToPlayer(Vector3 playerPosition)
     {
-        var t = Task.Run(() => GetTriangles());
-        return await t;
+        Vector3 adjustedCentre = GetDistanceTestLocation();
+        return Vector3.Distance(playerPosition, adjustedCentre);
     }
+
+    private Vector3 GetDistanceTestLocation()
+    {
+        return GetParent().ApplyRotation(GetParent().ApplyPosition(GetParent().ApplyScale(Centre)))[0];
+    }
+
     public List<int> GetTriangles()
     {
         List<int> triangles = new List<int>();

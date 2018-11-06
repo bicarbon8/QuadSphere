@@ -15,16 +15,15 @@
 * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 *************************************************************************/
 using System;
-using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
 public class QuadVertMap
 {
-    private ConcurrentQueue<QuadVert> _quadVerts;
+    private List<QuadVert> _quadVerts;
 
     public int Count { get { return _quadVerts.Count; } }
-
     public int ActiveCount
     {
         get
@@ -40,36 +39,80 @@ public class QuadVertMap
             return count;
         }
     }
-
     public Vector3[] Vertices { get { return _quadVerts.Select(q => q.Point).ToArray(); } }
+    public Vector2[] UVs { get { return _quadVerts.Select(q => q.UV).ToArray(); } }
 
     public QuadVertMap()
     {
-        _quadVerts = new ConcurrentQueue<QuadVert>();
+        _quadVerts = new List<QuadVert>();
     }
 
-    public QuadVert CreateOrGet(Vector3 v, bool activated = false, float tolerance = 0F)
+    public void Add(QuadVert quadVert)
     {
-        QuadVert qv = null;
-        if (!_quadVerts.Any(q => IsWithinTolerance(q.Point, v, tolerance)))
+        _quadVerts.Add(quadVert);
+    }
+
+    public void Remove(QuadVert quadVert)
+    {
+        _quadVerts.Remove(quadVert);
+    }
+
+    public QuadVert[] Get(Vector3 v, float tolerance = 0F)
+    {
+        return _quadVerts.Where(q => IsWithinTolerance(q.Point, v, tolerance)).ToArray();
+    }
+
+    public void Activate(QuadVert qv, float tolerance = 0F)
+    {
+        Activate(qv.Point, tolerance);
+    }
+    public void Activate(Vector3 v, float tolerance = 0F)
+    {
+        QuadVert[] verts = Get(v, tolerance);
+        foreach (QuadVert qv in verts)
         {
-            qv = new QuadVert
+            qv.Active = true;
+        }
+    }
+
+    public void Deactivate(QuadVert qv, float tolerance = 0F)
+    {
+        Deactivate(qv.Point, tolerance);
+    }
+    public void Deactivate(Vector3 v, float tolerance = 0F)
+    {
+        QuadVert[] verts = Get(v, tolerance);
+        foreach (QuadVert qv in verts)
+        {
+            qv.Active = false;
+        }
+    }
+
+    public bool IsActive(QuadVert qv, float tolerance = 0F)
+    {
+        return IsActive(qv.Point, tolerance);
+    }
+    public bool IsActive(Vector3 v, float tolerance = 0F)
+    {
+        return Get(v, tolerance).Any(qv => qv.Active);
+    }
+
+    public Quad[] GetUsers(QuadVert qv, float tolerance = 0F)
+    {
+        return GetUsers(qv.Point, tolerance);
+    }
+    public Quad[] GetUsers(Vector3 v, float tolerance = 0F)
+    {
+        HashSet<Quad> users = new HashSet<Quad>();
+        QuadVert[] verts = Get(v, tolerance);
+        foreach (QuadVert qv in verts)
+        {
+            if (!users.Contains(qv.User))
             {
-                Point = v
-            };
-            
-            _quadVerts.Enqueue(qv);
+                users.Add(qv.User);
+            }
         }
-        qv = _quadVerts.First(q => IsWithinTolerance(q.Point, v, tolerance));
-        if (activated)
-        {
-            qv.Activate();
-        }
-        else
-        {
-            qv.Deactivate();
-        }
-        return qv;
+        return users.ToArray();
     }
 
     public QuadVert this[int index]
@@ -86,18 +129,7 @@ public class QuadVertMap
 
     public int GetIndex(QuadVert quadVert)
     {
-        return GetIndex(quadVert.Point);
-    }
-
-    public int GetIndex(Vector3 point)
-    {
-        var tmp = _quadVerts.ToArray();
-        QuadVert qv = tmp.FirstOrDefault(q => q.Point == point);
-        if (qv != null)
-        {
-            return _quadVerts.ToList().IndexOf(qv);
-        }
-        return -1;
+        return _quadVerts.ToList().IndexOf(quadVert);
     }
 
     private bool IsWithinTolerance(Vector3 a, Vector3 b, float tolerance)
@@ -116,5 +148,28 @@ public class QuadVertMap
         }
 
         return true;
+    }
+
+    public QuadVert AddMidPoint(bool activated = false, float tolerance = 0F, params QuadVert[] quadVerts)
+    {
+        Vector3 avgPoint = Vector3.zero;
+        Vector2 avgUv = Vector2.zero;
+        foreach (QuadVert qv in quadVerts)
+        {
+            avgPoint += qv.Point;
+            avgUv += qv.UV;
+        }
+        avgPoint /= quadVerts.Length;
+        avgUv /= quadVerts.Length;
+
+        QuadVert quadVert = new QuadVert
+        {
+            Point = avgPoint,
+            UV = avgUv,
+            User = quadVerts.First().User,
+            Active = activated
+        };
+        Add(quadVert);
+        return quadVert;
     }
 }
