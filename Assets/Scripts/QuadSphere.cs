@@ -15,6 +15,7 @@
 * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 *************************************************************************/
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -30,266 +31,172 @@ public class QuadSphere : MonoBehaviour
 {
     public GameObject Player;
     public float Radius;
-    public int QuadsPerFace;
     public int StartingSubdivisionsPerQuad;
     public float[] SubdivisionDistances;
     public Material SphereMaterial;
-    public bool UsePerlinNoise;
+    public bool UseNoiseForElevation;
+    public FastNoise.NoiseType NoiseType;
     public bool SmoothNegativeElevations;
-    public float StartingNoiseOffset;
+    public int NoiseSeed;
     public float StartingNoiseFrequency;
     public float StartingNoiseAmplitude;
 
     private QuadFace[] _faces;
-    private QuadVertMap _map;
-    private MeshFilter _meshFilter;
-    private MeshCollider _meshCollider;
-    private MeshRenderer _meshRenderer;
-
-    private Vector3 _position;
-    private Quaternion _rotation;
-    private Vector3 _scale;
+    private QuadTriangleCache _triangleCache;
 
     private void Start()
     {
-        _meshFilter = gameObject.AddComponent<MeshFilter>();
-        _meshCollider = gameObject.AddComponent<MeshCollider>();
-        _meshRenderer = gameObject.AddComponent<MeshRenderer>();
-        _meshRenderer.material = new Material(SphereMaterial);
+        // only allow odd numbers of subdivisions as this simplifies the maths
+        if (StartingSubdivisionsPerQuad % 2 == 0)
+        {
+            StartingSubdivisionsPerQuad++;
+        }
+
+        _faces = new QuadFace[6];
+        _triangleCache = new QuadTriangleCache(StartingSubdivisionsPerQuad + 2);
+
+        // create Front
+        AddFace(QuadFaceType.ZPosFront, Radius * 2, Player, StartingSubdivisionsPerQuad, SubdivisionDistances, _triangleCache);
+
+        // create Left
+        AddFace(QuadFaceType.XNegLeft, Radius * 2, Player, StartingSubdivisionsPerQuad, SubdivisionDistances, _triangleCache);
+
+        // create Right
+        AddFace(QuadFaceType.XPosRight, Radius * 2, Player, StartingSubdivisionsPerQuad, SubdivisionDistances, _triangleCache);
+
+        // create Top
+        AddFace(QuadFaceType.YPosTop, Radius * 2, Player, StartingSubdivisionsPerQuad, SubdivisionDistances, _triangleCache);
+
+        // create Bottom
+        AddFace(QuadFaceType.YNegBottom, Radius * 2, Player, StartingSubdivisionsPerQuad, SubdivisionDistances, _triangleCache);
+
+        // create Back
+        AddFace(QuadFaceType.ZNegBack, Radius * 2, Player, StartingSubdivisionsPerQuad, SubdivisionDistances, _triangleCache);
+
+        Render();
     }
 
-    public Vector3 GetScale()
-    {
-        return _scale;
-    }
-
-    public float GetRadius()
-    {
-        return Radius;
-    }
-
-    private Task<List<int>> _updateTask;
     private void Update()
     {
-        _position = transform.position;
-        _rotation = transform.rotation;
-        _scale = transform.localScale;
-
-        if (_updateTask == null)
-        {
-            // TODO: only send if player position or quadsphere position changed
-            _updateTask = UpdateAndGetTrianglesAsync(Player.transform.position);
-        }
-
-        if (_updateTask.IsCompleted)
-        {
-            Render(_updateTask.Result);
-            _updateTask = null;
-        }
+        StartCoroutine(UpdateFaces(Player.transform.position));
+        Render();
     }
 
-    private async Task<List<int>> UpdateAndGetTrianglesAsync(Vector3 playerPosition)
+    private bool _updating = false;
+    private IEnumerator UpdateFaces(Vector3 playerPosition)
     {
-        var t = Task.Run<List<int>>(() =>
+        if (!_updating)
         {
-            _map = new QuadVertMap();
-            _faces = new QuadFace[6];
-            // create Front
-            var front = new QuadFace(this, QuadFaceType.ZPosFront, Radius * 2, Player, QuadsPerFace, StartingSubdivisionsPerQuad, SubdivisionDistances, ref _map);
-            AddFace(front);
+            _updating = true;
 
-            // create Left
-            var left = new QuadFace(this, QuadFaceType.XNegLeft, Radius * 2, Player, QuadsPerFace, StartingSubdivisionsPerQuad, SubdivisionDistances, ref _map);
-            AddFace(left);
-
-            // create Right
-            var right = new QuadFace(this, QuadFaceType.XPosRight, Radius * 2, Player, QuadsPerFace, StartingSubdivisionsPerQuad, SubdivisionDistances, ref _map);
-            AddFace(right);
-
-            // create Top
-            var top = new QuadFace(this, QuadFaceType.YPosTop, Radius * 2, Player, QuadsPerFace, StartingSubdivisionsPerQuad, SubdivisionDistances, ref _map);
-            AddFace(top);
-
-            // create Bottom
-            var bottom = new QuadFace(this, QuadFaceType.YNegBottom, Radius * 2, Player, QuadsPerFace, StartingSubdivisionsPerQuad, SubdivisionDistances, ref _map);
-            AddFace(bottom);
-
-            // create Back
-            var back = new QuadFace(this, QuadFaceType.ZNegBack, Radius * 2, Player, QuadsPerFace, StartingSubdivisionsPerQuad, SubdivisionDistances, ref _map);
-            AddFace(back);
-
-            List<int> triangles = new List<int>();
-            if (_faces != null)
+            // perform subdivision if needed
+            foreach (QuadFace face in _faces)
             {
-                // Get Quad closest to player
-                float minimumFaceDistance = Vector3.Distance(playerPosition, _position);
-                QuadFace closestFace = null;
-                foreach (QuadFace face in _faces)
+                if (face != null)
                 {
-                    float tmpDistance = face.GetDistanceToPlayer(playerPosition);
-                    if (tmpDistance < minimumFaceDistance)
-                    {
-                        minimumFaceDistance = tmpDistance;
-                        closestFace = face;
-                    }
-                }
-
-                if (closestFace != null)
-                {
-                    Quad[] quads = closestFace.GetQuads();
-                    SubdivideQuadsUntilNotInSubdivisionDistance(quads, playerPosition);
-
-                    foreach (QuadFace f in _faces)
-                    {
-                        if (f != null)
-                        {
-                            triangles.AddRange(f.GetTriangles());
-                        }
-                    }
+                    yield return face.UpdateQuad(playerPosition);
                 }
             }
-            return triangles;
-        });
-        return await t;
+
+            _updating = false;
+        }
+        yield return null;
     }
 
-    private void SubdivideQuadsUntilNotInSubdivisionDistance(Quad[] quads, Vector3 playerPosition)
+    private void Render()
     {
-        // get closest quad to player
-        float minimumQuadDistance = Vector3.Distance(playerPosition, _position);
-        Quad closestQuad = null;
-        foreach (Quad q in quads)
+        if (_faces != null && _faces.Any())
         {
-            float tmpDistance = q.GetDistanceToPlayer(playerPosition);
-            if (tmpDistance < minimumQuadDistance)
+            foreach (QuadFace face in _faces)
             {
-                minimumQuadDistance = tmpDistance;
-                closestQuad = q;
-            }
-        }
-
-        if (closestQuad != null)
-        {
-            // determine if Quad is in subdivision range
-            if (closestQuad.IsWithinSubdivisionDistance(playerPosition))
-            {
-                // if it is subdivide Quad
-                closestQuad.Subdivide();
-
-                // repeat
-                SubdivideQuadsUntilNotInSubdivisionDistance(closestQuad.GetChildren(), playerPosition);
+                if (face.ShouldRender())
+                {
+                    face.Render();
+                }
             }
         }
     }
 
-    private void Render(List<int> triangles)
+    private void AddFace(QuadFaceType type, float size, GameObject player, int startingSubdivisions, float[] subdivisionDistances, QuadTriangleCache cache)
     {
-        if (triangles != null && triangles.Any())
+        string faceName = type.ToString();
+        var empty = new GameObject(faceName);
+        empty.transform.parent = gameObject.transform;
+        empty.layer = gameObject.layer;
+        empty.transform.position = transform.position;
+        empty.transform.rotation = transform.rotation;
+
+        switch (type)
         {
-            _meshFilter.mesh.Clear();
-            _meshFilter.mesh.vertices = ApplyCurve(_map.Vertices);
-            _meshFilter.mesh.uv = _map.UVs;
-            _meshFilter.mesh.triangles = triangles.ToArray();
-
-            _meshFilter.mesh.RecalculateNormals();
-            _meshFilter.mesh.RecalculateBounds();
-
-            _meshCollider.sharedMesh = _meshFilter.mesh;
+            case QuadFaceType.YPosTop:
+                empty.transform.Rotate(Vector3.left, 90);
+                empty.transform.Rotate(Vector3.up, 180);
+                break;
+            case QuadFaceType.YNegBottom:
+                empty.transform.Rotate(Vector3.right, 90);
+                empty.transform.Rotate(Vector3.up, 180);
+                break;
+            case QuadFaceType.XNegLeft:
+                empty.transform.Rotate(Vector3.up, 90);
+                break;
+            case QuadFaceType.XPosRight:
+                empty.transform.Rotate(Vector3.down, 90);
+                break;
+            case QuadFaceType.ZPosFront:
+                empty.transform.Rotate(Vector3.up, 180);
+                break;
         }
+        empty.transform.Translate(Vector3.back * (size / 2));
+
+        QuadFace face = empty.AddComponent<QuadFace>();
+        face.Root = this;
+        face.FaceType = type;
+        face.Size = size;
+        face.Player = player;
+        face.Subdivisions = startingSubdivisions;
+        face.SubdivisionDistances = subdivisionDistances;
+        face.TriangleCache = cache;
+        face.StartingNoiseFrequency = StartingNoiseFrequency;
+        face.StartingNoiseAmplitude = StartingNoiseAmplitude;
+        face.SmoothNegativeElevations = SmoothNegativeElevations;
+        face.Active = true;
+        face.Initialise();
+
+        _faces[(int)type] = face;
     }
 
-    public Vector3[] ApplyCurve(params Vector3[] vertices)
+    public QuadFace GetQuadFace(QuadFaceType type)
     {
-        Vector3[] verts = new Vector3[vertices.Length];
-        for (int i = 0; i < vertices.Length; i++)
-        {
-            var v = vertices[i];
-            float elevation = 0F;
-            if (UsePerlinNoise)
-            {
-                elevation = GetElevation(v);
-            }
-            v = v.normalized * (Radius + elevation);
-            verts[i] = v;
-        }
-        return verts;
+        return _faces[(int)type];
     }
 
-    private float GetElevation(Vector3 location)
+    public Vector3 ApplyElevation(Vector3 v, Vector2 uv)
     {
-        return ApplyFractionalBrownianNoise(location);
-    }
-
-    private float GetPerlinNoiseValue(Vector3 location, float smoothing, float offset)
-    {
-        Vector3 offsetLocation = new Vector3(location.x + offset, location.y + offset, location.z + offset);
-        float elevation = 2 * (Mathf.PerlinNoise((offsetLocation.x + offsetLocation.z) * smoothing, (offsetLocation.y + offsetLocation.z) * smoothing) - 0.5F);
-        return elevation;
-    }
-
-    private float ApplyFractionalBrownianNoise(Vector3 location)
-    {
+        Vector3 curvedVert = v.normalized * Radius;
         float elevation = 0F;
-        float frequency = StartingNoiseFrequency;
-        float amplitude = StartingNoiseAmplitude;
-        float lacunarity = 2F;
-        float gain = 0.65F;
-        for (int i = 0; i < SubdivisionDistances.Length; ++i)
+        if (UseNoiseForElevation)
         {
-            elevation += GetPerlinNoiseValue(location, frequency, Radius * 2.1F) * amplitude;
-            frequency *= lacunarity;
-            amplitude *= gain;
+            Elevation.Instance.Noise.SetSeed(NoiseSeed);
+            elevation = Elevation.Instance.Get(curvedVert, StartingNoiseAmplitude, StartingNoiseFrequency, SubdivisionDistances.Length, NoiseType);
         }
-
-        if (SmoothNegativeElevations && elevation < 0F)
+        else
+        {
+            if (SphereMaterial != null)
+            {
+                var parallaxMap = SphereMaterial.GetTexture("_ParallaxMap") as Texture2D;
+                if (parallaxMap != null)
+                {
+                    elevation = Elevation.Instance.Get(uv, parallaxMap, StartingNoiseAmplitude);
+                }
+            }
+        }
+        if (SmoothNegativeElevations && elevation < 0)
         {
             elevation = Mathf.Abs(elevation / (SubdivisionDistances.Length / 2));
         }
-        return elevation;
-    }
 
-    public Vector3[] ApplyPosition(params Vector3[] vertices)
-    {
-        Vector3[] verts = new Vector3[vertices.Length];
-        for (int i = 0; i < vertices.Length; i++)
-        {
-            verts[i] = vertices[i] + _position;
-        }
-        return verts;
-    }
-
-    public Vector3[] ApplyRotation(params Vector3[] vertices)
-    {
-        Vector3[] verts = new Vector3[vertices.Length];
-        for (int i = 0; i < vertices.Length; i++)
-        {
-            var pivot = _position;
-            var angles = _rotation;
-            var dir = vertices[i] - pivot; // get point direction relative to pivot
-            dir = angles * dir; // rotate it
-            verts[i] = dir + pivot; // calculate rotated point
-        }
-        return verts;
-    }
-
-    public Vector3[] ApplyScale(params Vector3[] vertices)
-    {
-        Vector3[] verts = new Vector3[vertices.Length];
-        for (int i = 0; i < vertices.Length; i++)
-        {
-            verts[i] = new Vector3(vertices[i].x * _scale.x, vertices[i].y * _scale.y, vertices[i].z * _scale.z);
-        }
-        return verts;
-    }
-
-    private void AddFace(QuadFace face)
-    {
-        _faces[(int)face.GetFaceType()] = face;
-    }
-
-    private QuadFace GetFace(QuadFaceType type)
-    {
-        return _faces[(int)type];
+        Vector3 elevatedVert = v.normalized * (Radius + elevation);
+        return elevatedVert;
     }
 }
 

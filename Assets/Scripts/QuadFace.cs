@@ -20,184 +20,143 @@ using System.Linq;
 using UnityEngine;
 
 /// <summary>
-/// a <see cref="QuadFace"/> is made up of multiple <see cref="Quad"/> objects all welded together
+/// a <see cref="QuadFace"/> is a <see cref="Quad"/> Root that forms one side of a <see cref="QuadSphere"/>
 /// </summary>
-public class QuadFace
+public class QuadFace : Quad
 {
-    private Vector3 _centre = Vector3.zero;
-    public Vector3 Centre
+    public GameObject Player;
+    public QuadFaceType FaceType;
+
+    private Func<QuadFace>[] _neighborFaces = new Func<QuadFace>[4]; // Top, Bottom, Left, Right
+
+    public override void Initialise()
     {
-        get
+        AddNeighborFaces();
+
+        QuadType = QuadType.Root;
+        Face = this;
+        Material = Root.SphereMaterial;
+        Level = 0;
+        CentrePoint = Vector3.zero;
+
+        base.Initialise();
+    }
+
+    #region Neighbors
+    private void AddNeighborFaces()
+    {
+        switch (FaceType)
         {
-            if (_centre == Vector3.zero)
-            {
-                Vector3 direction = Vector3.zero;
-                switch (_type)
-                {
-                    case QuadFaceType.ZNegBack:
-                        direction = Vector3.back;
-                        break;
-                    case QuadFaceType.ZPosFront:
-                        direction = Vector3.forward;
-                        break;
-                    case QuadFaceType.XNegLeft:
-                        direction = Vector3.left;
-                        break;
-                    case QuadFaceType.XPosRight:
-                        direction = Vector3.right;
-                        break;
-                    case QuadFaceType.YPosTop:
-                        direction = Vector3.up;
-                        break;
-                    case QuadFaceType.YNegBottom:
-                        direction = Vector3.down;
-                        break;
-                }
-                _centre = direction * (_size / 2);
-            }
-            return _centre;
+            case QuadFaceType.ZNegBack:
+                AddNeighbor(EdgeType.Top, () => { return Root.GetQuadFace(QuadFaceType.YPosTop); });
+                AddNeighbor(EdgeType.Bottom, () => { return Root.GetQuadFace(QuadFaceType.YNegBottom); });
+                AddNeighbor(EdgeType.Left, () => { return Root.GetQuadFace(QuadFaceType.XNegLeft); });
+                AddNeighbor(EdgeType.Right, () => { return Root.GetQuadFace(QuadFaceType.XPosRight); });
+                break;
+            case QuadFaceType.ZPosFront:
+                AddNeighbor(EdgeType.Top, () => { return Root.GetQuadFace(QuadFaceType.YPosTop); });
+                AddNeighbor(EdgeType.Bottom, () => { return Root.GetQuadFace(QuadFaceType.YNegBottom); });
+                AddNeighbor(EdgeType.Left, () => { return Root.GetQuadFace(QuadFaceType.XPosRight); });
+                AddNeighbor(EdgeType.Right, () => { return Root.GetQuadFace(QuadFaceType.XNegLeft); });
+                break;
+            case QuadFaceType.XNegLeft:
+                AddNeighbor(EdgeType.Top, () => { return Root.GetQuadFace(QuadFaceType.YPosTop); });
+                AddNeighbor(EdgeType.Bottom, () => { return Root.GetQuadFace(QuadFaceType.YNegBottom); });
+                AddNeighbor(EdgeType.Left, () => { return Root.GetQuadFace(QuadFaceType.ZPosFront); });
+                AddNeighbor(EdgeType.Right, () => { return Root.GetQuadFace(QuadFaceType.ZNegBack); });
+                break;
+            case QuadFaceType.XPosRight:
+                AddNeighbor(EdgeType.Top, () => { return Root.GetQuadFace(QuadFaceType.YPosTop); });
+                AddNeighbor(EdgeType.Bottom, () => { return Root.GetQuadFace(QuadFaceType.YNegBottom); });
+                AddNeighbor(EdgeType.Left, () => { return Root.GetQuadFace(QuadFaceType.ZNegBack); });
+                AddNeighbor(EdgeType.Right, () => { return Root.GetQuadFace(QuadFaceType.ZPosFront); });
+                break;
+            case QuadFaceType.YPosTop:
+                AddNeighbor(EdgeType.Top, () => { return Root.GetQuadFace(QuadFaceType.ZNegBack); });
+                AddNeighbor(EdgeType.Bottom, () => { return Root.GetQuadFace(QuadFaceType.ZPosFront); });
+                AddNeighbor(EdgeType.Left, () => { return Root.GetQuadFace(QuadFaceType.XPosRight); });
+                AddNeighbor(EdgeType.Right, () => { return Root.GetQuadFace(QuadFaceType.XNegLeft); });
+                break;
+            case QuadFaceType.YNegBottom:
+                AddNeighbor(EdgeType.Top, () => { return Root.GetQuadFace(QuadFaceType.ZPosFront); });
+                AddNeighbor(EdgeType.Bottom, () => { return Root.GetQuadFace(QuadFaceType.ZNegBack); });
+                AddNeighbor(EdgeType.Left, () => { return Root.GetQuadFace(QuadFaceType.XPosRight); });
+                AddNeighbor(EdgeType.Right, () => { return Root.GetQuadFace(QuadFaceType.XNegLeft); });
+                break;
         }
     }
 
-    private float _size;
-    private GameObject _player;
-    private int _quadsPerRow;
-    private int _startingSubdivisions;
-    private float[] _subdivisionDistances;
-    private QuadFaceType _type;
-    private QuadSphere _parent;
-
-    private Quad[] _quads;
-    private QuadVertMap _map;
-
-    public QuadFace(QuadSphere parent, QuadFaceType type, float size, GameObject player, int quadsPerRow, int startingSubdivisions, float[] subdivisionDistances, ref QuadVertMap map)
+    private void AddNeighbor(EdgeType edge, Func<QuadFace> face)
     {
-        _parent = parent;
-        _type = type;
-        _size = size;
-        _player = player;
-        _quadsPerRow = quadsPerRow;
-        _startingSubdivisions = startingSubdivisions;
-        _subdivisionDistances = subdivisionDistances;
-        _map = map;
-
-        _quads = new Quad[_quadsPerRow * _quadsPerRow];
-        float x = 0F;
-        float y = 0F;
-        float z = 0F;
-
-        for (var row = 0; row < _quadsPerRow; row++)
-        {
-            for (var col = 0; col < _quadsPerRow; col++)
-            {
-                int index = FlatArray.GetIndexFromRowCol(row, col, _quadsPerRow);
-
-                switch (_type)
-                {
-                    case QuadFaceType.ZNegBack:
-                        x = (-_size / 2) + ((_size / _quadsPerRow) * col);
-                        y = (-_size / 2) + ((_size / _quadsPerRow) * row);
-                        z = -_size / 2;
-                        break;
-                    case QuadFaceType.ZPosFront:
-                        x = (_size / 2) - ((_size / _quadsPerRow) * col);
-                        y = (-_size / 2) + ((_size / _quadsPerRow) * row);
-                        z = _size / 2;
-                        break;
-                    case QuadFaceType.XNegLeft:
-                        x = -_size / 2;
-                        y = (-_size / 2) + ((_size / _quadsPerRow) * row);
-                        z = (_size / 2) - ((_size / _quadsPerRow) * col);
-                        break;
-                    case QuadFaceType.XPosRight:
-                        x = _size / 2;
-                        y = (-_size / 2) + ((_size / _quadsPerRow) * row);
-                        z = -(_size / 2) + ((_size / _quadsPerRow) * col);
-                        break;
-                    case QuadFaceType.YPosTop:
-                        x = (-_size / 2) + ((_size / _quadsPerRow) * col);
-                        y = _size / 2;
-                        z = -(_size / 2) + ((_size / _quadsPerRow) * row);
-                        break;
-                    case QuadFaceType.YNegBottom:
-                        x = (-_size / 2) + ((_size / _quadsPerRow) * col);
-                        y = -_size / 2;
-                        z = (_size / 2) - ((_size / _quadsPerRow) * row);
-                        break;
-                }
-                
-                var q = new Quad(this, 0, null, QuadType.Root, 0, _size / _quadsPerRow, _startingSubdivisions, _subdivisionDistances, ref _map, new Vector3(x, y, z));
-
-                _quads[index] = q;
-            }
-        }
+        _neighborFaces[(int)edge] = face;
     }
 
-    public QuadFaceType GetFaceType()
+    public QuadFace GetNeighborFace(EdgeType edge)
     {
-        return _type;
+        return _neighborFaces[(int)edge]();
     }
 
-    public float GetSize()
+    public override Quad GetNeighbor(EdgeType edgeType)
     {
-        return _size;
+        return GetNeighborFace(edgeType) as Quad;
     }
+    #endregion
 
-    public Quad[] GetQuads()
-    {
-        return _quads;
-    }
-
-    public QuadSphere GetParent()
-    {
-        return _parent;
-    }
-
+    #region Vertices
     public Vector2 GetUVOffset()
     {
         Vector2 offset = Vector2.zero;
-        switch (_type)
+        switch (FaceType)
         {
             case QuadFaceType.ZNegBack:
-                offset = new Vector2(0.75F, 0.25F);
+                offset = new Vector2(0.875F, 0.375F);
                 break;
             case QuadFaceType.ZPosFront:
-                offset = new Vector2(0.25F, 0.25F);
+                offset = new Vector2(0.375F, 0.375F);
                 break;
             case QuadFaceType.XNegLeft:
-                offset = new Vector2(0.5F, 0.25F);
+                offset = new Vector2(0.625F, 0.375F);
                 break;
             case QuadFaceType.XPosRight:
-                offset = new Vector2(0F, 0.25F);
+                offset = new Vector2(0.125F, 0.375F);
                 break;
             case QuadFaceType.YPosTop:
-                offset = new Vector2(0.25F, 0.5F);
+                offset = new Vector2(0.375F, 0.625F);
                 break;
             case QuadFaceType.YNegBottom:
-                offset = new Vector2(0.25F, 0F);
+                offset = new Vector2(0.375F, 0.125F);
                 break;
         }
         return offset;
     }
 
-    public float GetDistanceToPlayer(Vector3 playerPosition)
+    public Vector3 ApplyElevation(Vector3 v, Vector2 uv)
     {
-        Vector3 adjustedCentre = GetDistanceTestLocation();
-        return Vector3.Distance(playerPosition, adjustedCentre);
-    }
-
-    private Vector3 GetDistanceTestLocation()
-    {
-        return GetParent().ApplyRotation(GetParent().ApplyPosition(GetParent().ApplyScale(Centre)))[0];
-    }
-
-    public List<int> GetTriangles()
-    {
-        List<int> triangles = new List<int>();
-        foreach (Quad q in _quads)
+        if (Root != null)
         {
-            triangles.AddRange(q.GetTriangles());
+            return Root.ApplyElevation(v, uv);
         }
-        return triangles;
+
+        v.z -= Elevation.Instance.Get(v, StartingNoiseAmplitude, StartingNoiseFrequency, SubdivisionDistances.Length, FastNoise.NoiseType.SimplexFractal);
+        return v;
     }
+
+    public Vector3 RelativePosition(Vector3 v)
+    {
+        if (Root != null)
+        {
+            return Root.transform.InverseTransformPoint(v);
+        }
+        return ToLocalVert(v);
+    }
+
+    public Vector3 InverseRelativePosition(Vector3 v)
+    {
+        if (Root != null)
+        {
+            return Root.transform.TransformPoint(v);
+        }
+        return ToWorldVert(v);
+    }
+    #endregion
 }

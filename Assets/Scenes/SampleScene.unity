@@ -325,7 +325,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 953833646}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: -200}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 534669905}
@@ -360,7 +360,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1047977534}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 953833647}
@@ -477,24 +477,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0341ea5e1a46b7947a1888bc6d679012, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Player: {fileID: 953833646}
+  Player: {fileID: 1047977534}
   Radius: 50
-  QuadsPerFace: 2
-  StartingSubdivisionsPerQuad: 3
+  StartingSubdivisionsPerQuad: 11
   SubdivisionDistances:
-  - 10000
-  - 8000
-  - 5000
-  - 2500
-  - 1000
-  - 500
-  - 100
-  SphereMaterial: {fileID: 2100000, guid: ccd9fc869c1307e409d35ef44d2851af, type: 2}
-  UsePerlinNoise: 1
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1
+  - 1
+  SphereMaterial: {fileID: 2100000, guid: 06de3c8f6a754b445993484c00fd35d2, type: 2}
+  UseNoiseForElevation: 1
+  NoiseType: 5
   SmoothNegativeElevations: 1
-  StartingNoiseOffset: 10001
-  StartingNoiseFrequency: 0.0004
-  StartingNoiseAmplitude: 300
+  NoiseSeed: 0
+  StartingNoiseFrequency: 0.3
+  StartingNoiseAmplitude: 1
 --- !u!4 &1382464770
 Transform:
   m_ObjectHideFlags: 0
@@ -502,7 +505,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1382464768}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 200, y: 0, z: 200}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -514,9 +517,9 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1382464768}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b4dfb5523e289414887cdec23fa46b8b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  RotationPerSecond: {x: 0.5, y: 0, z: 0}
+  RotationPerSecond: {x: 0, y: 0.5, z: 0}
