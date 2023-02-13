@@ -1,0 +1,41 @@
+{
+  "name": "quadsphere",
+  "version": "1.0.0",
+  "description": "a quadsphere implementation in javascript using THREE.js supporting distance based level of detail adjustment",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bicarbon8/QuadSphere.git"
+  },
+  "keywords": [
+    "quadsphere",
+    "threejs",
+    "planet",
+    "space"
+  ],
+  "author": "Jason Holt Smith <bicarbon8@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/bicarbon8/QuadSphere/issues"
+  },
+  "homepage": "https://github.com/bicarbon8/QuadSphere#readme",
+  "dependencies": {
+    "@react-three/fiber": "^8.11.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "three": "^0.149.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.27",
+    "@types/react-dom": "^18.0.10",
+    "@types/three": "^0.149.0",
+    "@vitejs/plugin-react": "^3.1.0",
+    "typescript": "^4.9.3",
+    "vite": "^4.1.0"
+  }
+}
