@@ -4,9 +4,9 @@ import { V3 } from "../types/v3";
 export type QuadSide = 'left' | 'bottom' | 'right' | 'top';
 
 export type QuadOptions = {
-    parent: Quad;
-    centre: V3;
-    radius: number;
+    parent?: Quad;
+    centre?: V3;
+    radius?: number;
 };
 
 /**
@@ -92,8 +92,8 @@ export class Quad {
 
     constructor(options: QuadOptions) {
         this.parent = options.parent;
-        this.radius = options.radius;
-        this._generatePoints(options.centre);
+        this.radius = options.radius ?? 1;
+        this._generatePoints(options.centre ?? V3.ZERO);
     }
 
     get mesh(): THREE.Mesh {
@@ -149,15 +149,24 @@ export class Quad {
         return this.points[8];
     }
 
+    get triangles(): Array<number> {
+        return (this.children.length) ? new Array<number>().concat(...this.children.map(c => c.triangles)) : new Array<number>(
+            ...this.getLeftTrianglePositions(),
+            ...this.getBottomTrianglePositions(),
+            ...this.getRightTriagnlePositions(),
+            ...this.getTopTrianglePositions()
+        );
+    }
+
     activate(...sides: Array<QuadSide>): this {
         sides?.forEach(s => this._active.add(s));
-        this._createMesh();
+        this.createMesh();
         return this;
     }
 
     deactivate(...sides: Array<QuadSide>): this {
         sides.forEach(s => this._active.delete(s));
-        this._createMesh();
+        this.createMesh();
         return this;
     }
 
@@ -177,44 +186,40 @@ export class Quad {
         return this;
     }
 
-    private _generatePoints(centre: V3): void {
-        for (let y=this.centre.y-this.radius; y<this.centre.y+this.radius; y+=this.radius) {
-            for (let x=this.centre.x-this.radius; x<this.centre.x+this.radius; x+=this.radius) {
-                this.points.push(new THREE.Vector3(x, y, centre.z));
-            }
+    /**
+     * NOTE: only the top-most `Quad` should generate a mesh
+     * 
+     * gets an array of points that form the triangles of the mesh
+     * from all child quads and creates a mesh from that.
+     */
+    createMesh(): void {
+        if (this.parent == null) {
+            const tris = this.triangles;
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(tris, 3));
+            geometry.computeVertexNormals();
+
+            const material = new THREE.MeshNormalMaterial({wireframe: true}); // debug mode
+            this._mesh = new THREE.Mesh(geometry, material);
+        } else {
+            this.parent.createMesh();
         }
-    }
-
-    private _createMesh(): void {
-        const geometry = new THREE.BufferGeometry();
-        const positions = new Array<number>(
-            ...this._getLeftTrianglePositions(),
-            ...this._getBottomTrianglePositions(),
-            ...this._getRightTriagnlePositions(),
-            ...this._getTopTrianglePositions()
-        );
-        
-        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-        geometry.computeVertexNormals();
-
-        const material = new THREE.MeshNormalMaterial();
-        this._mesh = new THREE.Mesh(geometry, material);
     }
 
     /**
      * ```
-     * 6        6
-     * |\       |\
-     * | \      | \
-     * |  \     |  \
-     * |   4 or 3---4
-     * |  /     |  /
-     * | /      | /
-     * |/       |/
-     * 0        0
+     * 6   7   8    6   7   8
+     * |\           |\
+     * | \          | \
+     * |  \         |  \
+     * |   4   5 or 3---4   5
+     * |  /         |  /
+     * | /          | /
+     * |/           |/
+     * 0   1   2    0   1   2
      * ```
      */
-    private _getLeftTrianglePositions(): Array<number> {
+    getLeftTrianglePositions(): Array<number> {
         if (this.activeSides.includes('left')) {
             return [
                 this.bottomleft.x, this.bottomleft.y, this.bottomleft.z, // bottom left
@@ -235,14 +240,18 @@ export class Quad {
 
     /**
      * ```
-     *     4            4
+     * 6   7   8    6   7   8
+     * 
+     * 
+     * 
+     * 3   4   5    3   4   5
      *    / \          /|\
      *   /   \        / | \
      *  /     \      /  |  \
      * 0-------2 or 0---1---2
      * ```
      */
-    private _getBottomTrianglePositions(): Array<number> {
+    getBottomTrianglePositions(): Array<number> {
         if (this.activeSides.includes('top')) {
             return [
                 this.bottomleft.x, this.bottomleft.y, this.bottomleft.z,   // bottom left
@@ -263,18 +272,18 @@ export class Quad {
 
     /**
      * ```
-     *     8        8
-     *    /|       /|
-     *   / |      / |
-     *  /  |     /  |
-     * 4   | or 4---5
-     *  \  |     \  |
-     *   \ |      \ |
-     *    \|       \|
-     *     2        2
+     * 6   7   8    6   7   8
+     *        /|           /|
+     *       / |          / |
+     *      /  |         /  |
+     * 3   4   | or 3   4---5
+     *      \  |         \  |
+     *       \ |          \ |
+     *        \|           \|
+     * 0   1   2    0   1   2
      * ```
      */
-    private _getRightTriagnlePositions(): Array<number> {
+    getRightTriagnlePositions(): Array<number> {
         if (this.activeSides.includes('right')) {
             return [
                 this.centre.x, this.centre.y, this.centre.z,                // centre
@@ -299,10 +308,14 @@ export class Quad {
      *  \     /      \  |  /
      *   \   /        \ | /
      *    \ /          \|/
-     *     4            4
+     * 3   4   5    3   4   5
+     * 
+     * 
+     * 
+     * 0   1   2    0   1   2
      * ```
      */
-    private _getTopTrianglePositions(): Array<number> {
+    getTopTrianglePositions(): Array<number> {
         if (this.activeSides.includes('top')) {
             return [
                 this.centre.x, this.centre.y, this.centre.z,             // centre
@@ -319,5 +332,13 @@ export class Quad {
             this.topleft.x, this.topleft.y, this.topleft.z,    // top left
             this.topright.x, this.topright.y, this.topright.z, // top right
         ];
+    }
+
+    private _generatePoints(centre: V3): void {
+        for (let y=this.centre.y-this.radius; y<this.centre.y+this.radius; y+=this.radius) {
+            for (let x=this.centre.x-this.radius; x<this.centre.x+this.radius; x+=this.radius) {
+                this.points.push(new THREE.Vector3(x, y, centre.z));
+            }
+        }
     }
 }
