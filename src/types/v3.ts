@@ -1,3 +1,5 @@
+import THREE from "three";
+
 export type V3 = {
     x: number;
     y: number;
@@ -9,4 +11,7 @@ export module V3 {
     export const RIGHT: V3 = {x: 1, y: 0, z: 0};
     export const UP: V3 = {x: 0, y: 1, z: 0};
     export const FORWARD: V3 = {x: 0, y: 0, z: 1};
+    export function toVector3(input: V3): THREE.Vector3 {
+        return new THREE.Vector3(input.x, input.y, input.z);
+    }
 }
