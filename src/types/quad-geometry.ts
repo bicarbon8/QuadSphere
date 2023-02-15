@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { Float32BufferAttribute } from "three";
 import { V3 } from "./v3";
 
 export type QuadSide = 'left' | 'bottom' | 'right' | 'top';
@@ -6,7 +7,7 @@ export type QuadSide = 'left' | 'bottom' | 'right' | 'top';
 export type QuadChild = 'bottomleft' | 'bottomright' | 'topleft' | 'topright';
 
 export type QuadOptions = {
-    parent?: Quad;
+    parent?: QuadGeometry;
     centre?: V3;
     radius?: number;
     level?: number;
@@ -82,19 +83,25 @@ export type QuadOptions = {
  * 0---1---2
  * ```
  */
-export class Quad {
-    public readonly parent: Quad;
+export class QuadGeometry extends THREE.BufferGeometry {
+    public readonly parent: QuadGeometry;
     public readonly points = new Array<THREE.Vector3>();
-    public readonly neighbors = new Map<QuadSide, Quad>();
-    public readonly children = new Map<QuadChild, Quad>();
+    public readonly indices = new Array<number>();
+    public readonly vertices = new Array<number>();
+    public readonly normals = new Array<number>();
+    public readonly uvs = new Array<number>();
+    public readonly neighbors = new Map<QuadSide, QuadGeometry>();
+    public readonly children = new Map<QuadChild, QuadGeometry>();
     public readonly radius: number;
     public readonly level: number;
-    
+
     private readonly _active = new Set<QuadSide>();
 
     private _mesh: THREE.Mesh;
 
     constructor(options: QuadOptions) {
+        super();
+        this.type = 'QuadGeometry';
         this.parent = options.parent;
         this.radius = options.radius ?? 1;
         this.level = options.level ?? 0;
@@ -149,11 +156,11 @@ export class Quad {
         return (this.hasChildren()) ? new Array<number>()
             .concat(...Array.from(this.children.values())
                 .map(c => c.triangles)) : new Array<number>(
-            ...this.getLeftTrianglePositions(),
-            ...this.getBottomTrianglePositions(),
-            ...this.getRightTriagnlePositions(),
-            ...this.getTopTrianglePositions()
-        );
+                    ...this.getLeftTrianglePositions(),
+                    ...this.getBottomTrianglePositions(),
+                    ...this.getRightTriagnlePositions(),
+                    ...this.getTopTrianglePositions()
+                );
     }
 
     hasChildren(): boolean {
@@ -176,32 +183,32 @@ export class Quad {
      */
     subdivide(): this {
         // create child Quads
-        this.children.set('bottomleft', new Quad({
+        this.children.set('bottomleft', new QuadGeometry({
             parent: this,
             centre: V3.midpoint(this.bottomleft, this.centre),
             radius: this.radius / 4,
             level: this.level + 1
         }));
-        this.children.set('bottomright', new Quad({
+        this.children.set('bottomright', new QuadGeometry({
             parent: this,
             centre: V3.midpoint(this.bottomright, this.centre),
             radius: this.radius / 4,
             level: this.level + 1
         }));
-        this.children.set('topleft', new Quad({
+        this.children.set('topleft', new QuadGeometry({
             parent: this,
             centre: V3.midpoint(this.topleft, this.centre),
             radius: this.radius / 4,
             level: this.level + 1
         }));
-        this.children.set('topright', new Quad({
+        this.children.set('topright', new QuadGeometry({
             parent: this,
             centre: V3.midpoint(this.topright, this.centre),
             radius: this.radius / 4,
             level: this.level + 1
         }));
         // update neighbors
-        this.neighbors.forEach((neighbor: Quad, side: QuadSide) => {
+        this.neighbors.forEach((neighbor: QuadGeometry, side: QuadSide) => {
             if (neighbor) {
                 switch (side) {
                     case 'bottom':
@@ -239,7 +246,7 @@ export class Quad {
             this.children.delete(child);
         }
         // update neighbors
-        this.neighbors.forEach((neighbor: Quad, side: QuadSide) => {
+        this.neighbors.forEach((neighbor: QuadGeometry, side: QuadSide) => {
             if (neighbor) {
                 switch (side) {
                     case 'bottom':
@@ -396,10 +403,42 @@ export class Quad {
     }
 
     private _generatePoints(centre: V3): void {
-        for (let y=centre.y-this.radius; y<=centre.y+this.radius; y+=this.radius) {
-            for (let x=centre.x-this.radius; x<=centre.x+this.radius; x+=this.radius) {
-                this.points.push(new THREE.Vector3(x, y, centre.z));
+        const point = new THREE.Vector3();
+        const normal = new THREE.Vector3();
+        for (let y = centre.y - this.radius; y <= centre.y + this.radius; y += this.radius) {
+            const v = y / 3;
+            let uOffset = 0;
+            for (let x = centre.x - this.radius; x <= centre.x + this.radius; x += this.radius) {
+                const u = x / 3;
+                point.x = x;
+                point.y = y;
+                point.z = centre.z;
+                this.points.push(point.clone());
+                this.vertices.push(point.x, point.y, point.z);
+                normal.copy(point).normalize();
+                this.normals.push(normal.x, normal.y, normal.z);
+                this.uvs.push(u + uOffset, 1 - v);
             }
         }
+
+        const gridX = 2;
+        const gridY = 2;
+        const gridX1 = gridX + 1;
+        for (let iy = 0; iy < gridY; iy++) {
+            for (let ix = 0; ix < gridX; ix++) {
+                const a = ix + gridX1 * iy;
+                const b = ix + gridX1 * (iy + 1);
+                const c = (ix + 1) + gridX1 * (iy + 1);
+                const d = (ix + 1) + gridX1 * iy;
+
+                this.indices.push(a, b, d);
+                this.indices.push(b, c, d);
+            }
+        }
+
+        this.setIndex(this.indices);
+        this.setAttribute('position', new Float32BufferAttribute(this.vertices, 3));
+        this.setAttribute('normal', new Float32BufferAttribute(this.normals, 3));
+        this.setAttribute('uv', new Float32BufferAttribute(this.uvs, 2));
     }
 }
