@@ -396,8 +396,8 @@ export class Quad {
     }
 
     private _generatePoints(centre: V3): void {
-        for (let y=centre.y-this.radius; y<centre.y+this.radius; y+=this.radius) {
-            for (let x=centre.x-this.radius; x<centre.x+this.radius; x+=this.radius) {
+        for (let y=centre.y-this.radius; y<=centre.y+this.radius; y+=this.radius) {
+            for (let x=centre.x-this.radius; x<=centre.x+this.radius; x+=this.radius) {
                 this.points.push(new THREE.Vector3(x, y, centre.z));
             }
         }
