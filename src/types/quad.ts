@@ -1,4 +1,4 @@
-import THREE from "three";
+import * as THREE from "three";
 import { V3 } from "./v3";
 
 export type QuadSide = 'left' | 'bottom' | 'right' | 'top';
