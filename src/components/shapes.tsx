@@ -7,8 +7,8 @@ export type QuadShapeProps = {
 
 export function QuadShape(props: QuadShapeProps) {
     const quad = new Quad({
-        centre: {x: props.position[0], y: props.position[1], z: props.position[2]},
-        radius: props.radius
+        centre: {x: props.position[0] ?? 0, y: props.position[1] ?? 0, z: props.position[2] ?? 0},
+        radius: props.radius ?? 1
     });
     return (
         <mesh>

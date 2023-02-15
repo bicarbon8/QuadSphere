@@ -1,6 +1,7 @@
 import './App.css'
 import { Canvas } from '@react-three/fiber'
-import { Box, OrbitControls, Stats } from '@react-three/drei'
+import { OrbitControls, Stats } from '@react-three/drei'
+import { QuadShape } from './components/shapes';
 
 function App() {
   return (
@@ -8,7 +9,7 @@ function App() {
         <ambientLight />
         <pointLight position={[10, 10, 10]} />
         <OrbitControls />
-        <Box position={[0, 0, 0]} />
+        <QuadShape position={[0, 0, 0]} radius={1} />
         <Stats />
     </Canvas>
   );

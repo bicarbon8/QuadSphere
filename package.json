@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc && vite build",
     "build:dev": "NODE_ENV=development npm run build",
-    "preview": "vite preview --port 4500"
+    "preview": "NODE_ENV=development vite preview --port 4500"
   },
   "repository": {
     "type": "git",
