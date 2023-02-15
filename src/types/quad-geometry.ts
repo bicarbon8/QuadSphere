@@ -153,14 +153,17 @@ export class QuadGeometry extends THREE.BufferGeometry {
     }
 
     get triangles(): Array<number> {
-        return (this.hasChildren()) ? new Array<number>()
-            .concat(...Array.from(this.children.values())
-                .map(c => c.triangles)) : new Array<number>(
-                    ...this.getLeftTrianglePositions(),
-                    ...this.getBottomTrianglePositions(),
-                    ...this.getRightTriagnlePositions(),
-                    ...this.getTopTrianglePositions()
-                );
+        if (this.hasChildren()) {
+            return new Array<number>()
+                .concat(...Array.from(this.children.values())
+                    .map(c => c.triangles));
+        }
+        return new Array<number>(
+            ...this.getLeftTrianglePositions(),
+            ...this.getBottomTrianglePositions(),
+            ...this.getRightTriagnlePositions(),
+            ...this.getTopTrianglePositions()
+        );
     }
 
     hasChildren(): boolean {
@@ -425,24 +428,26 @@ export class QuadGeometry extends THREE.BufferGeometry {
             }
         }
 
-        const gridX = 2;
-        const gridY = 2;
-        const gridX1 = gridX + 1;
-        for (let iy = 0; iy < gridY; iy++) {
-            for (let ix = 0; ix < gridX; ix++) {
-                const a = ix + gridX1 * iy;
-                const b = ix + gridX1 * (iy + 1);
-                const c = (ix + 1) + gridX1 * (iy + 1);
-                const d = (ix + 1) + gridX1 * iy;
+        // const gridX = 2;
+        // const gridY = 2;
+        // const gridX1 = gridX + 1;
+        // for (let iy = 0; iy < gridY; iy++) {
+        //     for (let ix = 0; ix < gridX; ix++) {
+        //         const a = ix + gridX1 * iy;
+        //         const b = ix + gridX1 * (iy + 1);
+        //         const c = (ix + 1) + gridX1 * (iy + 1);
+        //         const d = (ix + 1) + gridX1 * iy;
 
-                this.indices.push(a, b, d);
-                this.indices.push(b, c, d);
-            }
-        }
+        //         this.indices.push(a, b, d);
+        //         this.indices.push(b, c, d);
+        //     }
+        // }
+        this._updateAttributes();
     }
 
     private _updateAttributes(): void {
-        this.setAttribute('position', new Float32BufferAttribute(this.triangles, 3));
+        this.vertices.splice(0, this.vertices.length, ...this.triangles);
+        this.setAttribute('position', new Float32BufferAttribute(this.vertices, 3));
         this.setAttribute('normal', new Float32BufferAttribute(this.normals, 3));
         this.setAttribute('uv', new Float32BufferAttribute(this.uvs, 2));
     }
