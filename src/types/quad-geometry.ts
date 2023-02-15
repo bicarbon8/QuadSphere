@@ -21,66 +21,46 @@ export type QuadOptions = {
  * 
  * no sides active
  * ```
- * 6---7---8
- * |\     /|
- * | \   / |
- * |  \ /  |
- * 3   4   5
- * |  / \  |
- * | /   \ |
- * |/     \|
- * 0---1---2
+ * 6-7-8
+ * |\ /|
+ * 3 4 5
+ * |/ \|
+ * 0-1-2
  * ```
  * one side active
  * ```
- * l            b            r            t        
- * 6---7---8    6---7---8    6---7---8    6---7---8
- * |\     /|    |\     /|    |\     /|    |\  |  /|
- * | \   / |    | \   / |    | \   / |    | \ | / |
- * |  \ /  |    |  \ /  |    |  \ /  |    |  \|/  |
- * 3---4   5    3   4   5    3   4---5    3   4   5
- * |  / \  |    |  /|\  |    |  / \  |    |  / \  |
- * | /   \ |    | / | \ |    | /   \ |    | /   \ |
- * |/     \|    |/  |  \|    |/     \|    |/     \|
- * 0---1---2 or 0---1---2 or 0---1---2 or 0---1---2
+ * l        b        r        t    
+ * 6-7-8    6-7-8    6-7-8    6-7-8
+ * |\ /|    |\ /|    |\ /|    |\|/|
+ * 3-4 5    3 4 5    3 4-5    3 4 5
+ * |/ \|    |/|\|    |/ \|    |/ \|
+ * 0-1-2 or 0-1-2 or 0-1-2 or 0-1-2
  * ```
  * two sides active
  * ```
- * bl           tl           br           tr           lr           tb       
- * 6---7---8    6---7---8    6---7---8    6---7---8    6---7---8    6---7---8
- * |\     /|    |\  |  /|    |\     /|    |\  |  /|    |\     /|    |\  |  /|
- * | \   / |    | \ | / |    | \   / |    | \ | / |    | \   / |    | \ | / |
- * |  \ /  |    |  \|/  |    |  \ /  |    |  \|/  |    |  \ /  |    |  \|/  |
- * 3---4   5    3---4   5    3   4---5    3   4---5    3---4---5    3   4   5
- * |  /|\  |    |  / \  |    |  /|\  |    |  / \  |    |  / \  |    |  /|\  |
- * | / | \ |    | /   \ |    | / | \ |    | /   \ |    | /   \ |    | / | \ |
- * |/  |  \|    |/     \|    |/  |  \|    |/     \|    |/     \|    |/  |  \|
- * 0---1---2 or 0---1---2 or 0---1---2 or 0---1---2 or 0---1---2 or 0---1---2
+ * bl       tl       br       tr       lr       tb   
+ * 6-7-8    6-7-8    6-7-8    6-7-8    6-7-8    6-7-8
+ * |\ /|    |\|/|    |\ /|    |\|/|    |\ /|    |\|/|
+ * 3-4 5    3-4 5    3 4-5    3 4-5    3-4-5    3 4 5
+ * |/|\|    |/ \|    |/|\|    |/ \|    |/ \|    |/|\|
+ * 0-1-2 or 0-1-2 or 0-1-2 or 0-1-2 or 0-1-2 or 0-1-2
  * ```
  * three sides active
  * ```
- * blr          tlr          tbr          tbl      
- * 6---7---8    6---7---8    6---7---8    6---7---8
- * |\     /|    |\  |  /|    |\  |  /|    |\  |  /|
- * | \   / |    | \ | / |    | \ | / |    | \ | / |
- * |  \ /  |    |  \|/  |    |  \|/  |    |  \|/  |
- * 3---4---5    3---4---5    3   4---5    3---4   5
- * |  /|\  |    |  / \  |    |  /|\  |    |  /|\  |
- * | / | \ |    | /   \ |    | / | \ |    | / | \ |
- * |/  |  \|    |/     \|    |/  |  \|    |/  |  \|
- * 0---1---2 or 0---1---2 or 0---1---2 or 0---1---2
+ * blr      tlr      tbr      tbl  
+ * 6-7-8    6-7-8    6-7-8    6-7-8
+ * |\ /|    |\|/|    |\|/|    |\|/|
+ * 3-4-5    3-4-5    3 4-5    3-4 5
+ * |/|\|    |/ \|    |/|\|    |/|\|
+ * 0-1-2 or 0-1-2 or 0-1-2 or 0-1-2
  * ```
  * all sides active
  * ```
- * 6---7---8
- * |\  |  /|
- * | \ | / |
- * |  \|/  |
- * 3---4---5
- * |  /|\  |
- * | / | \ |
- * |/  |  \|
- * 0---1---2
+ * 6-7-8
+ * |\|/|
+ * 3-4-5
+ * |/|\|
+ * 0-1-2
  * ```
  */
 export class QuadGeometry extends THREE.BufferGeometry {
@@ -116,40 +96,40 @@ export class QuadGeometry extends THREE.BufferGeometry {
         return Array.from(this._active.values());
     }
 
-    get bottomleft(): THREE.Vector3 {
-        return this.points[0];
+    get bottomleft(): V3 {
+        return this._getPointIndices(0);
     }
 
-    get bottommiddle(): THREE.Vector3 {
-        return this.points[1];
+    get bottommiddle(): V3 {
+        return this._getPointIndices(1);
     }
 
-    get bottomright(): THREE.Vector3 {
-        return this.points[2];
+    get bottomright(): V3 {
+        return this._getPointIndices(2);
     }
 
-    get middleleft(): THREE.Vector3 {
-        return this.points[3];
+    get middleleft(): V3 {
+        return this._getPointIndices(3);
     }
 
-    get centre(): THREE.Vector3 {
-        return this.points[4];
+    get centre(): V3 {
+        return this._getPointIndices(4);
     }
 
-    get middleright(): THREE.Vector3 {
-        return this.points[5];
+    get middleright(): V3 {
+        return this._getPointIndices(5);
     }
 
-    get topleft(): THREE.Vector3 {
-        return this.points[6];
+    get topleft(): V3 {
+        return this._getPointIndices(6);
     }
 
-    get topmiddle(): THREE.Vector3 {
-        return this.points[7];
+    get topmiddle(): V3 {
+        return this._getPointIndices(7);
     }
 
-    get topright(): THREE.Vector3 {
-        return this.points[8];
+    get topright(): V3 {
+        return this._getPointIndices(8);
     }
 
     get triangles(): Array<number> {
@@ -159,11 +139,33 @@ export class QuadGeometry extends THREE.BufferGeometry {
                     .map(c => c.triangles));
         }
         return new Array<number>(
-            ...this.getLeftTrianglePositions(),
-            ...this.getBottomTrianglePositions(),
-            ...this.getRightTriagnlePositions(),
-            ...this.getTopTrianglePositions()
+            ...this.getLeftTriangleIndices(),
+            ...this.getBottomTriangleIndices(),
+            ...this.getRightTriagnleIndices(),
+            ...this.getTopTriangleIndices()
         );
+    }
+
+    /**
+     * gets the x, y, and z values for the point based on the following
+     * indices:
+     * ```
+     * 6-7-8
+     * |\|/|
+     * 3-4-5
+     * |/|\|
+     * 0-1-2
+     * ```
+     * @param index a value between 0 and 8 (inclusive) @default 0
+     * @returns a `THREE.Vector3` containing the x, y, and z values 
+     * for the point at the specified index
+     */
+    getPoint(index: number = 0): THREE.Vector3 {
+        const i = this._getPointIndices(index);
+        const x = this.vertices[i.x];
+        const y = this.vertices[i.y];
+        const z = this.vertices[i.z];
+        return new THREE.Vector3(x, y, z);
     }
 
     hasChildren(): boolean {
@@ -283,18 +285,14 @@ export class QuadGeometry extends THREE.BufferGeometry {
 
     /**
      * ```
-     * 6   7   8    6   7   8
-     * |\           |\
-     * | \          | \
-     * |  \         |  \
-     * |   4   5 or 3---4   5
-     * |  /         |  /
-     * | /          | /
-     * |/           |/
-     * 0   1   2    0   1   2
+     * 6      6
+     * |\     |\
+     * | 4 or 3-4
+     * |/     |/
+     * 0      0
      * ```
      */
-    getLeftTrianglePositions(): Array<number> {
+    getLeftTriangleIndices(): Array<number> {
         if (this.activeSides.includes('left')) {
             return [
                 this.bottomleft.x, this.bottomleft.y, this.bottomleft.z, // bottom left
@@ -315,18 +313,12 @@ export class QuadGeometry extends THREE.BufferGeometry {
 
     /**
      * ```
-     * 6   7   8    6   7   8
-     * 
-     * 
-     * 
-     * 3   4   5    3   4   5
-     *    / \          /|\
-     *   /   \        / | \
-     *  /     \      /  |  \
-     * 0-------2 or 0---1---2
+     *   4        4
+     *  / \      /|\
+     * 0---2 or 0-1-2
      * ```
      */
-    getBottomTrianglePositions(): Array<number> {
+    getBottomTriangleIndices(): Array<number> {
         if (this.activeSides.includes('top')) {
             return [
                 this.bottomleft.x, this.bottomleft.y, this.bottomleft.z,   // bottom left
@@ -347,18 +339,14 @@ export class QuadGeometry extends THREE.BufferGeometry {
 
     /**
      * ```
-     * 6   7   8    6   7   8
-     *        /|           /|
-     *       / |          / |
-     *      /  |         /  |
-     * 3   4   | or 3   4---5
-     *      \  |         \  |
-     *       \ |          \ |
-     *        \|           \|
-     * 0   1   2    0   1   2
+     *   8      8
+     *  /|     /|
+     * 4 | or 4-5
+     *  \|     \|
+     *   2      2
      * ```
      */
-    getRightTriagnlePositions(): Array<number> {
+    getRightTriagnleIndices(): Array<number> {
         if (this.activeSides.includes('right')) {
             return [
                 this.centre.x, this.centre.y, this.centre.z,                // centre
@@ -379,18 +367,12 @@ export class QuadGeometry extends THREE.BufferGeometry {
 
     /**
      * ```
-     * 6-------8 or 6---7---8
-     *  \     /      \  |  /
-     *   \   /        \ | /
-     *    \ /          \|/
-     * 3   4   5    3   4   5
-     * 
-     * 
-     * 
-     * 0   1   2    0   1   2
+     * 6---8 or 6-7-8
+     *  \ /      \|/
+     *   4        4
      * ```
      */
-    getTopTrianglePositions(): Array<number> {
+    getTopTriangleIndices(): Array<number> {
         if (this.activeSides.includes('top')) {
             return [
                 this.centre.x, this.centre.y, this.centre.z,             // centre
@@ -420,35 +402,24 @@ export class QuadGeometry extends THREE.BufferGeometry {
                 point.x = x;
                 point.y = y;
                 point.z = centre.z;
-                this.points.push(point.clone());
                 this.vertices.push(point.x, point.y, point.z);
                 normal.copy(point).normalize();
                 this.normals.push(normal.x, normal.y, normal.z);
                 this.uvs.push(u + uOffset, 1 - v);
             }
         }
-
-        // const gridX = 2;
-        // const gridY = 2;
-        // const gridX1 = gridX + 1;
-        // for (let iy = 0; iy < gridY; iy++) {
-        //     for (let ix = 0; ix < gridX; ix++) {
-        //         const a = ix + gridX1 * iy;
-        //         const b = ix + gridX1 * (iy + 1);
-        //         const c = (ix + 1) + gridX1 * (iy + 1);
-        //         const d = (ix + 1) + gridX1 * iy;
-
-        //         this.indices.push(a, b, d);
-        //         this.indices.push(b, c, d);
-        //     }
-        // }
         this._updateAttributes();
     }
 
     private _updateAttributes(): void {
-        this.vertices.splice(0, this.vertices.length, ...this.triangles);
+        this.setIndex(this.triangles);
         this.setAttribute('position', new Float32BufferAttribute(this.vertices, 3));
         this.setAttribute('normal', new Float32BufferAttribute(this.normals, 3));
         this.setAttribute('uv', new Float32BufferAttribute(this.uvs, 2));
+    }
+
+    private _getPointIndices(index: number = 0): V3 {
+        const i = index * 3;
+        return {x: i, y: i+1, z: i+2};
     }
 }
