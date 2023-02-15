@@ -1,5 +1,6 @@
 import THREE from "three";
 import { V3 } from "../types/v3";
+import { QuadChildren } from "./quad-children";
 
 export type QuadSide = 'left' | 'bottom' | 'right' | 'top';
 
@@ -7,6 +8,7 @@ export type QuadOptions = {
     parent?: Quad;
     centre?: V3;
     radius?: number;
+    level?: number;
 };
 
 /**
@@ -85,6 +87,7 @@ export class Quad {
     public readonly neighbors = new Map<QuadSide, Quad>();
     public readonly children = new Array<Quad>(4);
     public readonly radius: number;
+    public readonly level: number;
     
     private readonly _active = new Set<QuadSide>();
 
@@ -93,20 +96,12 @@ export class Quad {
     constructor(options: QuadOptions) {
         this.parent = options.parent;
         this.radius = options.radius ?? 1;
+        this.level = options.level ?? 0;
         this._generatePoints(options.centre ?? V3.ZERO);
     }
 
     get mesh(): THREE.Mesh {
         return this._mesh;
-    }
-    
-    get depth(): number {
-        if (this.children.length) {
-            return this.children
-                .map(c => 1 + c.depth)
-                .reduce((prev: number, current: number) => (prev > current) ? prev : current, 0);
-        }
-        return 0;
     }
 
     get activeSides(): Array<QuadSide> {
@@ -150,12 +145,16 @@ export class Quad {
     }
 
     get triangles(): Array<number> {
-        return (this.children.length) ? new Array<number>().concat(...this.children.map(c => c.triangles)) : new Array<number>(
+        return (this.hasChildren()) ? new Array<number>().concat(...this.children.map(c => c.triangles)) : new Array<number>(
             ...this.getLeftTrianglePositions(),
             ...this.getBottomTrianglePositions(),
             ...this.getRightTriagnlePositions(),
             ...this.getTopTrianglePositions()
         );
+    }
+
+    hasChildren(): boolean {
+        return this.children.every(c => c != null);
     }
 
     activate(...sides: Array<QuadSide>): this {
@@ -175,6 +174,59 @@ export class Quad {
      * subdivide their edges facing this quad
      */
     subdivide(): this {
+        // create child Quads
+        this.children[QuadChildren.BOTTOM_LEFT] = new Quad({
+            parent: this,
+            centre: V3.midpoint(this.bottomleft, this.centre),
+            radius: this.radius / 4,
+            level: this.level + 1
+        });
+        this.children[QuadChildren.BOTTOM_RIGHT] = new Quad({
+            parent: this,
+            centre: V3.midpoint(this.bottomright, this.centre),
+            radius: this.radius / 4,
+            level: this.level + 1
+        });
+        this.children[QuadChildren.TOP_LEFT] = new Quad({
+            parent: this,
+            centre: V3.midpoint(this.topleft, this.centre),
+            radius: this.radius / 4,
+            level: this.level + 1
+        });
+        this.children[QuadChildren.TOP_RIGHT] = new Quad({
+            parent: this,
+            centre: V3.midpoint(this.topright, this.centre),
+            radius: this.radius / 4,
+            level: this.level + 1
+        });
+        // regenerate mesh
+        this.createMesh();
+        // update neighbors
+        this.neighbors.forEach((neighbor: Quad, side: QuadSide) => {
+            if (neighbor) {
+                switch (side) {
+                    case 'bottom':
+                        // activate neighbor's top
+                        neighbor.activate('top');
+                        break;
+                    case 'left':
+                        // activate neighbor's right
+                        neighbor.activate('right');
+                        break;
+                    case 'right':
+                        // activate neighbor's left
+                        neighbor.activate('left');
+                        break;
+                    case 'top':
+                        // activate neighbor's bottom
+                        neighbor.activate('bottom');
+                        break;
+                    default:
+                        console.warn(`invalid side: '${side}' found in this.neighbors`);
+                        break;
+                }
+            }
+        });
         return this;
     }
 
@@ -183,6 +235,38 @@ export class Quad {
      * unify their edges facing this quad
      */
     unify(): this {
+        // remove child Quads
+        for (let i=0; i<this.children.length; i++) {
+            this.children[i] = null;
+        }
+        // update mesh
+        this.createMesh();
+        // update neighbors
+        this.neighbors.forEach((neighbor: Quad, side: QuadSide) => {
+            if (neighbor) {
+                switch (side) {
+                    case 'bottom':
+                        // activate neighbor's top
+                        neighbor.deactivate('top');
+                        break;
+                    case 'left':
+                        // activate neighbor's right
+                        neighbor.deactivate('right');
+                        break;
+                    case 'right':
+                        // activate neighbor's left
+                        neighbor.deactivate('left');
+                        break;
+                    case 'top':
+                        // activate neighbor's bottom
+                        neighbor.deactivate('bottom');
+                        break;
+                    default:
+                        console.warn(`invalid side: '${side}' found in this.neighbors`);
+                        break;
+                }
+            }
+        });
         return this;
     }
 
