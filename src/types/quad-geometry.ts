@@ -169,11 +169,13 @@ export class QuadGeometry extends THREE.BufferGeometry {
 
     activate(...sides: Array<QuadSide>): this {
         sides?.forEach(s => this._active.add(s));
+        this._updateAttributes();
         return this;
     }
 
     deactivate(...sides: Array<QuadSide>): this {
         sides.forEach(s => this._active.delete(s));
+        this._updateAttributes();
         return this;
     }
 
@@ -207,6 +209,7 @@ export class QuadGeometry extends THREE.BufferGeometry {
             radius: this.radius / 4,
             level: this.level + 1
         }));
+        this._updateAttributes();
         // update neighbors
         this.neighbors.forEach((neighbor: QuadGeometry, side: QuadSide) => {
             if (neighbor) {
@@ -245,6 +248,7 @@ export class QuadGeometry extends THREE.BufferGeometry {
         for (let child of this.children.keys()) {
             this.children.delete(child);
         }
+        this._updateAttributes();
         // update neighbors
         this.neighbors.forEach((neighbor: QuadGeometry, side: QuadSide) => {
             if (neighbor) {
@@ -435,9 +439,10 @@ export class QuadGeometry extends THREE.BufferGeometry {
                 this.indices.push(b, c, d);
             }
         }
+    }
 
-        this.setIndex(this.indices);
-        this.setAttribute('position', new Float32BufferAttribute(this.vertices, 3));
+    private _updateAttributes(): void {
+        this.setAttribute('position', new Float32BufferAttribute(this.triangles, 3));
         this.setAttribute('normal', new Float32BufferAttribute(this.normals, 3));
         this.setAttribute('uv', new Float32BufferAttribute(this.uvs, 2));
     }
