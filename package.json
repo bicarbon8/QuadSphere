@@ -4,9 +4,8 @@
   "description": "a quadsphere implementation in javascript using THREE.js supporting distance based level of detail adjustment",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "vite",
-    "build:dev": "tsc && vite build",
-    "build": "tsc && vite build --base=\"/QuadSphere/\" && copyfiles -u 1 \"./dist/**/*\" ./docs",
+    "build": "tsc && vite build",
+    "build:dev": "NODE_ENV=development npm run build",
     "preview": "vite preview --port 4500"
   },
   "repository": {
