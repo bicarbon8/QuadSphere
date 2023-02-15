@@ -15,7 +15,7 @@ export function QuadShape(props: QuadShapeProps) {
             <bufferGeometry>
                 <bufferAttribute attach="attributes-position" array={quad.triangles} itemSize={3} />
             </bufferGeometry>
-            <meshNormalMaterial attach="material" wireframe />
+            <meshNormalMaterial attach="material" wireframe={true} />
         </mesh>
     );
 }

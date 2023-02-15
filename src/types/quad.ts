@@ -3,12 +3,7 @@ import { V3 } from "./v3";
 
 export type QuadSide = 'left' | 'bottom' | 'right' | 'top';
 
-export module QuadChildren {
-    export const BOTTOM_LEFT = 0;
-    export const BOTTOM_RIGHT = 1;
-    export const TOP_LEFT = 2;
-    export const TOP_RIGHT = 3;
-}
+export type QuadChild = 'bottomleft' | 'bottomright' | 'topleft' | 'topright';
 
 export type QuadOptions = {
     parent?: Quad;
@@ -91,7 +86,7 @@ export class Quad {
     public readonly parent: Quad;
     public readonly points = new Array<THREE.Vector3>(9);
     public readonly neighbors = new Map<QuadSide, Quad>();
-    public readonly children = new Array<Quad>(4);
+    public readonly children = new Map<QuadChild, Quad>();
     public readonly radius: number;
     public readonly level: number;
     
@@ -151,7 +146,9 @@ export class Quad {
     }
 
     get triangles(): Array<number> {
-        return (this.hasChildren()) ? new Array<number>().concat(...this.children.map(c => c.triangles)) : new Array<number>(
+        return (this.hasChildren()) ? new Array<number>()
+            .concat(...Array.from(this.children.values())
+                .map(c => c.triangles)) : new Array<number>(
             ...this.getLeftTrianglePositions(),
             ...this.getBottomTrianglePositions(),
             ...this.getRightTriagnlePositions(),
@@ -160,18 +157,16 @@ export class Quad {
     }
 
     hasChildren(): boolean {
-        return this.children.every(c => c != null);
+        return this.children.size === 4;
     }
 
     activate(...sides: Array<QuadSide>): this {
         sides?.forEach(s => this._active.add(s));
-        this.createMesh();
         return this;
     }
 
     deactivate(...sides: Array<QuadSide>): this {
         sides.forEach(s => this._active.delete(s));
-        this.createMesh();
         return this;
     }
 
@@ -181,32 +176,30 @@ export class Quad {
      */
     subdivide(): this {
         // create child Quads
-        this.children[QuadChildren.BOTTOM_LEFT] = new Quad({
+        this.children.set('bottomleft', new Quad({
             parent: this,
             centre: V3.midpoint(this.bottomleft, this.centre),
             radius: this.radius / 4,
             level: this.level + 1
-        });
-        this.children[QuadChildren.BOTTOM_RIGHT] = new Quad({
+        }));
+        this.children.set('bottomright', new Quad({
             parent: this,
             centre: V3.midpoint(this.bottomright, this.centre),
             radius: this.radius / 4,
             level: this.level + 1
-        });
-        this.children[QuadChildren.TOP_LEFT] = new Quad({
+        }));
+        this.children.set('topleft', new Quad({
             parent: this,
             centre: V3.midpoint(this.topleft, this.centre),
             radius: this.radius / 4,
             level: this.level + 1
-        });
-        this.children[QuadChildren.TOP_RIGHT] = new Quad({
+        }));
+        this.children.set('topright', new Quad({
             parent: this,
             centre: V3.midpoint(this.topright, this.centre),
             radius: this.radius / 4,
             level: this.level + 1
-        });
-        // regenerate mesh
-        this.createMesh();
+        }));
         // update neighbors
         this.neighbors.forEach((neighbor: Quad, side: QuadSide) => {
             if (neighbor) {
@@ -242,11 +235,9 @@ export class Quad {
      */
     unify(): this {
         // remove child Quads
-        for (let i=0; i<this.children.length; i++) {
-            this.children[i] = null;
+        for (let child of this.children.keys()) {
+            this.children.delete(child);
         }
-        // update mesh
-        this.createMesh();
         // update neighbors
         this.neighbors.forEach((neighbor: Quad, side: QuadSide) => {
             if (neighbor) {
@@ -274,26 +265,6 @@ export class Quad {
             }
         });
         return this;
-    }
-
-    /**
-     * NOTE: only the top-most `Quad` should generate a mesh
-     * 
-     * gets an array of points that form the triangles of the mesh
-     * from all child quads and creates a mesh from that.
-     */
-    createMesh(): void {
-        if (this.parent == null) {
-            const tris = this.triangles;
-            const geometry = new THREE.BufferGeometry();
-            geometry.setAttribute('position', new THREE.Float32BufferAttribute(tris, 3));
-            geometry.computeVertexNormals();
-
-            const material = new THREE.MeshNormalMaterial({wireframe: true}); // debug mode
-            this._mesh = new THREE.Mesh(geometry, material);
-        } else {
-            this.parent.createMesh();
-        }
     }
 
     /**
