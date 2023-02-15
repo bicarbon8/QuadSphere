@@ -10,5 +10,8 @@ export default defineConfig({
       clientPort: process.env.CODESPACES ? 443 : undefined
     },
     port: 4500
+  },
+  build: {
+    
   }
 })
