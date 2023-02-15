@@ -84,7 +84,7 @@ export type QuadOptions = {
  */
 export class Quad {
     public readonly parent: Quad;
-    public readonly points = new Array<THREE.Vector3>(9);
+    public readonly points = new Array<THREE.Vector3>();
     public readonly neighbors = new Map<QuadSide, Quad>();
     public readonly children = new Map<QuadChild, Quad>();
     public readonly radius: number;
