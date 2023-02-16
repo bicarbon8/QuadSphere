@@ -30,26 +30,13 @@ export function QuadMesh(props: QuadMeshProps) {
         }
         if (time >= nextChangeAt) {
             nextChangeAt = time + changeFrequency;
-            setState(modifyQuadGeometry(quad, state));
+            const geometry = meshRef.current.geometry as QuadGeometry;
+            setState(modifyQuadGeometry(geometry, state));
         }
     });
     
-    const vertices = new Float32Array(quad.vertices);
-    const indices = new Uint16Array(quad.indices);
     return (
-        <mesh ref={meshRef} dispose={null} castShadow receiveShadow>
-            <bufferGeometry attach="geometry">
-                <bufferAttribute 
-                    attach="attributes-position" 
-                    array={vertices} 
-                    count={vertices.length / 3} 
-                    itemSize={3} />
-                <bufferAttribute
-                    attach="index"
-                    array={indices}
-                    count={indices.length}
-                    itemSize={1} />
-            </bufferGeometry>
+        <mesh ref={meshRef} dispose={null} geometry={quad} castShadow receiveShadow>
             <meshBasicMaterial attach="material" wireframe={true} />
         </mesh>
     );
