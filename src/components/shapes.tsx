@@ -77,8 +77,9 @@ function modifyQuadGeometry(geometry: QuadGeometry, state: QuadState): QuadState
             break;
     }
 
-    const { position } = geometry.attributes;
+    const { position, index } = geometry.attributes;
     position.needsUpdate = true;
+    index.needsUpdate = true;
     geometry.computeVertexNormals();
 
     return outState;
