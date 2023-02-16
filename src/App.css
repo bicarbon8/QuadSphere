@@ -1,6 +1,37 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  overflow: hidden;
+}
+
+#root {
+  overflow: auto;
+  padding: 0px;
+}
+
+body {
+  position: fixed;
+  overflow: hidden;
+  overscroll-behavior-y: none;
+  font-family: -apple-system, BlinkMacSystemFont, avenir next, avenir, helvetica neue, helvetica, ubuntu, roboto, noto, segoe ui, arial, sans-serif;
+  color: black;
+  background: white;
+}
+
+.absolute_full {
+  position: absolute;
+  top: 0vh;
+  left: 0vw;
+  height: 100vh;
+  width: 100vw;
+  background-color: #1e415b;
 }
