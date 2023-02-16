@@ -62,11 +62,10 @@ export function QuadShape(props: QuadShapeProps) {
     }
 
     let elapsed: number = 0;
+    const changeAfter = 1000;
     useFrame(({ clock }) => {
-        console.debug(`useFrame called with`, clock);
-        const changeAfter = 1000;
-        /* determine if we should subdivide or not */
         elapsed += clock.getDelta();
+        console.debug({elapsed});
         if (elapsed >= changeAfter) {
             elapsed = 0;
             updateQuad();
