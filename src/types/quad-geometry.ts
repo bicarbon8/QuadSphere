@@ -197,10 +197,15 @@ export class QuadGeometry extends THREE.BufferGeometry {
     get indices(): Array<number> {
         const indices = new Array<number>();
         if (this.hasChildren()) {
-            const childIndices = Array.from(this._children.values())
-                    .map(c => c.indices)
-                    .flat();
-            indices.splice(indices.length, 0, ...childIndices);
+            let offset: number = 0;
+            // NOTE: the order the child indices are added is critical and **MUST** match vertices order
+            indices.splice(indices.length, 0, ...this.bottomleftChild.indices); // no offset
+            offset += this.bottomleftChild.vertices.length / 3; // offset by vertices of first child
+            indices.splice(indices.length, 0, ...this.bottomrightChild.indices.map(i => i+offset));
+            offset += this.bottomrightChild.vertices.length / 3; // offset by vertices of second child
+            indices.splice(indices.length, 0, ...this.topleftChild.indices.map(i => i+offset));
+            offset += this.topleftChild.vertices.length / 3; // offset by vertices of third child
+            indices.splice(indices.length, 0, ...this.toprightChild.indices.map(i => i+offset));
         } else {
             indices.splice(indices.length, 0, ...this.getLeftTriangleIndices());
             indices.splice(indices.length, 0, ...this.getBottomTriangleIndices());
