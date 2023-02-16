@@ -26,7 +26,7 @@ export function QuadShape(props: QuadShapeProps) {
         if (nextChangeAt == null) {
             nextChangeAt = time + changeFrequency;
         }
-        if (nextChangeAt >= time) {
+        if (nextChangeAt <= time) {
             nextChangeAt = time + changeFrequency;
             const geometry = meshRef.current.geometry as QuadGeometry;
             setState(modifyQuadGeometry(geometry, state));
