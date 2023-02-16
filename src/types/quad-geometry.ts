@@ -435,14 +435,14 @@ export class QuadGeometry extends THREE.BufferGeometry {
     private _generatePoints(centre: V3): void {
         const point = new THREE.Vector3();
         const normal = new THREE.Vector3();
-        for (let y = centre.y - this.radius; y <= centre.y + this.radius; y += this.radius) {
-            const v = y / 3;
+        for (let z = centre.z - this.radius; z <= centre.z + this.radius; z += this.radius) {
+            const v = z / 3;
             let uOffset = 0;
             for (let x = centre.x - this.radius; x <= centre.x + this.radius; x += this.radius) {
                 const u = x / 3;
                 point.x = x;
-                point.y = y;
-                point.z = centre.z;
+                point.y = centre.y;
+                point.z = z;
                 this._vertices.push(point.x, point.y, point.z);
                 normal.copy(point).normalize();
                 this._normals.push(normal.x, normal.y, normal.z);

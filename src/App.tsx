@@ -11,7 +11,7 @@ function App() {
         <Canvas>
             <ambientLight />
             <pointLight position={[10, 10, 10]} />
-            <OrbitControls />
+            <OrbitControls position={[2, 2, 2]} />
             <gridHelper args={[10, 20]} />
             <axesHelper args={[0.5]} />
             <QuadMesh position={[0, 0, 0]} radius={1} />
