@@ -12,8 +12,8 @@ function App() {
             <ambientLight />
             <pointLight position={[10, 10, 10]} />
             <OrbitControls />
-            <gridHelper args={[500, 20]} />
-            <axesHelper args={[100]} />
+            <gridHelper args={[10, 0.25]} />
+            <axesHelper args={[5]} />
             <QuadShape position={[0, 0, 0]} radius={1} />
             <Stats />
         </Canvas>
