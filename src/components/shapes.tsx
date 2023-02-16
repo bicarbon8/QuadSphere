@@ -19,11 +19,11 @@ export function QuadShape(props: QuadShapeProps) {
         radius: props.radius ?? 1
     }), [props]);
     let nextChangeAt: number;
-    const changeFrequency = 1; // 1 second
+    const changeFrequency = 5; // 5 seconds
     useFrame(({ clock }) => {
         const time = clock.getElapsedTime(); // in seconds
         console.debug({time});
-        if (!nextChangeAt) {
+        if (nextChangeAt == null) {
             nextChangeAt = time + changeFrequency;
         }
         if (nextChangeAt >= time) {
