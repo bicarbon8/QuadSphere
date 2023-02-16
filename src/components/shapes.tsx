@@ -11,7 +11,7 @@ export type QuadShapeProps = {
 const states = ['unified', 'leftactive', 'rightactive', 'topactive', 'bottomactive', 'subdivided'] as const;
 type QuadState = typeof states[number];
 
-const mesh = useRef<Mesh>();
+const mesh = useRef<Mesh>(null);
 const [state, setState] = useState<QuadState>();
 
 const updateQuad = (delta: number) => {
