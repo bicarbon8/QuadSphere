@@ -16,7 +16,7 @@ export type QuadOptions = {
 /**
  * a quadrilateral shape made up of triangles in one of the following configurations
  * based on neighboring quads and their level of subdivisions. if any neighbor is two
- * or more levels of subdivisions different from this `Quad` it **MUST** either subdivide
+ * or more levels of subdivisions different from this quad it **MUST** either subdivide
  * or unify until within one level
  * 
  * no sides active
@@ -152,7 +152,7 @@ export class QuadGeometry extends THREE.BufferGeometry {
      * |        |        |
      * 0--------1--------2 where 0...8 is [x, y, z, ..., x, y, z]
      * ```
-     * if this `Quad` has child quads then the vertices returned will be 
+     * if this quad has child quads then the vertices returned will be 
      * made up of the child quads' vertices ordered like the following:
      * ```
      * 24--25-26 33--34-35
@@ -249,7 +249,7 @@ export class QuadGeometry extends THREE.BufferGeometry {
     }
 
     /**
-     * causes this `Quad` to generate 4 child quads and update all neighbors so they can 
+     * causes this quad to generate 4 child quads and update all neighbors so they can 
      * subdivide their edges facing this quad
      */
     subdivide(): this {
@@ -309,7 +309,7 @@ export class QuadGeometry extends THREE.BufferGeometry {
     }
 
     /**
-     * causes this `Quad` to remove all child quads and update all neighbors so they can
+     * causes this quad to remove all child quads and update all neighbors so they can
      * unify their edges facing this quad
      */
     unify(): this {

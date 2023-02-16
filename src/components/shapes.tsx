@@ -11,17 +11,16 @@ export type QuadShapeProps = {
 const states = ['unified', 'leftactive', 'rightactive', 'topactive', 'bottomactive', 'subdivided'] as const;
 type QuadState = typeof states[number];
 
-const mesh = useRef<Mesh>(null);
-const [state, setState] = useState<QuadState>();
+export function QuadShape(props: QuadShapeProps) {
+    const quad = new QuadGeometry({
+        centre: {x: props.position[0] ?? 0, y: props.position[1] ?? 0, z: props.position[2] ?? 0},
+        radius: props.radius ?? 1
+    });
 
-const updateQuad = (delta: number) => {
-    let elapsed = 0;
-    setState('unified');
-    const changeAfter = 1000;
-    /* determine if we should subdivide or not */
-    elapsed += delta;
-    if (elapsed >= changeAfter) {
-        elapsed = 0;
+    const mesh = useRef<Mesh>();
+    const [state, setState] = useState<QuadState>('unified');
+    
+    const updateQuad = () => {
         const { geometry } = mesh.current
         const { position } = geometry.attributes
         const quad = geometry as QuadGeometry;
@@ -57,21 +56,22 @@ const updateQuad = (delta: number) => {
                 setState('unified');
                 break;
         }
-
-        position.needsUpdate = true
-        geometry.computeVertexNormals()
+    
+        position.needsUpdate = true;
+        geometry.computeVertexNormals();
     }
-  }
 
-export function QuadShape(props: QuadShapeProps) {
-    const quad = new QuadGeometry({
-        centre: {x: props.position[0] ?? 0, y: props.position[1] ?? 0, z: props.position[2] ?? 0},
-        radius: props.radius ?? 1
+    let elapsed: number = 0;
+    useFrame(({ clock }) => {
+        const changeAfter = 1000;
+        /* determine if we should subdivide or not */
+        elapsed += clock.getDelta();
+        if (elapsed >= changeAfter) {
+            elapsed = 0;
+            updateQuad();
+        }
     });
     
-    useFrame(({ clock }) => {
-        updateQuad(clock.getDelta());
-    });
     return (
         <mesh ref={mesh} castShadow receiveShadow geometry={quad}>
             <meshBasicMaterial attach="material" wireframe={true} />
