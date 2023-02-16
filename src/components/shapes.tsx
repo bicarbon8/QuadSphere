@@ -3,7 +3,7 @@ import { useMemo, useRef, useState } from "react";
 import { Mesh } from "three";
 import { QuadGeometry } from "../types/quad-geometry";
 
-export type QuadShapeProps = {
+export type QuadMeshProps = {
     position: Array<number>;
     radius: number;
 };
@@ -11,30 +11,46 @@ export type QuadShapeProps = {
 const states = ['unified', 'leftactive', 'rightactive', 'topactive', 'bottomactive', 'subdivided'] as const;
 type QuadState = typeof states[number];
 
-export function QuadShape(props: QuadShapeProps) {
+export function QuadMesh(props: QuadMeshProps) {
     const meshRef = useRef<Mesh>();
     const [state, setState] = useState<QuadState>('unified');
-    const quad = useMemo<QuadGeometry>(() => new QuadGeometry({
-        centre: {x: props.position[0] ?? 0, y: props.position[1] ?? 0, z: props.position[2] ?? 0},
-        radius: props.radius ?? 1
-    }), [props]);
+    const quad = useMemo<QuadGeometry>(() => {
+        console.info('creating new QuadGeometry!', {props});
+        return new QuadGeometry({
+            centre: {x: props.position[0] ?? 0, y: props.position[1] ?? 0, z: props.position[2] ?? 0},
+            radius: props.radius ?? 1
+        });
+    }, [props]);
     let nextChangeAt: number;
     const changeFrequency = 5; // 5 seconds
     useFrame(({ clock }) => {
         const time = clock.getElapsedTime(); // in seconds
-        console.debug({time});
         if (nextChangeAt == null) {
             nextChangeAt = time + changeFrequency;
         }
-        if (nextChangeAt <= time) {
+        if (time >= nextChangeAt) {
             nextChangeAt = time + changeFrequency;
             const geometry = meshRef.current.geometry as QuadGeometry;
             setState(modifyQuadGeometry(geometry, state));
         }
     });
     
+    const vertices = new Float32Array(quad.vertices);
+    const indices = new Uint16Array(quad.indices);
     return (
-        <mesh ref={meshRef} castShadow receiveShadow geometry={quad}>
+        <mesh ref={meshRef} dispose={null} castShadow receiveShadow>
+            <bufferGeometry attach="geometry">
+                <bufferAttribute 
+                    attach="attributes-position" 
+                    array={vertices} 
+                    count={vertices.length / 3} 
+                    itemSize={3} />
+                <bufferAttribute
+                    attach="index"
+                    array={indices}
+                    count={indices.length}
+                    itemSize={1} />
+            </bufferGeometry>
             <meshBasicMaterial attach="material" wireframe={true} />
         </mesh>
     );

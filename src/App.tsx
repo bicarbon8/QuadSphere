@@ -1,7 +1,7 @@
 import './App.css'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Stats } from '@react-three/drei'
-import { QuadShape } from './components/shapes';
+import { QuadMesh } from './components/shapes';
 import { Fragment } from 'react';
 
 function App() {
@@ -14,7 +14,7 @@ function App() {
             <OrbitControls />
             <gridHelper args={[100, 1]} />
             <axesHelper args={[5]} />
-            <QuadShape position={[0, 0, 0]} radius={1} />
+            <QuadMesh position={[0, 0, 0]} radius={1} />
             <Stats />
         </Canvas>
       </div>
