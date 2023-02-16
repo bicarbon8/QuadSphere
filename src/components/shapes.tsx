@@ -18,12 +18,16 @@ export function QuadShape(props: QuadShapeProps) {
         centre: {x: props.position[0] ?? 0, y: props.position[1] ?? 0, z: props.position[2] ?? 0},
         radius: props.radius ?? 1
     }), [props]);
-    let elapsed: number = 0;
-    const changeAfter = 0.1; // 0.1 second
+    let nextChangeAt: number;
+    const changeFrequency = 1; // 1 second
     useFrame(({ clock }) => {
-        elapsed += clock.getDelta(); // in seconds
-        if (elapsed >= changeAfter) {
-            elapsed = 0;
+        const time = clock.getElapsedTime(); // in seconds
+        console.debug({time});
+        if (!nextChangeAt) {
+            nextChangeAt = time + changeFrequency;
+        }
+        if (nextChangeAt >= time) {
+            nextChangeAt = time + changeFrequency;
             const geometry = meshRef.current.geometry as QuadGeometry;
             setState(modifyQuadGeometry(geometry, state));
         }
