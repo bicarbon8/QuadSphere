@@ -450,8 +450,10 @@ export class QuadGeometry extends THREE.BufferGeometry {
     private _updateAttributes(): void {
         this.setAttribute('position', new Float32BufferAttribute(this.vertices, 3));
         this.setIndex(this.indices);
-        this.setAttribute('normal', new Float32BufferAttribute(this._normals, 3));
-        this.setAttribute('uv', new Float32BufferAttribute(this._uvs, 2));
+        // this.setAttribute('normal', new Float32BufferAttribute(this._normals, 3));
+        // this.setAttribute('uv', new Float32BufferAttribute(this._uvs, 2));
+        this.attributes.position.needsUpdate = true;
+        this.computeVertexNormals();
     }
 
     private _getPointIndices(index: number = 0): V3 {
