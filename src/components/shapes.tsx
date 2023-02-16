@@ -62,10 +62,9 @@ export function QuadShape(props: QuadShapeProps) {
     }
 
     let elapsed: number = 0;
-    const changeAfter = 1000;
+    const changeAfter = 1; // 1 second
     useFrame(({ clock }) => {
-        elapsed += clock.getDelta();
-        console.debug({elapsed});
+        elapsed += clock.getDelta(); // in seconds
         if (elapsed >= changeAfter) {
             elapsed = 0;
             updateQuad();

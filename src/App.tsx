@@ -12,7 +12,7 @@ function App() {
             <ambientLight />
             <pointLight position={[10, 10, 10]} />
             <OrbitControls />
-            <gridHelper args={[10, 1]} />
+            <gridHelper args={[100, 1]} />
             <axesHelper args={[5]} />
             <QuadShape position={[0, 0, 0]} radius={1} />
             <Stats />
