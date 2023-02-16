@@ -65,19 +65,15 @@ export type QuadOptions = {
  */
 export class QuadGeometry extends THREE.BufferGeometry {
     public readonly parent: QuadGeometry;
-    public readonly points = new Array<THREE.Vector3>();
-    public readonly indices = new Array<number>();
-    public readonly vertices = new Array<number>();
-    public readonly normals = new Array<number>();
-    public readonly uvs = new Array<number>();
     public readonly neighbors = new Map<QuadSide, QuadGeometry>();
-    public readonly children = new Map<QuadChild, QuadGeometry>();
     public readonly radius: number;
     public readonly level: number;
 
+    private readonly _children = new Map<QuadChild, QuadGeometry>();
+    private readonly _vertices = new Array<number>();
+    private readonly _normals = new Array<number>();
+    private readonly _uvs = new Array<number>();
     private readonly _active = new Set<QuadSide>();
-
-    private _mesh: THREE.Mesh;
 
     constructor(options: QuadOptions) {
         super();
@@ -86,10 +82,6 @@ export class QuadGeometry extends THREE.BufferGeometry {
         this.radius = options.radius ?? 1;
         this.level = options.level ?? 0;
         this._generatePoints(options.centre ?? V3.ZERO);
-    }
-
-    get mesh(): THREE.Mesh {
-        return this._mesh;
     }
 
     get activeSides(): Array<QuadSide> {
@@ -132,18 +124,90 @@ export class QuadGeometry extends THREE.BufferGeometry {
         return this._getPointIndices(8);
     }
 
-    get triangles(): Array<number> {
+    get bottomleftChild(): QuadGeometry {
+        return this._children.get('bottomleft');
+    }
+
+    get bottomrightChild(): QuadGeometry {
+        return this._children.get('bottomright');
+    }
+
+    get topleftChild(): QuadGeometry {
+        return this._children.get('topleft');
+    }
+
+    get toprightChild(): QuadGeometry {
+        return this._children.get('topright');
+    }
+
+    /**
+     * returns all the vertices as numbers in groups of 3 representing the
+     * x, y, z coordinates of each vertex ordered like the following: 
+     * ```
+     * 6--------7--------8
+     * |        |        |
+     * |        |        |
+     * 3--------4--------5
+     * |        |        |
+     * |        |        |
+     * 0--------1--------2 where 0...8 is [x, y, z, ..., x, y, z]
+     * ```
+     * if this `Quad` has child quads then the vertices returned will be 
+     * made up of the child quads' vertices ordered like the following:
+     * ```
+     * 24--25-26 33--34-35
+     * 21--22-23 30--31-32
+     * 18--19-20 27--28-29
+     * 6---7---8 15--16-17
+     * 3---4---5 12--13-14
+     * 0---1---2 9---10-11 where 0...35 is [x, y, z, ..., x, y, z]
+     * ```
+     */
+    get vertices(): Array<number> {
+        const vertices = new Array<number>();
         if (this.hasChildren()) {
-            return new Array<number>()
-                .concat(...Array.from(this.children.values())
-                    .map(c => c.triangles));
+            vertices.splice(vertices.length, 0, ...this.bottomleftChild.vertices);
+            vertices.splice(vertices.length, 0, ...this.bottomrightChild.vertices);
+            vertices.splice(vertices.length, 0, ...this.topleftChild.vertices);
+            vertices.splice(vertices.length, 0, ...this.toprightChild.vertices);
+        } else {
+            vertices.splice(vertices.length, 0, ...this._vertices);
         }
-        return new Array<number>(
-            ...this.getLeftTriangleIndices(),
-            ...this.getBottomTriangleIndices(),
-            ...this.getRightTriagnleIndices(),
-            ...this.getTopTriangleIndices()
-        );
+        return vertices;
+    }
+
+    /**
+     * returns the index of each vertex coordinate grouping from the `this.vertices`
+     * array ordered in groups of three that form a clockwise triangle like
+     * ```
+     * 6-7-8
+     * |\|/|
+     * 3-4-5
+     * |/|\|
+     * 0-1-2
+     * ```
+     * resulting in an array like: `[0,4,1,1,4,2,2,4,5,5,4,8,8,4,7,7,4,6,6,4,3,3,4,0]`
+     * 
+     * NOTE: even though the vertices array actually contains 3 values per index, these
+     * indices act as though the vertices array is actually made up of `THREE.Vector3`
+     * objects instead of 3 separate numbers so the index isn't actually into the vertices
+     * array, but into a theoretical array made up of `THREE.Vector3` formed from the 
+     * vertices array and with the same ordering
+     */
+    get indices(): Array<number> {
+        const indices = new Array<number>();
+        if (this.hasChildren()) {
+            const childIndices = Array.from(this._children.values())
+                    .map(c => c.indices)
+                    .flat();
+            indices.splice(indices.length, 0, ...childIndices);
+        } else {
+            indices.splice(indices.length, 0, ...this.getLeftTriangleIndices());
+            indices.splice(indices.length, 0, ...this.getBottomTriangleIndices());
+            indices.splice(indices.length, 0, ...this.getRightTriagnleIndices());
+            indices.splice(indices.length, 0, ...this.getTopTriangleIndices());
+        }
+        return indices;
     }
 
     /**
@@ -162,14 +226,14 @@ export class QuadGeometry extends THREE.BufferGeometry {
      */
     getPoint(index: number = 0): THREE.Vector3 {
         const i = this._getPointIndices(index);
-        const x = this.vertices[i.x];
-        const y = this.vertices[i.y];
-        const z = this.vertices[i.z];
+        const x = this._vertices[i.x];
+        const y = this._vertices[i.y];
+        const z = this._vertices[i.z];
         return new THREE.Vector3(x, y, z);
     }
 
     hasChildren(): boolean {
-        return this.children.size === 4;
+        return this._children.size === 4;
     }
 
     activate(...sides: Array<QuadSide>): this {
@@ -190,25 +254,25 @@ export class QuadGeometry extends THREE.BufferGeometry {
      */
     subdivide(): this {
         // create child Quads
-        this.children.set('bottomleft', new QuadGeometry({
+        this._children.set('bottomleft', new QuadGeometry({
             parent: this,
             centre: V3.midpoint(this.bottomleft, this.centre),
             radius: this.radius / 4,
             level: this.level + 1
         }));
-        this.children.set('bottomright', new QuadGeometry({
+        this._children.set('bottomright', new QuadGeometry({
             parent: this,
             centre: V3.midpoint(this.bottomright, this.centre),
             radius: this.radius / 4,
             level: this.level + 1
         }));
-        this.children.set('topleft', new QuadGeometry({
+        this._children.set('topleft', new QuadGeometry({
             parent: this,
             centre: V3.midpoint(this.topleft, this.centre),
             radius: this.radius / 4,
             level: this.level + 1
         }));
-        this.children.set('topright', new QuadGeometry({
+        this._children.set('topright', new QuadGeometry({
             parent: this,
             centre: V3.midpoint(this.topright, this.centre),
             radius: this.radius / 4,
@@ -250,8 +314,8 @@ export class QuadGeometry extends THREE.BufferGeometry {
      */
     unify(): this {
         // remove child Quads
-        for (let child of this.children.keys()) {
-            this.children.delete(child);
+        for (let child of this._children.keys()) {
+            this._children.delete(child);
         }
         this._updateAttributes();
         // update neighbors
@@ -295,19 +359,12 @@ export class QuadGeometry extends THREE.BufferGeometry {
     getLeftTriangleIndices(): Array<number> {
         if (this.activeSides.includes('left')) {
             return [
-                this.bottomleft.x, this.bottomleft.y, this.bottomleft.z, // bottom left
-                this.middleleft.x, this.middleleft.y, this.middleleft.z, // middle left
-                this.centre.x, this.centre.y, this.centre.z,             // centre
-
-                this.centre.x, this.centre.y, this.centre.z,             // centre
-                this.middleleft.x, this.middleleft.y, this.middleleft.z, // middle left
-                this.topleft.x, this.topleft.y, this.topleft.z           // top left
+                0, 3, 4, // bottomleft, middleleft, centre
+                4, 3, 6  // centre, middleleft, topleft
             ];
         }
         return [
-            this.bottomleft.x, this.bottomleft.y, this.bottomleft.z, // bottom left
-            this.topleft.x, this.topleft.y, this.topleft.z,          // top left
-            this.centre.x, this.centre.y, this.centre.z              // centre
+            0, 6, 4 // bottomleft, topleft, centre
         ];
     }
 
@@ -321,19 +378,12 @@ export class QuadGeometry extends THREE.BufferGeometry {
     getBottomTriangleIndices(): Array<number> {
         if (this.activeSides.includes('top')) {
             return [
-                this.bottomleft.x, this.bottomleft.y, this.bottomleft.z,   // bottom left
-                this.centre.x, this.centre.y, this.centre.z,               // centre
-                this.middleleft.x, this.middleleft.y, this.middleleft.z,   // middle left
-
-                this.middleleft.x, this.middleleft.y, this.middleleft.z,   // middle left
-                this.centre.x, this.centre.y, this.centre.z,               // centre
-                this.bottomright.x, this.bottomright.y, this.bottomright.z // bottom right
+                0, 4, 1, // bottomleft, centre, bottommiddle
+                1, 4, 2  // bottommiddle, centre, bottomright
             ];
         }
         return [
-            this.bottomleft.x, this.bottomleft.y, this.bottomleft.z,   // bottom left
-            this.centre.x, this.centre.y, this.centre.z,               // centre
-            this.bottomright.x, this.bottomright.y, this.bottomright.z // bottom right
+            0, 4, 2 // bottomleft, centre, bottomright
         ];
     }
 
@@ -349,19 +399,12 @@ export class QuadGeometry extends THREE.BufferGeometry {
     getRightTriagnleIndices(): Array<number> {
         if (this.activeSides.includes('right')) {
             return [
-                this.centre.x, this.centre.y, this.centre.z,                // centre
-                this.topright.x, this.topright.y, this.topright.z,          // top right
-                this.middleright.x, this.middleright.y, this.middleright.z, // middle right
-
-                this.middleright.x, this.middleright.y, this.middleright.z, // middle right
-                this.bottomright.x, this.bottomright.y, this.bottomright.z, // bottom right
-                this.centre.x, this.centre.y, this.centre.z                 // centre
+                4, 5, 2, // centre, middleright, bottomright
+                4, 8, 5  // centre, topright, middleright
             ];
         }
         return [
-            this.centre.x, this.centre.y, this.centre.z,                // centre
-            this.topright.x, this.topright.y, this.topright.z,          // top right
-            this.bottomright.x, this.bottomright.y, this.bottomright.z, // bottom right
+            2, 4, 8 // bottomright, centre, topright
         ];
     }
 
@@ -375,19 +418,12 @@ export class QuadGeometry extends THREE.BufferGeometry {
     getTopTriangleIndices(): Array<number> {
         if (this.activeSides.includes('top')) {
             return [
-                this.centre.x, this.centre.y, this.centre.z,             // centre
-                this.topleft.x, this.topleft.y, this.topleft.z,          // top left
-                this.middleleft.x, this.middleleft.y, this.middleleft.z, // middle left
-
-                this.middleleft.x, this.middleleft.y, this.middleleft.z, // middle left
-                this.topright.x, this.topright.y, this.topright.z,       // top right
-                this.centre.x, this.centre.y, this.centre.z              // centre
+                4, 6, 7, // centre, topleft, topmiddle
+                4, 7, 8  // centre, topmiddle, topright
             ];
         }
         return [
-            this.centre.x, this.centre.y, this.centre.z,       // centre
-            this.topleft.x, this.topleft.y, this.topleft.z,    // top left
-            this.topright.x, this.topright.y, this.topright.z, // top right
+            4, 6, 8 // centre, topleft, topright
         ];
     }
 
@@ -402,20 +438,20 @@ export class QuadGeometry extends THREE.BufferGeometry {
                 point.x = x;
                 point.y = y;
                 point.z = centre.z;
-                this.vertices.push(point.x, point.y, point.z);
+                this._vertices.push(point.x, point.y, point.z);
                 normal.copy(point).normalize();
-                this.normals.push(normal.x, normal.y, normal.z);
-                this.uvs.push(u + uOffset, 1 - v);
+                this._normals.push(normal.x, normal.y, normal.z);
+                this._uvs.push(u + uOffset, 1 - v);
             }
         }
         this._updateAttributes();
     }
 
     private _updateAttributes(): void {
-        this.setIndex(this.triangles);
         this.setAttribute('position', new Float32BufferAttribute(this.vertices, 3));
-        this.setAttribute('normal', new Float32BufferAttribute(this.normals, 3));
-        this.setAttribute('uv', new Float32BufferAttribute(this.uvs, 2));
+        this.setIndex(this.indices);
+        this.setAttribute('normal', new Float32BufferAttribute(this._normals, 3));
+        this.setAttribute('uv', new Float32BufferAttribute(this._uvs, 2));
     }
 
     private _getPointIndices(index: number = 0): V3 {
