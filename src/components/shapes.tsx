@@ -30,8 +30,7 @@ export function QuadMesh(props: QuadMeshProps) {
         }
         if (time >= nextChangeAt) {
             nextChangeAt = time + changeFrequency;
-            const geometry = meshRef.current.geometry as QuadGeometry;
-            setState(modifyQuadGeometry(geometry, state));
+            setState(modifyQuadGeometry(quad, state));
         }
     });
     
