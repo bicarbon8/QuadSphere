@@ -84,44 +84,61 @@ export class QuadGeometry extends THREE.BufferGeometry {
         this._generatePoints(options.centre ?? V3.ZERO);
     }
 
+    /**
+     * the maximum number of generations of quads inside (and including)
+     * this one. an undivided quad would return a `depth` of `1` whereas
+     * a quad with children where at least one child has their own children
+     * would return a `depth` of `3`
+     */
+    get depth(): number {
+        let d: number = 1;
+        if (this.hasChildren()) {
+            d += Array.from(this._children.values())
+                .map(c => c.depth) // gets all child depths
+                .sort((a, b) => b - a) // sorts in descending
+                .find(v => v > 0); // returns first value (max)
+        }
+        return d;
+    }
+
     get activeSides(): Array<QuadSide> {
         return Array.from(this._active.values());
     }
 
     get bottomleft(): V3 {
-        return this._getPointIndices(0);
+        return this.getPoint(0);
     }
 
     get bottommiddle(): V3 {
-        return this._getPointIndices(1);
+        return this.getPoint(1);
     }
 
     get bottomright(): V3 {
-        return this._getPointIndices(2);
+        return this.getPoint(2);
     }
 
     get middleleft(): V3 {
-        return this._getPointIndices(3);
+        return this.getPoint(3);
     }
 
     get centre(): V3 {
-        return this._getPointIndices(4);
+        return this.getPoint(4);
     }
 
     get middleright(): V3 {
-        return this._getPointIndices(5);
+        return this.getPoint(5);
     }
 
     get topleft(): V3 {
-        return this._getPointIndices(6);
+        return this.getPoint(6);
     }
 
     get topmiddle(): V3 {
-        return this._getPointIndices(7);
+        return this.getPoint(7);
     }
 
     get topright(): V3 {
-        return this._getPointIndices(8);
+        return this.getPoint(8);
     }
 
     get bottomleftChild(): QuadGeometry {
@@ -262,29 +279,46 @@ export class QuadGeometry extends THREE.BufferGeometry {
         this._children.set('bottomleft', new QuadGeometry({
             parent: this,
             centre: V3.midpoint(this.bottomleft, this.centre),
-            radius: this.radius / 4,
+            radius: this.radius / 2,
             level: this.level + 1
         }));
         this._children.set('bottomright', new QuadGeometry({
             parent: this,
             centre: V3.midpoint(this.bottomright, this.centre),
-            radius: this.radius / 4,
+            radius: this.radius / 2,
             level: this.level + 1
         }));
         this._children.set('topleft', new QuadGeometry({
             parent: this,
             centre: V3.midpoint(this.topleft, this.centre),
-            radius: this.radius / 4,
+            radius: this.radius / 2,
             level: this.level + 1
         }));
         this._children.set('topright', new QuadGeometry({
             parent: this,
             centre: V3.midpoint(this.topright, this.centre),
-            radius: this.radius / 4,
+            radius: this.radius / 2,
             level: this.level + 1
         }));
         this._updateAttributes();
-        // update neighbors
+        // update children's neighbors
+        this.bottomleftChild.neighbors.set('left', this.neighbors.get('left'));
+        this.bottomleftChild.neighbors.set('bottom', this.neighbors.get('bottom'));
+        this.bottomleftChild.neighbors.set('right', this.bottomrightChild);
+        this.bottomleftChild.neighbors.set('top', this.topleftChild);
+        this.bottomrightChild.neighbors.set('left', this.bottomleftChild);
+        this.bottomrightChild.neighbors.set('bottom', this.neighbors.get('bottom'));
+        this.bottomrightChild.neighbors.set('right', this.neighbors.get('right'));
+        this.bottomrightChild.neighbors.set('top', this.toprightChild);
+        this.topleftChild.neighbors.set('left', this.neighbors.get('left'));
+        this.topleftChild.neighbors.set('bottom', this.bottomleftChild);
+        this.topleftChild.neighbors.set('right', this.toprightChild);
+        this.topleftChild.neighbors.set('top', this.neighbors.get('top'));
+        this.toprightChild.neighbors.set('left', this.topleftChild);
+        this.toprightChild.neighbors.set('bottom', this.bottomrightChild);
+        this.toprightChild.neighbors.set('right', this.neighbors.get('right'));
+        this.toprightChild.neighbors.set('top', this.neighbors.get('top'));
+        // update our neighbors
         this.neighbors.forEach((neighbor: QuadGeometry, side: QuadSide) => {
             if (neighbor) {
                 switch (side) {
@@ -319,9 +353,10 @@ export class QuadGeometry extends THREE.BufferGeometry {
      */
     unify(): this {
         // remove child Quads
-        for (let child of this._children.keys()) {
-            this._children.delete(child);
-        }
+        this._children.forEach((c: QuadGeometry, k: QuadChild) => {
+            c.dispose();
+            this._children.delete(k);
+        });
         this._updateAttributes();
         // update neighbors
         this.neighbors.forEach((neighbor: QuadGeometry, side: QuadSide) => {
@@ -430,6 +465,17 @@ export class QuadGeometry extends THREE.BufferGeometry {
         return [
             4, 6, 8 // centre, topleft, topright
         ];
+    }
+
+    override dispose(): void {
+        if (this.hasChildren()) {
+            this._children.forEach((c: QuadGeometry, k: QuadChild) => {
+                c.dispose();
+                this._children.delete(k);
+            });
+        }
+        this._vertices.splice(0, this._vertices.length);
+        super.dispose();
     }
 
     private _generatePoints(centre: V3): void {
