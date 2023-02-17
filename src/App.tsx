@@ -2,11 +2,9 @@ import './App.css'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Stats } from '@react-three/drei'
 import { QuadMesh } from './components/shapes';
-import { Fragment, useRef } from 'react';
-import { Camera } from 'three';
+import { Fragment } from 'react';
 
 function App() {
-  const cameraRef = useRef<Camera>();
   return (
     <Fragment>
       <div className='absolute_full'>
