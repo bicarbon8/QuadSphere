@@ -7,11 +7,7 @@ export type QuadNeighbors = Record<QuadSide, QuadGeometry>;
 
 export class QuadRegistry {
     private readonly _precision: number;
-    private readonly _levelQuadMap = new Map<number, Set<QuadGeometry>>();
-    private readonly _leftEdgeMap = new Map<string, QuadGeometry>();
-    private readonly _bottomEdgeMap = new Map<string, QuadGeometry>();
-    private readonly _rightEdgeMap = new Map<string, QuadGeometry>();
-    private readonly _topEdgeMap = new Map<string, QuadGeometry>();
+    private readonly _levelQuadMap = new Map<number, Map<number, QuadGeometry>>();
 
     constructor(precision?: number) {
         this._precision = precision ?? 3;
@@ -19,15 +15,15 @@ export class QuadRegistry {
 
     register(quad: QuadGeometry): this {
         if (!this._levelQuadMap.has(quad.level)) {
-            this._levelQuadMap.set(quad.level, new Set<QuadGeometry>());
+            this._levelQuadMap.set(quad.level, new Map<number, QuadGeometry>());
         }
-        this._levelQuadMap.get(quad.level).add(quad);
+        this._levelQuadMap.get(quad.level).set(quad.id, quad);
         return this;
     }
 
     deregister(quad: QuadGeometry): this {
         if (this._levelQuadMap.has(quad.level)) {
-            this._levelQuadMap.get(quad.level).delete(quad);
+            this._levelQuadMap.get(quad.level).delete(quad.id);
         }
         return this;
     }
@@ -39,9 +35,10 @@ export class QuadRegistry {
             right: null,
             top: null
         };
-        const possibleNeighbors = Array.from(this._levelQuadMap.get(quad.level));
-        for (let i=0; i<possibleNeighbors.length; i++) {
-            let possibleNeighbor = possibleNeighbors[i];
+        const possibleNeighbors = Array.from(this._levelQuadMap.get(quad.level).values())
+            .filter(q => q.id !== quad.id); // don't attempt to match with ourself
+        // console.info('level', quad.level, 'searching for neighbors in', possibleNeighbors.length, 'results');
+        for (let possibleNeighbor of possibleNeighbors) {
             // TODO: handle case in QuadSphere where one neighbor can match multiple edges
             if (neighbors.left == null && this._edgeMatches(quad.leftedge, possibleNeighbor.rightedge)) {
                 neighbors.left = possibleNeighbor;
@@ -65,7 +62,7 @@ export class QuadRegistry {
         }
         if (neighbors.left == null || neighbors.bottom == null || neighbors.right == null || neighbors.top == null) {
             if (quad.parent) {
-                console.debug('no neighbor found for one or more side at level', quad.level, 'checking parent quad...');
+                // console.debug('no neighbor found for one or more side at level', quad.level, 'checking parent quad...');
                 const parentNeighbors = quad.parent.neighbors;
                 if (neighbors.left == null) {
                     neighbors.left = parentNeighbors.left;

@@ -85,7 +85,6 @@ export class QuadGeometry extends THREE.BufferGeometry {
         this.level = options.level ?? 0;
         this.registry = options.registry ?? new QuadRegistry();
         this._generatePoints(options.centre ?? V3.ZERO);
-
         this.registry.register(this);
     }
 
@@ -308,25 +307,29 @@ export class QuadGeometry extends THREE.BufferGeometry {
             parent: this,
             centre: V3.midpoint(this.bottomleft, this.centre),
             radius: this.radius / 2,
-            level: this.level + 1
+            level: this.level + 1,
+            registry: this.registry
         }));
         this._children.set('bottomright', new QuadGeometry({
             parent: this,
             centre: V3.midpoint(this.bottomright, this.centre),
             radius: this.radius / 2,
-            level: this.level + 1
+            level: this.level + 1,
+            registry: this.registry
         }));
         this._children.set('topleft', new QuadGeometry({
             parent: this,
             centre: V3.midpoint(this.topleft, this.centre),
             radius: this.radius / 2,
-            level: this.level + 1
+            level: this.level + 1,
+            registry: this.registry
         }));
         this._children.set('topright', new QuadGeometry({
             parent: this,
             centre: V3.midpoint(this.topright, this.centre),
             radius: this.radius / 2,
-            level: this.level + 1
+            level: this.level + 1,
+            registry: this.registry
         }));
         this.updateAttributes();
         // update our neighbors
@@ -336,22 +339,26 @@ export class QuadGeometry extends THREE.BufferGeometry {
             const neighbor = neighbors[side];
             if (neighbor) {
                 const levelDifference = this.level - neighbor.level;
-                if (levelDifference < 2) {
+                if (levelDifference < 1) {
                     switch (side) {
                         case 'bottom':
                             // activate neighbor's top
+                            console.debug({id: this.id}, 'activating top of bottom neighbor', neighbor.id);
                             neighbor.activate('top');
                             break;
                         case 'left':
                             // activate neighbor's right
+                            console.debug({id: this.id}, 'activating right of left neighbor', neighbor.id);
                             neighbor.activate('right');
                             break;
                         case 'right':
                             // activate neighbor's left
+                            console.debug({id: this.id}, 'activating left of bottom right neighbor', neighbor.id);
                             neighbor.activate('left');
                             break;
                         case 'top':
                             // activate neighbor's bottom
+                            console.debug({id: this.id}, 'activating bottom of top neighbor', neighbor.id);
                             neighbor.activate('bottom');
                             break;
                         default:
@@ -359,6 +366,7 @@ export class QuadGeometry extends THREE.BufferGeometry {
                             break;
                     }
                 } else {
+                    console.debug({id: this.id}, 'subdividing', side ,'neighbor', neighbor.id);
                     neighbor.subdivide();
                 }
             }
@@ -441,7 +449,7 @@ export class QuadGeometry extends THREE.BufferGeometry {
      * ```
      */
     getBottomTriangleIndices(): Array<number> {
-        if (this.activeSides.includes('top')) {
+        if (this.activeSides.includes('bottom')) {
             return [
                 0, 4, 1, // bottomleft, centre, bottommiddle
                 1, 4, 2  // bottommiddle, centre, bottomright

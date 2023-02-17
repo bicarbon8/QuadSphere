@@ -34,8 +34,6 @@ export function QuadMesh(props: QuadMeshProps) {
         }
     });
     // subdivide(quad, 5);
-    const positions = new Float32Array(quad.vertices);
-    const indices = new Uint16Array(quad.indices);
     return (
         <mesh castShadow receiveShadow geometry={quad}>
             <meshBasicMaterial attach="material" wireframe={true} />

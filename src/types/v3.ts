@@ -31,4 +31,11 @@ export module V3 {
         const p2 = V3.reducePrecision(point2, precision);
         return (p1.x === p2.x && p1.y === p2.y && p1.z === p2.z);
     }
+    export function toArray(...inputs: Array<V3>): Array<number> {
+        const output = new Array<number>();
+        for (let v of inputs) {
+            output.push(v.x, v.y, v.z);
+        }
+        return output;
+    }
 }
