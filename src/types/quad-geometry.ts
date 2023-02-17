@@ -150,6 +150,22 @@ export class QuadGeometry extends THREE.BufferGeometry {
         return this.getPoint(8);
     }
 
+    get leftedge(): Array<V3> {
+        return new Array<V3>(this.bottomleft, this.middleleft, this.topleft);
+    }
+
+    get bottomedge(): Array<V3> {
+        return new Array<V3>(this.bottomleft, this.bottommiddle, this.bottomright);
+    }
+
+    get rightedge(): Array<V3> {
+        return new Array<V3>(this.bottomright, this.middleright, this.topright);
+    }
+
+    get topedge(): Array<V3> {
+        return new Array<V3>(this.topleft, this.topmiddle, this.topright);
+    }
+
     get bottomleftChild(): QuadGeometry {
         return this._children.get('bottomleft');
     }
@@ -192,12 +208,12 @@ export class QuadGeometry extends THREE.BufferGeometry {
     get vertices(): Array<number> {
         const vertices = new Array<number>();
         if (this.hasChildren()) {
-            vertices.splice(vertices.length, 0, ...this.bottomleftChild.vertices);
-            vertices.splice(vertices.length, 0, ...this.bottomrightChild.vertices);
-            vertices.splice(vertices.length, 0, ...this.topleftChild.vertices);
-            vertices.splice(vertices.length, 0, ...this.toprightChild.vertices);
+            vertices.push(...this.bottomleftChild.vertices);
+            vertices.push(...this.bottomrightChild.vertices);
+            vertices.push(...this.topleftChild.vertices);
+            vertices.push(...this.toprightChild.vertices);
         } else {
-            vertices.splice(vertices.length, 0, ...this._vertices);
+            vertices.push(...this._vertices);
         }
         return vertices;
     }
@@ -225,18 +241,18 @@ export class QuadGeometry extends THREE.BufferGeometry {
         if (this.hasChildren()) {
             let offset: number = 0;
             // NOTE: the order the child indices are added is critical and **MUST** match vertices order
-            indices.splice(indices.length, 0, ...this.bottomleftChild.indices); // no offset
+            indices.push(...this.bottomleftChild.indices); // no offset
             offset += this.bottomleftChild.vertices.length / 3; // offset by vertices of first child
-            indices.splice(indices.length, 0, ...this.bottomrightChild.indices.map(i => i+offset));
+            indices.push(...this.bottomrightChild.indices.map(i => i+offset));
             offset += this.bottomrightChild.vertices.length / 3; // offset by vertices of second child
-            indices.splice(indices.length, 0, ...this.topleftChild.indices.map(i => i+offset));
+            indices.push(...this.topleftChild.indices.map(i => i+offset));
             offset += this.topleftChild.vertices.length / 3; // offset by vertices of third child
-            indices.splice(indices.length, 0, ...this.toprightChild.indices.map(i => i+offset));
+            indices.push(...this.toprightChild.indices.map(i => i+offset));
         } else {
-            indices.splice(indices.length, 0, ...this.getLeftTriangleIndices());
-            indices.splice(indices.length, 0, ...this.getBottomTriangleIndices());
-            indices.splice(indices.length, 0, ...this.getRightTriagnleIndices());
-            indices.splice(indices.length, 0, ...this.getTopTriangleIndices());
+            indices.push(...this.getLeftTriangleIndices());
+            indices.push(...this.getBottomTriangleIndices());
+            indices.push(...this.getRightTriagnleIndices());
+            indices.push(...this.getTopTriangleIndices());
         }
         return indices;
     }

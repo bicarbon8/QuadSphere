@@ -1,3 +1,4 @@
+import { Detailed } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef, useState } from "react";
 import { Mesh } from "three";
@@ -12,7 +13,6 @@ const states = ['unified', 'leftactive', 'rightactive', 'topactive', 'bottomacti
 type QuadState = typeof states[number];
 
 export function QuadMesh(props: QuadMeshProps) {
-    const meshRef = useRef<Mesh>();
     const [state, setState] = useState<QuadState>('unified');
     const quad = useMemo<QuadGeometry>(() => {
         console.info('creating new QuadGeometry!', {props});
@@ -21,25 +21,68 @@ export function QuadMesh(props: QuadMeshProps) {
             radius: props.radius ?? 1
         });
     }, [props]);
-    let nextChangeAt: number;
-    const changeFrequency = 5; // 5 seconds
-    useFrame(({ clock }) => {
-        const time = clock.getElapsedTime(); // in seconds
-        if (nextChangeAt == null) {
-            nextChangeAt = time + changeFrequency;
-        }
-        if (time >= nextChangeAt) {
-            nextChangeAt = time + changeFrequency;
-            const geometry = meshRef.current.geometry as QuadGeometry;
-            setState(modifyQuadGeometry(geometry, state));
-        }
-    });
-    
+    // let nextChangeAt: number;
+    // const changeFrequency = 5; // 5 seconds
+    // useFrame(({ clock }) => {
+    //     const time = clock.getElapsedTime(); // in seconds
+    //     if (nextChangeAt == null) {
+    //         nextChangeAt = time + changeFrequency;
+    //     }
+    //     if (time >= nextChangeAt) {
+    //         nextChangeAt = time + changeFrequency;
+    //         setState(modifyQuadGeometry(quad, state));
+    //     }
+    // });
+    subdivide(quad, 5);
+    const positions = new Float32Array(quad.vertices);
+    const indices = new Uint16Array(quad.indices);
     return (
-        <mesh ref={meshRef} dispose={null} geometry={quad} castShadow receiveShadow>
+        <mesh castShadow receiveShadow>
+            <bufferGeometry>
+                <bufferAttribute 
+                    attach="attributes-position"
+                    array={positions}
+                    count={positions.length / 3}
+                    itemSize={3} />
+                <bufferAttribute
+                    attach="index"
+                    array={indices}
+                    count={indices.length}
+                    itemSize={1} />
+            </bufferGeometry>
             <meshBasicMaterial attach="material" wireframe={true} />
         </mesh>
     );
+}
+
+function subdivide(quad: QuadGeometry, levels: number): void {
+    if (levels > 0) {
+        quad.subdivide();
+        const childIndex = Math.floor(Math.random() * 4);
+        let child: QuadGeometry;
+        switch (childIndex) {
+            case 0:
+                console.info('bottom left child choosen...', levels);
+                child = quad.bottomleftChild;
+                break;
+            case 1:
+                console.info('bottom right child choosen...', levels);
+                child = quad.bottomrightChild;
+                break;
+            case 2:
+                console.info('top left child choosen...', levels);
+                child = quad.topleftChild;
+                break;
+            case 3:
+                console.info('top right child choosen...', levels);
+                child = quad.toprightChild;
+                break;
+            default:
+                console.warn('invalid childIndex:', childIndex);
+                break;
+        }
+        subdivide(child, levels - 1);
+    }
 }
 
 function modifyQuadGeometry(geometry: QuadGeometry, state: QuadState): QuadState {

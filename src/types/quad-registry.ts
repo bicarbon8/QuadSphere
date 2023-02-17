@@ -7,6 +7,7 @@ export type QuadNeighbors = Record<QuadSide, QuadGeometry>;
 
 export class QuadRegistry {
     private readonly _precision: number;
+    private readonly _levelQuadMap = new Map<number, Set<QuadGeometry>>();
     private readonly _leftEdgeMap = new Map<string, QuadGeometry>();
     private readonly _bottomEdgeMap = new Map<string, QuadGeometry>();
     private readonly _rightEdgeMap = new Map<string, QuadGeometry>();
@@ -17,20 +18,17 @@ export class QuadRegistry {
     }
 
     register(quad: QuadGeometry): this {
-        const keys = this._generateEdgeKeys(quad);
-        this._leftEdgeMap.set(keys.left, quad);
-        this._bottomEdgeMap.set(keys.bottom, quad);
-        this._rightEdgeMap.set(keys.right, quad);
-        this._topEdgeMap.set(keys.top, quad);
+        if (!this._levelQuadMap.has(quad.level)) {
+            this._levelQuadMap.set(quad.level, new Set<QuadGeometry>());
+        }
+        this._levelQuadMap.get(quad.level).add(quad);
         return this;
     }
 
     deregister(quad: QuadGeometry): this {
-        const keys = this._generateEdgeKeys(quad);
-        this._leftEdgeMap.delete(keys.left);
-        this._bottomEdgeMap.delete(keys.bottom);
-        this._rightEdgeMap.delete(keys.right);
-        this._topEdgeMap.delete(keys.top);
+        if (this._levelQuadMap.has(quad.level)) {
+            this._levelQuadMap.get(quad.level).delete(quad);
+        }
         return this;
     }
 
@@ -41,67 +39,62 @@ export class QuadRegistry {
             right: null,
             top: null
         };
-        const keys = this._generateEdgeKeys(quad);
-        const parentKeys = this._generateEdgeKeys(quad.parent);
-        if (this._rightEdgeMap.has(keys.left)) {
-            neighbors.left = this._rightEdgeMap.get(keys.left);
-        } else if(this._rightEdgeMap.has(parentKeys.left)) {
-            neighbors.left = this._rightEdgeMap.get(parentKeys.left);
+        const possibleNeighbors = Array.from(this._levelQuadMap.get(quad.level));
+        for (let i=0; i<possibleNeighbors.length; i++) {
+            let possibleNeighbor = possibleNeighbors[i];
+            // TODO: handle case in QuadSphere where one neighbor can match multiple edges
+            if (neighbors.left == null && this._edgeMatches(quad.leftedge, possibleNeighbor.rightedge)) {
+                neighbors.left = possibleNeighbor;
+                continue;
+            }
+            if (neighbors.bottom == null && this._edgeMatches(quad.bottomedge, possibleNeighbor.topedge)) {
+                neighbors.bottom = possibleNeighbor;
+                continue;
+            }
+            if (neighbors.right == null && this._edgeMatches(quad.rightedge, possibleNeighbor.leftedge)) {
+                neighbors.right = possibleNeighbor;
+                continue;
+            }
+            if (neighbors.top == null && this._edgeMatches(quad.topedge, possibleNeighbor.bottomedge)) {
+                neighbors.top = possibleNeighbor;
+                continue;
+            }
+            if (neighbors.left && neighbors.bottom && neighbors.right && neighbors.top) {
+                break;
+            }
         }
-        if (this._topEdgeMap.has(keys.bottom)) {
-            neighbors.bottom = this._topEdgeMap.get(keys.bottom);
-        } else if(this._topEdgeMap.has(parentKeys.bottom)) {
-            neighbors.bottom = this._topEdgeMap.get(parentKeys.bottom);
-        }
-        if (this._leftEdgeMap.has(keys.right)) {
-            neighbors.right = this._leftEdgeMap.get(keys.right);
-        } else if(this._leftEdgeMap.has(parentKeys.right)) {
-            neighbors.right = this._leftEdgeMap.get(parentKeys.right);
-        }
-        if (this._bottomEdgeMap.has(keys.top)) {
-            neighbors.top = this._bottomEdgeMap.get(keys.top);
-        } else if(this._bottomEdgeMap.has(parentKeys.top)) {
-            neighbors.top = this._bottomEdgeMap.get(parentKeys.top);
+        if (neighbors.left == null || neighbors.bottom == null || neighbors.right == null || neighbors.top == null) {
+            if (quad.parent) {
+                console.debug('no neighbor found for one or more side at level', quad.level, 'checking parent quad...');
+                const parentNeighbors = quad.parent.neighbors;
+                if (neighbors.left == null) {
+                    neighbors.left = parentNeighbors.left;
+                }
+                if (neighbors.bottom == null) {
+                    neighbors.bottom = parentNeighbors.bottom;
+                }
+                if (neighbors.right == null) {
+                    neighbors.right = parentNeighbors.right;
+                }
+                if (neighbors.top == null) {
+                    neighbors.right = parentNeighbors.right;
+                }
+            }
         }
         return neighbors;
     }
 
-    private _generateEdgeKeys(quad: QuadGeometry): QuadRegistryKeys {
-        if (quad) {
-            const left = JSON.stringify([
-                ...this._reducePrecision(quad.bottomleft), 
-                ...this._reducePrecision(quad.middleleft), 
-                ...this._reducePrecision(quad.topleft)
-            ]);
-            const bottom = JSON.stringify([
-                ...this._reducePrecision(quad.bottomleft),
-                ...this._reducePrecision(quad.bottommiddle),
-                ...this._reducePrecision(quad.bottomright)
-            ]);
-            const right = JSON.stringify([
-                ...this._reducePrecision(quad.bottomright),
-                ...this._reducePrecision(quad.middleright),
-                ...this._reducePrecision(quad.topright)
-            ]);
-            const top = JSON.stringify([
-                ...this._reducePrecision(quad.topright),
-                ...this._reducePrecision(quad.topmiddle),
-                ...this._reducePrecision(quad.topright)
-            ]);
-            return {left, bottom, right, top};
+    private _edgeMatches(edge1: Array<V3>, edge2: Array<V3>): boolean {
+        if (edge1.length !== edge2.length) {
+            return false;
         }
-        return {left: null, bottom: null, right: null, top: null};
-    }
-
-    private _reducePrecision(input: V3): Array<number> {
-        const output = new Array<number>();
-        if (input) {
-            output.push(
-                Number(input.x.toFixed(this._precision)),
-                Number(input.y.toFixed(this._precision)),
-                Number(input.z.toFixed(this._precision))
-            );
+        for (let i=0; i<edge1.length; i++) {
+            const v1 = edge1[i];
+            const v2 = edge2[i];
+            if (!V3.fuzzyEquals(v1, v2, 3)) {
+                return false;
+            }
         }
-        return output;
+        return true;
     }
 }
