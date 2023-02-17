@@ -21,35 +21,23 @@ export function QuadMesh(props: QuadMeshProps) {
             radius: props.radius ?? 1
         });
     }, [props]);
-    // let nextChangeAt: number;
-    // const changeFrequency = 5; // 5 seconds
-    // useFrame(({ clock }) => {
-    //     const time = clock.getElapsedTime(); // in seconds
-    //     if (nextChangeAt == null) {
-    //         nextChangeAt = time + changeFrequency;
-    //     }
-    //     if (time >= nextChangeAt) {
-    //         nextChangeAt = time + changeFrequency;
-    //         setState(modifyQuadGeometry(quad, state));
-    //     }
-    // });
-    subdivide(quad, 5);
+    let nextChangeAt: number;
+    const changeFrequency = 5; // 5 seconds
+    useFrame(({ clock }) => {
+        const time = clock.getElapsedTime(); // in seconds
+        if (nextChangeAt == null) {
+            nextChangeAt = time + changeFrequency;
+        }
+        if (time >= nextChangeAt) {
+            nextChangeAt = time + changeFrequency;
+            setState(modifyQuadGeometry(quad, state));
+        }
+    });
+    // subdivide(quad, 5);
     const positions = new Float32Array(quad.vertices);
     const indices = new Uint16Array(quad.indices);
     return (
-        <mesh castShadow receiveShadow>
-            <bufferGeometry>
-                <bufferAttribute 
-                    attach="attributes-position"
-                    array={positions}
-                    count={positions.length / 3}
-                    itemSize={3} />
-                <bufferAttribute
-                    attach="index"
-                    array={indices}
-                    count={indices.length}
-                    itemSize={1} />
-            </bufferGeometry>
+        <mesh castShadow receiveShadow geometry={quad}>
             <meshBasicMaterial attach="material" wireframe={true} />
         </mesh>
     );

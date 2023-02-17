@@ -285,13 +285,13 @@ export class QuadGeometry extends THREE.BufferGeometry {
 
     activate(...sides: Array<QuadSide>): this {
         sides?.forEach(s => this._active.add(s));
-        this._updateAttributes();
+        this.updateAttributes();
         return this;
     }
 
     deactivate(...sides: Array<QuadSide>): this {
         sides.forEach(s => this._active.delete(s));
-        this._updateAttributes();
+        this.updateAttributes();
         return this;
     }
 
@@ -328,7 +328,7 @@ export class QuadGeometry extends THREE.BufferGeometry {
             radius: this.radius / 2,
             level: this.level + 1
         }));
-        this._updateAttributes();
+        this.updateAttributes();
         // update our neighbors
         const neighbors = this.neighbors;
         const sides = Object.getOwnPropertyNames(neighbors) as Array<QuadSide>;
@@ -376,7 +376,7 @@ export class QuadGeometry extends THREE.BufferGeometry {
             c.dispose();
             this._children.delete(k);
         });
-        this._updateAttributes();
+        this.updateAttributes();
         // update neighbors
         const neighbors = this.neighbors;
         const sides = Object.getOwnPropertyNames(neighbors) as Array<QuadSide>;
@@ -521,12 +521,13 @@ export class QuadGeometry extends THREE.BufferGeometry {
                 this._uvs.push(u + uOffset, 1 - v);
             }
         }
-        this._updateAttributes();
+        this.updateAttributes();
     }
 
-    private _updateAttributes(): void {
+    updateAttributes(): void {
         this.setAttribute('position', new Float32BufferAttribute(this.vertices, 3));
         this.setIndex(this.indices);
+        this.parent?.updateAttributes();
         // this.setAttribute('normal', new Float32BufferAttribute(this._normals, 3));
         // this.setAttribute('uv', new Float32BufferAttribute(this._uvs, 2));
     }
