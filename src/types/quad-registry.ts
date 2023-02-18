@@ -13,6 +13,16 @@ export class QuadRegistry {
         this._precision = precision ?? 3;
     }
 
+    get depth(): number {
+        let d: number = 0; // no registered quads at any level
+        if (this._levelQuadMap.size > 0) {
+            d += Array.from(this._levelQuadMap.keys())
+                .sort((a, b) => b - a) // sorts in descending
+                .find(v => v > 0); // returns first value (max)
+        }
+        return d;
+    }
+
     register(quad: QuadGeometry): this {
         if (!this._levelQuadMap.has(quad.level)) {
             this._levelQuadMap.set(quad.level, new Map<number, QuadGeometry>());
@@ -35,7 +45,7 @@ export class QuadRegistry {
             right: null,
             top: null
         };
-        const possibleNeighbors = Array.from(this._levelQuadMap.get(quad.level).values())
+        const possibleNeighbors = this.getQuadsAtLevel(quad.level)
             .filter(q => q.id !== quad.id); // don't attempt to match with ourself
         // console.info('level', quad.level, 'searching for neighbors in', possibleNeighbors.length, 'results');
         for (let possibleNeighbor of possibleNeighbors) {
@@ -81,6 +91,14 @@ export class QuadRegistry {
         return neighbors;
     }
 
+    getQuadsAtLevel(level: number = 0): Array<QuadGeometry> {
+        const quads = new Array<QuadGeometry>();
+        if (this._levelQuadMap.has(level)) {
+            quads.push(...Array.from(this._levelQuadMap.get(level).values()));
+        }
+        return quads;
+    }
+
     private _edgeMatches(edge1: Array<V3>, edge2: Array<V3>): boolean {
         if (edge1.length !== edge2.length) {
             return false;
@@ -88,7 +106,7 @@ export class QuadRegistry {
         for (let i=0; i<edge1.length; i++) {
             const v1 = edge1[i];
             const v2 = edge2[i];
-            if (!V3.fuzzyEquals(v1, v2, 3)) {
+            if (!V3.fuzzyEquals(v1, v2, this._precision)) {
                 return false;
             }
         }

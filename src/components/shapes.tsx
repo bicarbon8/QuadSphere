@@ -1,8 +1,9 @@
 import { Detailed } from "@react-three/drei";
-import { useFrame } from "@react-three/fiber";
+import { MeshProps, useFrame } from "@react-three/fiber";
 import { useMemo, useRef, useState } from "react";
 import { Mesh } from "three";
 import { QuadGeometry } from "../types/quad-geometry";
+import { QuadRegistry } from "../types/quad-registry";
 
 export type QuadMeshProps = {
     position: Array<number>;
@@ -13,12 +14,18 @@ const states = ['unified', 'leftactive', 'rightactive', 'topactive', 'bottomacti
 type QuadState = typeof states[number];
 
 export function QuadMesh(props: QuadMeshProps) {
-    const [state, setState] = useState<QuadState>('unified');
+    const [level, setLevel] = useState<number>(0);
+    const [offset, setOffset] = useState<number>(1);
+    const registry = useMemo<QuadRegistry>(() => {
+        console.info('creating new QuadRegistry!');
+        return new QuadRegistry();
+    }, [props]);
     const quad = useMemo<QuadGeometry>(() => {
         console.info('creating new QuadGeometry!', {props});
         return new QuadGeometry({
             centre: {x: props.position[0] ?? 0, y: props.position[1] ?? 0, z: props.position[2] ?? 0},
-            radius: props.radius ?? 1
+            radius: props.radius ?? 1,
+            registry: registry
         });
     }, [props]);
     let nextChangeAt: number;
@@ -30,85 +37,74 @@ export function QuadMesh(props: QuadMeshProps) {
         }
         if (time >= nextChangeAt) {
             nextChangeAt = time + changeFrequency;
-            setState(modifyQuadGeometry(quad, state));
+            if (level >= 5) {
+                setOffset(-1);
+            }
+            if (level <= 0) {
+                setOffset(1);
+            }
+            if (offset > 0) {
+                subdivide(registry, level);
+            } else {
+                unify(registry, level);
+            }
+            setLevel(level + (1 * offset));
         }
     });
-    // subdivide(quad, 5);
+    return MeshBufferGeom({quad});
+}
+
+function MeshBufferGeom(props: {quad: QuadGeometry}) {
+    const meshes = new Array<MeshProps>();
+    if (!props.quad.hasChildren()) {
+        const positions = new Float32Array(props.quad.vertices);
+        const indices = new Uint16Array(props.quad.indices);
+        meshes.push(
+            <mesh key={`${props.quad.id}-${props.quad.activeSides.join('-')}`} castShadow receiveShadow>
+                <bufferGeometry>
+                    <bufferAttribute 
+                        attach="attributes-position"
+                        array={positions}
+                        count={positions.length / 3}
+                        itemSize={3} />
+                    <bufferAttribute
+                        attach="index"
+                        array={indices}
+                        count={indices.length}
+                        itemSize={1} />
+                </bufferGeometry>
+                <meshBasicMaterial attach="material" wireframe={true} />
+            </mesh>
+        );
+    } else {
+        meshes.push(...[
+            props.quad.bottomleftChild,
+            props.quad.bottomrightChild,
+            props.quad.topleftChild,
+            props.quad.toprightChild
+        ].map(c => MeshBufferGeom({quad: c})));
+    }
     return (
-        <mesh castShadow receiveShadow geometry={quad}>
-            <meshBasicMaterial attach="material" wireframe={true} />
-        </mesh>
+        <>
+        {...meshes}
+        </>
     );
 }
 
-function subdivide(quad: QuadGeometry, levels: number): void {
-    if (levels > 0) {
+function subdivide(registry: QuadRegistry, level: number = 0): void {
+    const quads = registry.getQuadsAtLevel(level);
+    if (quads.length) {
+        const index = Math.floor(Math.random() * quads.length);
+        const quad = quads[index];
         quad.subdivide();
-        const childIndex = Math.floor(Math.random() * 4);
-        let child: QuadGeometry;
-        switch (childIndex) {
-            case 0:
-                console.info('bottom left child choosen...', levels);
-                child = quad.bottomleftChild;
-                break;
-            case 1:
-                console.info('bottom right child choosen...', levels);
-                child = quad.bottomrightChild;
-                break;
-            case 2:
-                console.info('top left child choosen...', levels);
-                child = quad.topleftChild;
-                break;
-            case 3:
-                console.info('top right child choosen...', levels);
-                child = quad.toprightChild;
-                break;
-            default:
-                console.warn('invalid childIndex:', childIndex);
-                break;
-        }
-        subdivide(child, levels - 1);
     }
 }
 
-function modifyQuadGeometry(geometry: QuadGeometry, state: QuadState): QuadState {
-    let outState: QuadState;
-    switch (state) {
-        case 'unified':
-            geometry.activate('left');
-            console.info('activated left');
-            outState = 'leftactive';
-            break;
-        case 'leftactive':
-            geometry.activate('bottom');
-            console.info('activated bottom');
-            outState = 'bottomactive';
-            break;
-        case 'bottomactive':
-            geometry.activate('right');
-            console.info('activated right');
-            outState = 'rightactive';
-            break;
-        case 'rightactive':
-            geometry.activate('top');
-            console.info('activated top');
-            outState = 'topactive';
-            break;
-        case 'topactive':
-            geometry.subdivide();
-            console.info('subdivided');
-            outState = 'subdivided';
-            break;
-        case 'subdivided':
-            geometry.unify().deactivate('left', 'bottom', 'right', 'top');
-            console.info('unified and deactivated all');
-            outState = 'unified';
-            break;
+function unify(registry: QuadRegistry, level: number = 0): void {
+    const quads = registry.getQuadsAtLevel(level);
+    if (quads.length) {
+        const index = Math.floor(Math.random() * quads.length);
+        const quad = quads[index];
+        quad.unify();
     }
-
-    const { position } = geometry.attributes;
-    position.needsUpdate = true;
-    geometry.computeVertexNormals();
-
-    return outState;
 }
