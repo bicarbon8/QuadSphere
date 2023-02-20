@@ -70,54 +70,11 @@ export class QuadRegistry {
 
     getNeighbors(quad: QuadGeometry): QuadNeighbors {
         const neighbors: QuadNeighbors = {
-            left: null,
-            bottom: null,
-            right: null,
-            top: null
+            left: this.getNeighbor('left', quad),
+            bottom: this.getNeighbor('bottom', quad),
+            right: this.getNeighbor('right', quad),
+            top: this.getNeighbor('top', quad)
         };
-        const possibleNeighbors = this.getQuadsAtLevel(quad.level)
-            .filter(q => q.id !== quad.id); // don't attempt to match with ourself
-        // console.info('level', quad.level, 'searching for neighbors in', possibleNeighbors.length, 'results');
-        for (let possibleNeighbor of possibleNeighbors) {
-            // TODO: handle case in QuadSphere where one neighbor can match multiple edges
-            if (neighbors.left == null && this._edgeMatches(quad.leftedge, possibleNeighbor.rightedge, quad.level)) {
-                neighbors.left = possibleNeighbor;
-                continue;
-            }
-            if (neighbors.bottom == null && this._edgeMatches(quad.bottomedge, possibleNeighbor.topedge, quad.level)) {
-                neighbors.bottom = possibleNeighbor;
-                continue;
-            }
-            if (neighbors.right == null && this._edgeMatches(quad.rightedge, possibleNeighbor.leftedge, quad.level)) {
-                neighbors.right = possibleNeighbor;
-                continue;
-            }
-            if (neighbors.top == null && this._edgeMatches(quad.topedge, possibleNeighbor.bottomedge, quad.level)) {
-                neighbors.top = possibleNeighbor;
-                continue;
-            }
-            if (neighbors.left && neighbors.bottom && neighbors.right && neighbors.top) {
-                break;
-            }
-        }
-        if (neighbors.left == null || neighbors.bottom == null || neighbors.right == null || neighbors.top == null) {
-            if (quad.parent) {
-                // console.debug('no neighbor found for one or more side at level', quad.level, 'checking parent quad...');
-                const parentNeighbors = quad.parent.neighbors;
-                if (neighbors.left == null) {
-                    neighbors.left = parentNeighbors.left;
-                }
-                if (neighbors.bottom == null) {
-                    neighbors.bottom = parentNeighbors.bottom;
-                }
-                if (neighbors.right == null) {
-                    neighbors.right = parentNeighbors.right;
-                }
-                if (neighbors.top == null) {
-                    neighbors.top = parentNeighbors.top;
-                }
-            }
-        }
         return neighbors;
     }
 
