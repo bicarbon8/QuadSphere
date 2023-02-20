@@ -15,7 +15,6 @@ type QuadState = typeof states[number];
 
 export function QuadMesh(props: QuadMeshProps) {
     const [level, setLevel] = useState<number>(0);
-    const [offset, setOffset] = useState<number>(1);
     const registry = useMemo<QuadRegistry>(() => {
         console.info('creating new QuadRegistry!');
         return new QuadRegistry();
@@ -38,17 +37,12 @@ export function QuadMesh(props: QuadMeshProps) {
         if (time >= nextChangeAt) {
             nextChangeAt = time + changeFrequency;
             if (level >= 5) {
-                setOffset(-1);
-            }
-            if (level <= 0) {
-                setOffset(1);
-            }
-            if (offset > 0) {
-                subdivide(registry, level);
+                setLevel(0);
+                unify(registry, 0);
             } else {
-                unify(registry, level);
+                subdivide(registry, level);
+                setLevel(level + 1);
             }
-            setLevel(level + (1 * offset));
         }
     });
     return MeshBufferGeom({quad});

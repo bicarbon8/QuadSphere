@@ -84,7 +84,7 @@ export class QuadRegistry {
                     neighbors.right = parentNeighbors.right;
                 }
                 if (neighbors.top == null) {
-                    neighbors.right = parentNeighbors.right;
+                    neighbors.top = parentNeighbors.top;
                 }
             }
         }
