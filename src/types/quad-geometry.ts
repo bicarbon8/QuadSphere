@@ -189,19 +189,19 @@ export class QuadGeometry extends THREE.BufferGeometry {
     }
 
     get leftNeighbor(): QuadGeometry {
-        return this._neighbors.get('left');
+        return this._neighbors.get('left') ?? this.parent?.leftNeighbor;
     }
 
     get bottomNeighbor(): QuadGeometry {
-        return this._neighbors.get('bottom');
+        return this._neighbors.get('bottom') ?? this.parent?.bottomNeighbor;
     }
 
     get rightNeighbor(): QuadGeometry {
-        return this._neighbors.get('right');
+        return this._neighbors.get('right') ?? this.parent?.rightNeighbor;
     }
 
     get topNeighbor(): QuadGeometry {
-        return this._neighbors.get('top');
+        return this._neighbors.get('top') ?? this.parent?.topNeighbor;
     }
 
     /**
@@ -315,6 +315,7 @@ export class QuadGeometry extends THREE.BufferGeometry {
     }
 
     activate(...sides: Array<QuadSide>): this {
+        console.debug('quad', this.id ,'activate', sides.join(', '));
         sides?.forEach(s => this._active.add(s));
         this.updateAttributes();
         return this;
@@ -363,66 +364,38 @@ export class QuadGeometry extends THREE.BufferGeometry {
             level: this.level + 1,
             registry: this.registry
         });
-        bottomleft.setNeighbor('left', this.parent?.leftNeighbor)
-            .setNeighbor('bottom', this.parent?.bottomNeighbor)
-            .setNeighbor('right', bottomright)
+        bottomleft.setNeighbor('right', bottomright)
             .setNeighbor('top', topleft);
         bottomright.setNeighbor('left', bottomleft)
-            .setNeighbor('bottom', this.parent?.bottomNeighbor)
-            .setNeighbor('right', this.parent?.rightNeighbor)
             .setNeighbor('top', topright);
-        topleft.setNeighbor('left', this.parent?.leftNeighbor)
-            .setNeighbor('bottom', bottomleft)
-            .setNeighbor('right', topright)
-            .setNeighbor('top', this.parent?.topNeighbor);
+        topleft.setNeighbor('bottom', bottomleft)
+            .setNeighbor('right', topright);
         topright.setNeighbor('left', topleft)
-            .setNeighbor('bottom', bottomright)
-            .setNeighbor('right', this.parent?.rightNeighbor)
-            .setNeighbor('top', this.parent?.topNeighbor);
+            .setNeighbor('bottom', bottomright);
         this._children.set('bottomleft', bottomleft);
         this._children.set('bottomright', bottomright);
         this._children.set('topleft', topleft);
         this._children.set('topright', topright);
-        this.updateAttributes();
-        // update our neighbors
-        const neighbors = this.neighbors;
-        const sides = Object.getOwnPropertyNames(neighbors) as Array<QuadSide>;
-        sides.forEach(side => {
-            const neighbor = neighbors[side];
-            if (neighbor) {
-                const levelDifference = this.level - neighbor.level;
-                if (levelDifference < 1) {
-                    switch (side) {
-                        case 'bottom':
-                            // activate neighbor's top
-                            console.debug({id: this.id}, 'activating top of bottom neighbor', neighbor.id);
-                            neighbor.activate('top');
-                            break;
-                        case 'left':
-                            // activate neighbor's right
-                            console.debug({id: this.id}, 'activating right of left neighbor', neighbor.id);
-                            neighbor.activate('right');
-                            break;
-                        case 'right':
-                            // activate neighbor's left
-                            console.debug({id: this.id}, 'activating left of bottom right neighbor', neighbor.id);
-                            neighbor.activate('left');
-                            break;
-                        case 'top':
-                            // activate neighbor's bottom
-                            console.debug({id: this.id}, 'activating bottom of top neighbor', neighbor.id);
-                            neighbor.activate('bottom');
-                            break;
-                        default:
-                            console.warn(`invalid side: '${side}' found in this.neighbors`);
-                            break;
-                    }
-                } else {
-                    console.debug({id: this.id}, 'subdividing', side ,'neighbor', neighbor.id);
-                    neighbor.subdivide();
-                }
+        this._neighbors.forEach((neighbor: QuadGeometry, side: QuadSide) => {
+            if (this.level - neighbor.level > 0) {
+                neighbor.subdivide();
+            }
+            switch (side) {
+                case 'left':
+                    neighbor.activate('right');
+                    break;
+                case 'bottom':
+                    neighbor.activate('top');
+                    break;
+                case 'right':
+                    neighbor.activate('left');
+                    break;
+                case 'top':
+                    neighbor.activate('bottom');
+                    break;
             }
         });
+        this.updateAttributes();
         return this;
     }
 
@@ -484,12 +457,12 @@ export class QuadGeometry extends THREE.BufferGeometry {
     getLeftTriangleIndices(): Array<number> {
         if (this.activeSides.includes('left')) {
             return [
-                0, 3, 4, // bottomleft, middleleft, centre
-                4, 3, 6  // centre, middleleft, topleft
+                4, 6, 3, // centre, topleft, middleleft
+                4, 3, 0  // centre, middleleft, bottomleft
             ];
         }
         return [
-            0, 6, 4 // bottomleft, topleft, centre
+            4, 6, 0 // centre, topleft, bottomleft
         ];
     }
 
@@ -503,12 +476,12 @@ export class QuadGeometry extends THREE.BufferGeometry {
     getBottomTriangleIndices(): Array<number> {
         if (this.activeSides.includes('bottom')) {
             return [
-                0, 4, 1, // bottomleft, centre, bottommiddle
-                1, 4, 2  // bottommiddle, centre, bottomright
+                4, 0, 1, // centre, bottomleft, bottommiddle
+                4, 1, 2  // centre, bottommiddle, bottomright
             ];
         }
         return [
-            0, 4, 2 // bottomleft, centre, bottomright
+            4, 0, 2 // centre, bottomleft, bottomright
         ];
     }
 
@@ -524,12 +497,12 @@ export class QuadGeometry extends THREE.BufferGeometry {
     getRightTriagnleIndices(): Array<number> {
         if (this.activeSides.includes('right')) {
             return [
-                4, 5, 2, // centre, middleright, bottomright
-                4, 8, 5  // centre, topright, middleright
+                4, 2, 5, // centre, bottomright, middleright
+                4, 5, 8  // centre, middleright, topright
             ];
         }
         return [
-            2, 4, 8 // bottomright, centre, topright
+            4, 2, 8 // centre, bottomright, topright
         ];
     }
 
@@ -543,12 +516,12 @@ export class QuadGeometry extends THREE.BufferGeometry {
     getTopTriangleIndices(): Array<number> {
         if (this.activeSides.includes('top')) {
             return [
-                4, 6, 7, // centre, topleft, topmiddle
-                4, 7, 8  // centre, topmiddle, topright
+                4, 7, 6, // centre, topmiddle, topleft
+                4, 8, 7  // centre, topright, topmiddle
             ];
         }
         return [
-            4, 6, 8 // centre, topleft, topright
+            4, 8, 6 // centre, topright, topleft
         ];
     }
 
@@ -567,14 +540,14 @@ export class QuadGeometry extends THREE.BufferGeometry {
     private _generatePoints(centre: V3): void {
         const point = new THREE.Vector3();
         const normal = new THREE.Vector3();
-        for (let z = centre.z - this.radius; z <= centre.z + this.radius; z += this.radius) {
-            const v = z / 3;
+        for (let y = centre.y - this.radius; y <= centre.y + this.radius; y += this.radius) {
+            const v = y / 3;
             let uOffset = 0;
             for (let x = centre.x - this.radius; x <= centre.x + this.radius; x += this.radius) {
                 const u = x / 3;
                 point.x = x;
-                point.y = centre.y;
-                point.z = z;
+                point.y = y;
+                point.z = centre.z;
                 this._vertices.push(point.x, point.y, point.z);
                 normal.copy(point).normalize();
                 this._normals.push(normal.x, normal.y, normal.z);
