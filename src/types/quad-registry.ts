@@ -38,6 +38,36 @@ export class QuadRegistry {
         return this;
     }
 
+    getNeighbor(side: QuadSide, quad: QuadGeometry): QuadGeometry {
+        const possibleNeighbors = this.getQuadsAtLevel(quad.level)
+            .filter(q => q.id !== quad.id); // don't attempt to match with ourself
+        for (let possibleNeighbor of possibleNeighbors) {
+            switch (side) {
+                case 'left':
+                    if (this._edgeMatches(quad.leftedge, possibleNeighbor.rightedge, quad.level)) {
+                        return possibleNeighbor;
+                    }
+                    break;
+                case 'bottom':
+                    if (this._edgeMatches(quad.bottomedge, possibleNeighbor.topedge, quad.level)) {
+                        return possibleNeighbor;
+                    }
+                    break;
+                case 'right':
+                    if (this._edgeMatches(quad.rightedge, possibleNeighbor.leftedge, quad.level)) {
+                        return possibleNeighbor;
+                    }
+                    break;
+                case 'top':
+                    if (this._edgeMatches(quad.topedge, possibleNeighbor.bottomedge, quad.level)) {
+                        return possibleNeighbor;
+                    }
+                    break;
+            }
+        }
+        return null;
+    }
+
     getNeighbors(quad: QuadGeometry): QuadNeighbors {
         const neighbors: QuadNeighbors = {
             left: null,

@@ -315,7 +315,7 @@ export class QuadGeometry extends THREE.BufferGeometry {
     }
 
     activate(...sides: Array<QuadSide>): this {
-        console.debug('quad', this.id ,'activate', sides.join(', '));
+        console.debug('quad', this.id, 'activate', sides.join(', '));
         sides?.forEach(s => this._active.add(s));
         this.updateAttributes();
         return this;
@@ -335,6 +335,7 @@ export class QuadGeometry extends THREE.BufferGeometry {
         if (this.hasChildren()) {
             return; // do nothing if we're already subdivided
         }
+        console.debug('quad', this.id, 'level', this.level, 'subdivide');
         // create child Quads
         const bottomleft = new QuadGeometry({
             parent: this,
@@ -376,23 +377,43 @@ export class QuadGeometry extends THREE.BufferGeometry {
         this._children.set('bottomright', bottomright);
         this._children.set('topleft', topleft);
         this._children.set('topright', topright);
-        this._neighbors.forEach((neighbor: QuadGeometry, side: QuadSide) => {
-            if (this.level - neighbor.level > 0) {
-                neighbor.subdivide();
-            }
-            switch (side) {
-                case 'left':
-                    neighbor.activate('right');
-                    break;
-                case 'bottom':
-                    neighbor.activate('top');
-                    break;
-                case 'right':
-                    neighbor.activate('left');
-                    break;
-                case 'top':
-                    neighbor.activate('bottom');
-                    break;
+        const neighbors = this.neighbors;
+        const sides = Object.getOwnPropertyNames(neighbors) as Array<QuadSide>;
+        sides.forEach(side => {
+            const neighbor = neighbors[side];
+            if (neighbor) {
+                if (this.level - neighbor.level > 0) {
+                    neighbor.subdivide();
+                    switch (side) {
+                        case 'left':
+                            this.setNeighbor('left', this.registry.getNeighbor('left', this)?.activate('right'));
+                            break;
+                        case 'bottom':
+                            this.setNeighbor('bottom', this.registry.getNeighbor('bottom', this)?.activate('top'));
+                            break;
+                        case 'right':
+                            this.setNeighbor('right', this.registry.getNeighbor('right', this)?.activate('left'));
+                            break;
+                        case 'top':
+                            this.setNeighbor('top', this.registry.getNeighbor('top', this)?.activate('bottom'));
+                            break;
+                    }
+                } else {
+                    switch (side) {
+                        case 'left':
+                            neighbor.activate('right');
+                            break;
+                        case 'bottom':
+                            neighbor.activate('top');
+                            break;
+                        case 'right':
+                            neighbor.activate('left');
+                            break;
+                        case 'top':
+                            neighbor.activate('bottom');
+                            break;
+                    }
+                }
             }
         });
         this.updateAttributes();
@@ -404,6 +425,10 @@ export class QuadGeometry extends THREE.BufferGeometry {
      * unify their edges facing this quad
      */
     unify(): this {
+        if (!this.hasChildren()) {
+            return;
+        }
+        console.debug('quad', this.id, 'level', this.level, 'unify');
         // remove child Quads
         this._children.forEach((c: QuadGeometry, k: QuadChild) => {
             c.dispose();
