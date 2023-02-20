@@ -237,7 +237,12 @@ export class QuadGeometry extends THREE.BufferGeometry {
         } else {
             vertices.push(...this._vertices);
         }
-        return vertices;
+        const elevated = new Array<number>;
+        for (let i=0; i<vertices.length; i += 3) {
+            const e = this.applyCurve({x: vertices[i], y: vertices[i+1], z: vertices[i+2]});
+            elevated.push(e.x, e.y, e.z);
+        }
+        return elevated;
     }
 
     /**
@@ -580,6 +585,14 @@ export class QuadGeometry extends THREE.BufferGeometry {
             }
         }
         this.updateAttributes();
+    }
+
+    applyCurve(point: V3): V3 {
+        if (this.parent) {
+            return this.parent.applyCurve(point);
+        }
+        const elevation = 0; // TODO: use UV's to lookup elevation values
+        return V3.multiply(point, this.radius + elevation);
     }
 
     updateAttributes(): void {

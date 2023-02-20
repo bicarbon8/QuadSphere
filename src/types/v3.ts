@@ -42,4 +42,9 @@ export module V3 {
         }
         return output;
     }
+    export function multiply(input: V3, x: number, y?: number, z?: number): V3 {
+        y ??= x;
+        z ??= y;
+        return new THREE.Vector3(input.x, input.y, input.z).normalize().multiply(new THREE.Vector3(x, y, z));
+    }
 }
