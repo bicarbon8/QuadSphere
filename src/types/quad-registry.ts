@@ -6,11 +6,11 @@ export type QuadRegistryKeys = Record<QuadSide, string>;
 export type QuadNeighbors = Record<QuadSide, QuadGeometry>;
 
 export class QuadRegistry {
-    private readonly _precision: number;
+    private readonly _maxDifference: number;
     private readonly _levelQuadMap = new Map<number, Map<number, QuadGeometry>>();
 
-    constructor(precision?: number) {
-        this._precision = precision ?? 3;
+    constructor(maxDifference?: number) {
+        this._maxDifference = maxDifference ?? 0.001;
     }
 
     get depth(): number {
@@ -50,19 +50,19 @@ export class QuadRegistry {
         // console.info('level', quad.level, 'searching for neighbors in', possibleNeighbors.length, 'results');
         for (let possibleNeighbor of possibleNeighbors) {
             // TODO: handle case in QuadSphere where one neighbor can match multiple edges
-            if (neighbors.left == null && this._edgeMatches(quad.leftedge, possibleNeighbor.rightedge)) {
+            if (neighbors.left == null && this._edgeMatches(quad.leftedge, possibleNeighbor.rightedge, quad.level)) {
                 neighbors.left = possibleNeighbor;
                 continue;
             }
-            if (neighbors.bottom == null && this._edgeMatches(quad.bottomedge, possibleNeighbor.topedge)) {
+            if (neighbors.bottom == null && this._edgeMatches(quad.bottomedge, possibleNeighbor.topedge, quad.level)) {
                 neighbors.bottom = possibleNeighbor;
                 continue;
             }
-            if (neighbors.right == null && this._edgeMatches(quad.rightedge, possibleNeighbor.leftedge)) {
+            if (neighbors.right == null && this._edgeMatches(quad.rightedge, possibleNeighbor.leftedge, quad.level)) {
                 neighbors.right = possibleNeighbor;
                 continue;
             }
-            if (neighbors.top == null && this._edgeMatches(quad.topedge, possibleNeighbor.bottomedge)) {
+            if (neighbors.top == null && this._edgeMatches(quad.topedge, possibleNeighbor.bottomedge, quad.level)) {
                 neighbors.top = possibleNeighbor;
                 continue;
             }
@@ -99,14 +99,15 @@ export class QuadRegistry {
         return quads;
     }
 
-    private _edgeMatches(edge1: Array<V3>, edge2: Array<V3>): boolean {
+    private _edgeMatches(edge1: Array<V3>, edge2: Array<V3>, level: number): boolean {
+        const lvl = level + 1;
         if (edge1.length !== edge2.length) {
             return false;
         }
         for (let i=0; i<edge1.length; i++) {
             const v1 = edge1[i];
             const v2 = edge2[i];
-            if (!V3.fuzzyEquals(v1, v2, this._precision)) {
+            if (!V3.fuzzyEquals(v1, v2, this._maxDifference / lvl)) {
                 return false;
             }
         }

@@ -26,10 +26,14 @@ export module V3 {
         }
         return output;
     }
-    export function fuzzyEquals(point1: V3, point2: V3, precision: number = 1): boolean {
-        const p1 = V3.reducePrecision(point1, precision);
-        const p2 = V3.reducePrecision(point2, precision);
-        return (p1.x === p2.x && p1.y === p2.y && p1.z === p2.z);
+    export function fuzzyEquals(point1: V3, point2: V3, maxDiff: number = 0.1): boolean {
+        const xdiff = Math.abs(point1.x - point2.x);
+        if (xdiff > maxDiff) { return false; }
+        const ydiff = Math.abs(point1.y - point2.y);
+        if (ydiff > maxDiff) { return false; }
+        const zdiff = Math.abs(point1.z - point2.z);
+        if (zdiff > maxDiff) { return false; }
+        return true;
     }
     export function toArray(...inputs: Array<V3>): Array<number> {
         const output = new Array<number>();
