@@ -27,22 +27,12 @@ export function QuadMesh(props: QuadMeshProps) {
             registry: registry
         });
     }, [props]);
-    let nextChangeAt: number;
-    const changeFrequency = 5; // 5 seconds
     useFrame(({ clock }) => {
         const time = clock.getElapsedTime(); // in seconds
-        if (nextChangeAt == null) {
-            nextChangeAt = time + changeFrequency;
-        }
-        if (time >= nextChangeAt) {
-            nextChangeAt = time + changeFrequency;
-            if (level >= 5) {
-                setLevel(0);
-                unify(registry, 0);
-            } else {
-                subdivide(registry, level);
-                setLevel(level + 1);
-            }
+        if (level >= 5) {
+            setLevel(0);
+        } else {
+            setLevel(level + 1);
         }
     });
     return MeshBufferGeom({quad});
@@ -54,7 +44,7 @@ function MeshBufferGeom(props: {quad: QuadGeometry}) {
         const positions = new Float32Array(props.quad.vertices);
         const indices = new Uint16Array(props.quad.indices);
         meshes.push(
-            <mesh key={`${props.quad.id}-${props.quad.activeSides.join('-')}`} castShadow receiveShadow>
+            <mesh key={`${props.quad.id}-${props.quad.activeSides.join('-')}`} onClick={() => subdivide(props.quad)} onContextMenu={() => unify(props.quad)} castShadow receiveShadow>
                 <bufferGeometry>
                     <bufferAttribute 
                         attach="attributes-position"
@@ -85,20 +75,12 @@ function MeshBufferGeom(props: {quad: QuadGeometry}) {
     );
 }
 
-function subdivide(registry: QuadRegistry, level: number = 0): void {
-    const quads = registry.getQuadsAtLevel(level);
-    if (quads.length) {
-        const index = Math.floor(Math.random() * quads.length);
-        const quad = quads[index];
-        quad.subdivide();
-    }
+function subdivide(quad: QuadGeometry) {
+    console.info('clicked on quad', quad.id);
+    quad.subdivide();
 }
 
-function unify(registry: QuadRegistry, level: number = 0): void {
-    const quads = registry.getQuadsAtLevel(level);
-    if (quads.length) {
-        const index = Math.floor(Math.random() * quads.length);
-        const quad = quads[index];
-        quad.unify();
-    }
+function unify(quad: QuadGeometry) {
+    console.info('clicked on quad', quad.id);
+    quad.parent?.unify();
 }

@@ -71,6 +71,7 @@ export class QuadGeometry extends THREE.BufferGeometry {
     public readonly level: number;
     public readonly registry: QuadRegistry;
 
+    private readonly _neighbors = new Map<QuadSide, QuadGeometry>();
     private readonly _children = new Map<QuadChild, QuadGeometry>();
     private readonly _vertices = new Array<number>();
     private readonly _normals = new Array<number>();
@@ -106,7 +107,13 @@ export class QuadGeometry extends THREE.BufferGeometry {
     }
 
     get neighbors(): QuadNeighbors {
-        return this.registry.getNeighbors(this);
+        // return this.registry.getNeighbors(this);
+        return {
+            left: this.leftNeighbor,
+            bottom: this.bottomNeighbor,
+            right: this.rightNeighbor,
+            top: this.topNeighbor
+        };
     }
 
     get activeSides(): Array<QuadSide> {
@@ -179,6 +186,22 @@ export class QuadGeometry extends THREE.BufferGeometry {
 
     get toprightChild(): QuadGeometry {
         return this._children.get('topright');
+    }
+
+    get leftNeighbor(): QuadGeometry {
+        return this._neighbors.get('left');
+    }
+
+    get bottomNeighbor(): QuadGeometry {
+        return this._neighbors.get('bottom');
+    }
+
+    get rightNeighbor(): QuadGeometry {
+        return this._neighbors.get('right');
+    }
+
+    get topNeighbor(): QuadGeometry {
+        return this._neighbors.get('top');
     }
 
     /**
@@ -256,6 +279,15 @@ export class QuadGeometry extends THREE.BufferGeometry {
         return indices;
     }
 
+    setNeighbor(side: QuadSide, neighbor?: QuadGeometry): this {
+        if (neighbor) {
+            this._neighbors.set(side, neighbor);
+        } else {
+            this._neighbors.delete(side);
+        }
+        return this;
+    }
+
     /**
      * gets the x, y, and z values for the point based on the following
      * indices:
@@ -303,34 +335,54 @@ export class QuadGeometry extends THREE.BufferGeometry {
             return; // do nothing if we're already subdivided
         }
         // create child Quads
-        this._children.set('bottomleft', new QuadGeometry({
+        const bottomleft = new QuadGeometry({
             parent: this,
             centre: V3.midpoint(this.bottomleft, this.centre),
             radius: this.radius / 2,
             level: this.level + 1,
             registry: this.registry
-        }));
-        this._children.set('bottomright', new QuadGeometry({
+        });
+        const bottomright = new QuadGeometry({
             parent: this,
             centre: V3.midpoint(this.bottomright, this.centre),
             radius: this.radius / 2,
             level: this.level + 1,
             registry: this.registry
-        }));
-        this._children.set('topleft', new QuadGeometry({
+        });
+        const topleft = new QuadGeometry({
             parent: this,
             centre: V3.midpoint(this.topleft, this.centre),
             radius: this.radius / 2,
             level: this.level + 1,
             registry: this.registry
-        }));
-        this._children.set('topright', new QuadGeometry({
+        });
+        const topright = new QuadGeometry({
             parent: this,
             centre: V3.midpoint(this.topright, this.centre),
             radius: this.radius / 2,
             level: this.level + 1,
             registry: this.registry
-        }));
+        });
+        bottomleft.setNeighbor('left', this.parent?.leftNeighbor)
+            .setNeighbor('bottom', this.parent?.bottomNeighbor)
+            .setNeighbor('right', bottomright)
+            .setNeighbor('top', topleft);
+        bottomright.setNeighbor('left', bottomleft)
+            .setNeighbor('bottom', this.parent?.bottomNeighbor)
+            .setNeighbor('right', this.parent?.rightNeighbor)
+            .setNeighbor('top', topright);
+        topleft.setNeighbor('left', this.parent?.leftNeighbor)
+            .setNeighbor('bottom', bottomleft)
+            .setNeighbor('right', topright)
+            .setNeighbor('top', this.parent?.topNeighbor);
+        topright.setNeighbor('left', topleft)
+            .setNeighbor('bottom', bottomright)
+            .setNeighbor('right', this.parent?.rightNeighbor)
+            .setNeighbor('top', this.parent?.topNeighbor);
+        this._children.set('bottomleft', bottomleft);
+        this._children.set('bottomright', bottomright);
+        this._children.set('topleft', topleft);
+        this._children.set('topright', topright);
         this.updateAttributes();
         // update our neighbors
         const neighbors = this.neighbors;
