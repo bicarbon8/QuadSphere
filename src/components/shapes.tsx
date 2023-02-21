@@ -24,7 +24,8 @@ export function QuadMesh(props: QuadMeshProps) {
         return new Quad({
             centre: {x: props.position[0] ?? 0, y: props.position[1] ?? 0, z: props.position[2] ?? 0},
             radius: props.radius ?? 1,
-            registry: registry
+            registry: registry,
+            loglevel: 'debug'
         });
     }, [props]);
     useFrame(({ clock }) => {

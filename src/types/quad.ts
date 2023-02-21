@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { Float32BufferAttribute } from "three";
+import { QuadLog, QuadLogLevel } from "./quad-log";
 import { QuadRegistry } from "./quad-registry";
 import { QuadChildren, QuadNeighbors, Quadrant, QuadSide } from "./quad-types";
 import { V3 } from "./v3";
@@ -11,6 +11,7 @@ export type QuadOptions = {
     level?: number;
     registry?: QuadRegistry;
     quadrant?: Quadrant;
+    loglevel?: QuadLogLevel;
 };
 
 /**
@@ -76,6 +77,8 @@ export class Quad {
     private readonly _normals = new Array<number>();
     private readonly _uvs = new Array<number>();
     private readonly _active = new Set<QuadSide>();
+    private readonly _loglevel: QuadLogLevel;
+    private readonly _logger: QuadLog;
 
     constructor(options: QuadOptions) {
         this.parent = options.parent;
@@ -86,6 +89,8 @@ export class Quad {
         this.quadrant = options.quadrant; // root is null
         this._generatePoints(options.centre ?? V3.ZERO);
         this.registry.register(this);
+        this._loglevel = options.loglevel ?? 'warn';
+        this._logger = new QuadLog(this, this._loglevel);
     }
 
     /**
@@ -314,13 +319,13 @@ export class Quad {
     }
 
     activate(...sides: Array<QuadSide>): this {
-        console.debug('quad', this.id, 'activate', sides);
+        this._logger.log('debug', 'activate', sides);
         sides?.forEach(s => this._active.add(s));
         return this;
     }
 
     deactivate(...sides: Array<QuadSide>): this {
-        console.debug('quad', this.id, 'deactivate', sides);
+        this._logger.log('debug', 'deactivate', sides);
         sides.forEach(s => this._active.delete(s));
         return this;
     }
@@ -333,7 +338,7 @@ export class Quad {
         if (this.hasChildren()) {
             return; // do nothing if we're already subdivided
         }
-        console.debug('quad', this.id, 'level', this.level, 'subdivide; initiated by', initiator?.id);
+        this._logger.log('debug', 'subdivide; initiated by', initiator?.id);
         // create child Quads
         this._createChildren();
         const neighbors = this.neighbors;
@@ -386,7 +391,7 @@ export class Quad {
         if (!this.hasChildren()) {
             return;
         }
-        console.debug('quad', this.id, 'level', this.level, 'unify; initiated by', initiator?.id);
+        this._logger.log('debug', 'unify; initiated by', initiator?.id);
         // remove child Quads
         this._removeChildren();
         // update neighbors
@@ -586,7 +591,8 @@ export class Quad {
                 radius: this.radius / 2,
                 level: this.level + 1,
                 registry: this.registry,
-                quadrant: 'bottomleft'
+                quadrant: 'bottomleft',
+                loglevel: this._loglevel
             }),
             new Quad({
                 parent: this,
@@ -594,7 +600,8 @@ export class Quad {
                 radius: this.radius / 2,
                 level: this.level + 1,
                 registry: this.registry,
-                quadrant: 'bottomright'
+                quadrant: 'bottomright',
+                loglevel: this._loglevel
             }),
             new Quad({
                 parent: this,
@@ -602,7 +609,8 @@ export class Quad {
                 radius: this.radius / 2,
                 level: this.level + 1,
                 registry: this.registry,
-                quadrant: 'topleft'
+                quadrant: 'topleft',
+                loglevel: this._loglevel
             }),
             new Quad({
                 parent: this,
@@ -610,14 +618,15 @@ export class Quad {
                 radius: this.radius / 2,
                 level: this.level + 1,
                 registry: this.registry,
-                quadrant: 'topright'
+                quadrant: 'topright',
+                loglevel: this._loglevel
             })
         ];
         children.forEach(c => this._children.set(c.quadrant, c));
     }
 
     private _removeChildren(): void {
-        console.debug('quad', this.id, 'removing children', Array.from(this._children.values()).map(c => c.id));
+        this._logger.log('debug', 'removing children', Array.from(this._children.values()).map(c => c.id));
         this._children.forEach((c: Quad, k: Quadrant) => {
             c.dispose();
             this._children.delete(k);
