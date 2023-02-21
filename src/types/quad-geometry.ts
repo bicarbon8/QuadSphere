@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { Float32BufferAttribute } from "three";
 import { QuadRegistry } from "./quad-registry";
-import { QuadNeighbors, Quadrant, QuadSide } from "./quad-types";
+import { QuadChildren, QuadNeighbors, Quadrant, QuadSide } from "./quad-types";
 import { V3 } from "./v3";
 
 export type QuadOptions = {
@@ -107,6 +107,15 @@ export class QuadGeometry extends THREE.BufferGeometry {
 
     get neighbors(): QuadNeighbors {
         return this.registry.getNeighbors(this);
+    }
+
+    get children(): QuadChildren {
+        return {
+            bottomleft: this.bottomleftChild,
+            bottomright: this.bottomrightChild,
+            topleft: this.topleftChild,
+            topright: this.toprightChild
+        };
     }
 
     get activeSides(): Array<QuadSide> {
@@ -287,6 +296,10 @@ export class QuadGeometry extends THREE.BufferGeometry {
         return this._children.size === 4;
     }
 
+    isSibling(quad: QuadGeometry): boolean {
+        return quad.parent?.id === this.parent?.id;
+    }
+
     activate(...sides: Array<QuadSide>): this {
         console.debug('quad', this.id, 'activate', sides.join(', '));
         sides?.forEach(s => this._active.add(s));
@@ -404,13 +417,33 @@ export class QuadGeometry extends THREE.BufferGeometry {
         });
         this.updateAttributes();
         // update neighbors
-        const neighbors = this.neighbors;
+        const neighbors = this.registry.getNeighbors(this);
         const sides = Object.getOwnPropertyNames(neighbors) as Array<QuadSide>;
         sides.forEach(side => {
             const neighbor = neighbors[side];
             if (neighbor) {
-                const levelDifference = neighbor.level - this.level;
-                if (levelDifference === 0) {
+                if (!this.isSibling(neighbor)) {
+                    // cousin (parent's sibling's child)
+                    neighbor.parent?.unify();
+                    const pn = this.registry.getNeighbor(side, this.parent);
+                    if (pn) {
+                        switch (side) {
+                            case 'left':
+                                pn.activate('right');
+                                break;
+                            case 'bottom':
+                                pn.activate('top');
+                                break;
+                            case 'right':
+                                pn.activate('left');
+                                break;
+                            case 'top':
+                                pn.activate('bottom');
+                                break;
+                        }
+                    }
+                } else {
+                    // siblings
                     switch (side) {
                         case 'bottom':
                             // deactivate neighbor's top
@@ -427,9 +460,6 @@ export class QuadGeometry extends THREE.BufferGeometry {
                         case 'top':
                             // deactivate neighbor's bottom
                             neighbor.deactivate('bottom');
-                            break;
-                        default:
-                            console.warn(`invalid side: '${side}' found in this.neighbors`);
                             break;
                     }
                 }
