@@ -400,6 +400,7 @@ export class Quad {
         sides.forEach(side => {
             const neighbor = neighbors[side] ?? this.registry.getNeighbor(side, this.parent);
             if (neighbor) {
+                this._logger.log('debug', 'depth', this.depth, 'neighbor', neighbor.id, 'level', neighbor.level, 'depth', neighbor.depth);
                 if (this.level === neighbor.level) {
                     if (this.depth - neighbor.depth < -1) {
                         neighbor.bottomleftChild?.unify(this);
@@ -426,6 +427,24 @@ export class Quad {
                         }
                     } else if (this.depth - neighbor.depth < 0) { // -1
                         this.activate(side);
+                        switch (side) {
+                            case 'left':
+                                neighbor.bottomrightChild.deactivate('right');
+                                neighbor.toprightChild.deactivate('right');
+                                break;
+                            case 'bottom':
+                                neighbor.topleftChild.deactivate('top');
+                                neighbor.toprightChild.deactivate('top');
+                                break;
+                            case 'right':
+                                neighbor.bottomleftChild.deactivate('left');
+                                neighbor.topleftChild.deactivate('left');
+                                break;
+                            case 'top':
+                                neighbor.bottomleftChild.deactivate('bottom');
+                                neighbor.bottomrightChild.deactivate('bottom');
+                                break;
+                        }
                     } else { // same depth
                         switch (side) {
                             case 'left':
