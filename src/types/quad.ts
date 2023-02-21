@@ -300,6 +300,19 @@ export class Quad {
         return quad.parent?.id === this.parent?.id;
     }
 
+    isAncestorOf(quad: Quad): boolean {
+        if (quad) {
+            let parent = quad.parent;
+            while (parent != null) {
+                if (parent.id === this.id) {
+                    return true;
+                }
+                parent = parent.parent;
+            }
+        }
+        return false;
+    }
+
     activate(...sides: Array<QuadSide>): this {
         console.debug('quad', this.id, 'activate', sides.join(', '));
         sides?.forEach(s => this._active.add(s));
@@ -315,11 +328,11 @@ export class Quad {
      * causes this quad to generate 4 child quads and update all neighbors so they can 
      * subdivide their edges facing this quad
      */
-    subdivide(): this {
+    subdivide(initiator?: Quad): this {
         if (this.hasChildren()) {
             return; // do nothing if we're already subdivided
         }
-        console.debug('quad', this.id, 'level', this.level, 'subdivide');
+        console.debug('quad', this.id, 'level', this.level, 'subdivide; initiated by', initiator?.id);
         // create child Quads
         this._createChildren();
         const neighbors = this.neighbors;
@@ -328,7 +341,7 @@ export class Quad {
             const neighbor = neighbors[side] ?? this.registry.getNeighbor(side, this.parent);
             if (neighbor) {
                 if (this.level - neighbor.level > 0) {
-                    neighbor.subdivide();
+                    neighbor.subdivide(this);
                     switch (side) {
                         case 'left':
                             this.registry.getNeighbor('left', this)?.activate('right');
@@ -368,25 +381,62 @@ export class Quad {
      * causes this quad to remove all child quads and update all neighbors so they can
      * unify their edges facing this quad
      */
-    unify(): this {
+    unify(initiator?: Quad): this {
         if (!this.hasChildren()) {
             return;
         }
-        console.debug('quad', this.id, 'level', this.level, 'unify');
+        console.debug('quad', this.id, 'level', this.level, 'unify; initiated by', initiator?.id);
         // remove child Quads
         this._removeChildren();
-        const shouldUnify = new Set(this.registry.getQuadsAtLevel(this.level)
-            .filter(q => !this.isSibling(q))
-            .map(q => q.parent)
-            .filter(p => p != null));
-        shouldUnify.forEach(q => q.unify());
         // update neighbors
         const neighbors = this.neighbors;
         const sides = Object.getOwnPropertyNames(neighbors) as Array<QuadSide>;
         sides.forEach(side => {
             const neighbor = neighbors[side] ?? this.registry.getNeighbor(side, this.parent);
             if (neighbor) {
-                if (!this.isSibling(neighbor)) {
+                if (this.level === neighbor.level) {
+                    if (this.depth - neighbor.depth < -1) {
+                        neighbor.bottomleftChild?.unify(this);
+                        neighbor.bottomrightChild?.unify(this);
+                        neighbor.topleftChild?.unify(this);
+                        neighbor.toprightChild?.unify(this);
+                        switch (side) {
+                            case 'left':
+                                neighbor.bottomrightChild.deactivate('right');
+                                neighbor.toprightChild.deactivate('right');
+                                break;
+                            case 'bottom':
+                                neighbor.topleftChild.deactivate('top');
+                                neighbor.toprightChild.deactivate('top');
+                                break;
+                            case 'right':
+                                neighbor.bottomleftChild.deactivate('left');
+                                neighbor.topleftChild.deactivate('left');
+                                break;
+                            case 'top':
+                                neighbor.bottomleftChild.deactivate('bottom');
+                                neighbor.bottomrightChild.deactivate('bottom');
+                                break;
+                        }
+                    } else if (this.depth - neighbor.depth < 0) { // -1
+                        this.activate(side);
+                    } else { // same depth
+                        switch (side) {
+                            case 'left':
+                                neighbor.deactivate('right');
+                                break;
+                            case 'bottom':
+                                neighbor.deactivate('top');
+                                break;
+                            case 'right':
+                                neighbor.deactivate('left');
+                                break;
+                            case 'top':
+                                neighbor.deactivate('bottom');
+                                break;
+                        }
+                    }
+                } else if (this.level - neighbor.level > 0) {
                     switch (side) {
                         case 'left':
                             neighbor.activate('right');
@@ -401,10 +451,6 @@ export class Quad {
                             neighbor.activate('bottom');
                             break;
                     }
-                } else {
-                    // siblings should all look the same
-                    neighbor.deactivate('left', 'bottom', 'right', 'top');
-                    neighbor.unify();
                 }
             }
         });
@@ -570,6 +616,7 @@ export class Quad {
     }
 
     private _removeChildren(): void {
+        console.debug('quad', this.id, 'removing children', Array.from(this._children.values()).map(c => c.id));
         this._children.forEach((c: Quad, k: Quadrant) => {
             c.dispose();
             this._children.delete(k);
