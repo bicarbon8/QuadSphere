@@ -76,11 +76,12 @@ function MeshBufferGeom(props: {quad: QuadGeometry}) {
 }
 
 function subdivide(quad: QuadGeometry) {
+    const neighbors = quad.neighbors;
     console.info('clicked on quad', quad.id, 'containing neighbors', {
-        left: quad.leftNeighbor?.id,
-        bottom: quad.bottomNeighbor?.id,
-        right: quad.rightNeighbor?.id,
-        top: quad.topNeighbor?.id
+        left: neighbors.left?.id,
+        bottom: neighbors.bottom?.id,
+        right: neighbors.right?.id,
+        top: neighbors.top?.id
     });
     quad.subdivide();
 }

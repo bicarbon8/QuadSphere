@@ -70,7 +70,6 @@ export class QuadGeometry extends THREE.BufferGeometry {
     public readonly registry: QuadRegistry;
     public readonly quadrant: Quadrant;
 
-    private readonly _neighbors = new Map<QuadSide, QuadGeometry>();
     private readonly _children = new Map<Quadrant, QuadGeometry>();
     private readonly _vertices = new Array<number>();
     private readonly _normals = new Array<number>();
@@ -107,13 +106,7 @@ export class QuadGeometry extends THREE.BufferGeometry {
     }
 
     get neighbors(): QuadNeighbors {
-        // return this.registry.getNeighbors(this);
-        return {
-            left: this.leftNeighbor,
-            bottom: this.bottomNeighbor,
-            right: this.rightNeighbor,
-            top: this.topNeighbor
-        };
+        return this.registry.getNeighbors(this);
     }
 
     get activeSides(): Array<QuadSide> {
@@ -186,22 +179,6 @@ export class QuadGeometry extends THREE.BufferGeometry {
 
     get toprightChild(): QuadGeometry {
         return this._children.get('topright');
-    }
-
-    get leftNeighbor(): QuadGeometry {
-        return this._neighbors.get('left') ?? this.parent?.leftNeighbor;
-    }
-
-    get bottomNeighbor(): QuadGeometry {
-        return this._neighbors.get('bottom') ?? this.parent?.bottomNeighbor;
-    }
-
-    get rightNeighbor(): QuadGeometry {
-        return this._neighbors.get('right') ?? this.parent?.rightNeighbor;
-    }
-
-    get topNeighbor(): QuadGeometry {
-        return this._neighbors.get('top') ?? this.parent?.topNeighbor;
     }
 
     /**
@@ -282,15 +259,6 @@ export class QuadGeometry extends THREE.BufferGeometry {
             indices.push(...this.getTopTriangleIndices());
         }
         return indices;
-    }
-
-    setNeighbor(side: QuadSide, neighbor?: QuadGeometry): this {
-        if (neighbor) {
-            this._neighbors.set(side, neighbor);
-        } else {
-            this._neighbors.delete(side);
-        }
-        return this;
     }
 
     /**
@@ -386,16 +354,16 @@ export class QuadGeometry extends THREE.BufferGeometry {
                     neighbor.subdivide();
                     switch (side) {
                         case 'left':
-                            this.setNeighbor('left', this.registry.getNeighbor('left', this)?.activate('right'));
+                            this.registry.getNeighbor('left', this)?.activate('right');
                             break;
                         case 'bottom':
-                            this.setNeighbor('bottom', this.registry.getNeighbor('bottom', this)?.activate('top'));
+                            this.registry.getNeighbor('bottom', this)?.activate('top');
                             break;
                         case 'right':
-                            this.setNeighbor('right', this.registry.getNeighbor('right', this)?.activate('left'));
+                            this.registry.getNeighbor('right', this)?.activate('left');
                             break;
                         case 'top':
-                            this.setNeighbor('top', this.registry.getNeighbor('top', this)?.activate('bottom'));
+                            this.registry.getNeighbor('top', this)?.activate('bottom');
                             break;
                     }
                 } else {
