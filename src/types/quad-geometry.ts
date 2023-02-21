@@ -377,18 +377,10 @@ export class QuadGeometry extends THREE.BufferGeometry {
             })
         ];
         children.forEach(c => this._children.set(c.quadrant, c));
-        this.bottomleftChild.setNeighbor('right', this.bottomrightChild)
-            .setNeighbor('top', this.topleftChild);
-        this.bottomrightChild.setNeighbor('left', this.bottomleftChild)
-            .setNeighbor('top', this.toprightChild);
-        this.topleftChild.setNeighbor('bottom', this.bottomleftChild)
-            .setNeighbor('right', this.toprightChild);
-        this.toprightChild.setNeighbor('left', this.topleftChild)
-            .setNeighbor('bottom', this.bottomrightChild);
-        const neighbors = this.neighbors;
+        const neighbors = this.registry.getNeighbors(this);
         const sides = Object.getOwnPropertyNames(neighbors) as Array<QuadSide>;
         sides.forEach(side => {
-            const neighbor = neighbors[side];
+            const neighbor = neighbors[side] ?? this.registry.getNeighbor(side, this.parent);
             if (neighbor) {
                 if (this.level - neighbor.level > 0) {
                     neighbor.subdivide();
