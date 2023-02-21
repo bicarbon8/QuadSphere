@@ -1,9 +1,9 @@
-import { QuadGeometry } from "./quad-geometry";
+import { Quad } from "./quad";
 
 export type QuadSide = 'left' | 'bottom' | 'right' | 'top';
 
 export type Quadrant = 'bottomleft' | 'bottomright' | 'topleft' | 'topright';
 
-export type QuadNeighbors = Record<QuadSide, QuadGeometry>;
+export type QuadNeighbors = Record<QuadSide, Quad>;
 
-export type QuadChildren = Record<Quadrant, QuadGeometry>;
+export type QuadChildren = Record<Quadrant, Quad>;

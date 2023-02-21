@@ -5,7 +5,7 @@ import { QuadChildren, QuadNeighbors, Quadrant, QuadSide } from "./quad-types";
 import { V3 } from "./v3";
 
 export type QuadOptions = {
-    parent?: QuadGeometry;
+    parent?: Quad;
     centre?: V3;
     radius?: number;
     level?: number;
@@ -63,26 +63,26 @@ export type QuadOptions = {
  * 0-1-2
  * ```
  */
-export class QuadGeometry extends THREE.BufferGeometry {
-    public readonly parent: QuadGeometry;
+export class Quad {
+    public readonly id: number;
+    public readonly parent: Quad;
     public readonly radius: number;
     public readonly level: number;
     public readonly registry: QuadRegistry;
     public readonly quadrant: Quadrant;
 
-    private readonly _children = new Map<Quadrant, QuadGeometry>();
+    private readonly _children = new Map<Quadrant, Quad>();
     private readonly _vertices = new Array<number>();
     private readonly _normals = new Array<number>();
     private readonly _uvs = new Array<number>();
     private readonly _active = new Set<QuadSide>();
 
     constructor(options: QuadOptions) {
-        super();
-        this.type = 'QuadGeometry';
         this.parent = options.parent;
         this.radius = options.radius ?? 1;
         this.level = options.level ?? 0;
         this.registry = options.registry ?? new QuadRegistry();
+        this.id = this.registry.getId();
         this.quadrant = options.quadrant; // root is null
         this._generatePoints(options.centre ?? V3.ZERO);
         this.registry.register(this);
@@ -174,19 +174,19 @@ export class QuadGeometry extends THREE.BufferGeometry {
         return new Array<V3>(this.topleft, this.topmiddle, this.topright);
     }
 
-    get bottomleftChild(): QuadGeometry {
+    get bottomleftChild(): Quad {
         return this._children.get('bottomleft');
     }
 
-    get bottomrightChild(): QuadGeometry {
+    get bottomrightChild(): Quad {
         return this._children.get('bottomright');
     }
 
-    get topleftChild(): QuadGeometry {
+    get topleftChild(): Quad {
         return this._children.get('topleft');
     }
 
-    get toprightChild(): QuadGeometry {
+    get toprightChild(): Quad {
         return this._children.get('topright');
     }
 
@@ -296,20 +296,18 @@ export class QuadGeometry extends THREE.BufferGeometry {
         return this._children.size === 4;
     }
 
-    isSibling(quad: QuadGeometry): boolean {
+    isSibling(quad: Quad): boolean {
         return quad.parent?.id === this.parent?.id;
     }
 
     activate(...sides: Array<QuadSide>): this {
         console.debug('quad', this.id, 'activate', sides.join(', '));
         sides?.forEach(s => this._active.add(s));
-        this.updateAttributes();
         return this;
     }
 
     deactivate(...sides: Array<QuadSide>): this {
         sides.forEach(s => this._active.delete(s));
-        this.updateAttributes();
         return this;
     }
 
@@ -324,7 +322,7 @@ export class QuadGeometry extends THREE.BufferGeometry {
         console.debug('quad', this.id, 'level', this.level, 'subdivide');
         // create child Quads
         const children = [
-            new QuadGeometry({
+            new Quad({
                 parent: this,
                 centre: V3.midpoint(this.bottomleft, this.centre),
                 radius: this.radius / 2,
@@ -332,7 +330,7 @@ export class QuadGeometry extends THREE.BufferGeometry {
                 registry: this.registry,
                 quadrant: 'bottomleft'
             }),
-            new QuadGeometry({
+            new Quad({
                 parent: this,
                 centre: V3.midpoint(this.bottomright, this.centre),
                 radius: this.radius / 2,
@@ -340,7 +338,7 @@ export class QuadGeometry extends THREE.BufferGeometry {
                 registry: this.registry,
                 quadrant: 'bottomright'
             }),
-            new QuadGeometry({
+            new Quad({
                 parent: this,
                 centre: V3.midpoint(this.topleft, this.centre),
                 radius: this.radius / 2,
@@ -348,7 +346,7 @@ export class QuadGeometry extends THREE.BufferGeometry {
                 registry: this.registry,
                 quadrant: 'topleft'
             }),
-            new QuadGeometry({
+            new Quad({
                 parent: this,
                 centre: V3.midpoint(this.topright, this.centre),
                 radius: this.radius / 2,
@@ -397,7 +395,6 @@ export class QuadGeometry extends THREE.BufferGeometry {
                 }
             }
         });
-        this.updateAttributes();
         return this;
     }
 
@@ -411,11 +408,10 @@ export class QuadGeometry extends THREE.BufferGeometry {
         }
         console.debug('quad', this.id, 'level', this.level, 'unify');
         // remove child Quads
-        this._children.forEach((c: QuadGeometry, k: Quadrant) => {
+        this._children.forEach((c: Quad, k: Quadrant) => {
             c.dispose();
             this._children.delete(k);
         });
-        this.updateAttributes();
         // update neighbors
         const neighbors = this.registry.getNeighbors(this);
         const sides = Object.getOwnPropertyNames(neighbors) as Array<QuadSide>;
@@ -548,16 +544,15 @@ export class QuadGeometry extends THREE.BufferGeometry {
         ];
     }
 
-    override dispose(): void {
+    dispose(): void {
         this.registry.deregister(this);
         if (this.hasChildren()) {
-            this._children.forEach((c: QuadGeometry, k: Quadrant) => {
+            this._children.forEach((c: Quad, k: Quadrant) => {
                 c.dispose();
                 this._children.delete(k);
             });
         }
         this._vertices.splice(0, this._vertices.length);
-        super.dispose();
     }
 
     private _generatePoints(centre: V3): void {
@@ -577,7 +572,6 @@ export class QuadGeometry extends THREE.BufferGeometry {
                 this._uvs.push(u + uOffset, 1 - v);
             }
         }
-        this.updateAttributes();
     }
 
     applyCurve(point: V3): V3 {
@@ -586,14 +580,6 @@ export class QuadGeometry extends THREE.BufferGeometry {
         }
         const elevation = 0; // TODO: use UV's to lookup elevation values
         return V3.multiply(point, this.radius + elevation);
-    }
-
-    updateAttributes(): void {
-        this.setAttribute('position', new Float32BufferAttribute(this.vertices, 3));
-        this.setIndex(this.indices);
-        this.parent?.updateAttributes();
-        // this.setAttribute('normal', new Float32BufferAttribute(this._normals, 3));
-        // this.setAttribute('uv', new Float32BufferAttribute(this._uvs, 2));
     }
 
     private _getPointIndices(index: number = 0): V3 {

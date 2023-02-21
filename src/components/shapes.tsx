@@ -2,7 +2,7 @@ import { Detailed } from "@react-three/drei";
 import { MeshProps, useFrame } from "@react-three/fiber";
 import { useMemo, useRef, useState } from "react";
 import { Mesh } from "three";
-import { QuadGeometry } from "../types/quad-geometry";
+import { Quad } from "../types/quad";
 import { QuadRegistry } from "../types/quad-registry";
 
 export type QuadMeshProps = {
@@ -19,9 +19,9 @@ export function QuadMesh(props: QuadMeshProps) {
         console.info('creating new QuadRegistry!');
         return new QuadRegistry();
     }, [props]);
-    const quad = useMemo<QuadGeometry>(() => {
+    const quad = useMemo<Quad>(() => {
         console.info('creating new QuadGeometry!', {props});
-        return new QuadGeometry({
+        return new Quad({
             centre: {x: props.position[0] ?? 0, y: props.position[1] ?? 0, z: props.position[2] ?? 0},
             radius: props.radius ?? 1,
             registry: registry
@@ -38,7 +38,7 @@ export function QuadMesh(props: QuadMeshProps) {
     return MeshBufferGeom({quad});
 }
 
-function MeshBufferGeom(props: {quad: QuadGeometry}) {
+function MeshBufferGeom(props: {quad: Quad}) {
     const meshes = new Array<MeshProps>();
     if (!props.quad.hasChildren()) {
         const positions = new Float32Array(props.quad.vertices);
@@ -75,7 +75,7 @@ function MeshBufferGeom(props: {quad: QuadGeometry}) {
     );
 }
 
-function subdivide(quad: QuadGeometry) {
+function subdivide(quad: Quad) {
     const neighbors = quad.neighbors;
     console.info('left-clicked on quad', quad.id, 'containing neighbors', {
         left: neighbors.left?.id,
@@ -86,7 +86,7 @@ function subdivide(quad: QuadGeometry) {
     quad.subdivide();
 }
 
-function unify(quad: QuadGeometry) {
+function unify(quad: Quad) {
     console.info('right-clicked on quad', quad.id, 'with parent', quad.parent?.id);
     quad.parent?.unify();
 }

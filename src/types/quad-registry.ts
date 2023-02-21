@@ -1,4 +1,4 @@
-import { QuadGeometry } from "./quad-geometry";
+import { Quad } from "./quad";
 import { QuadNeighbors, QuadSide } from "./quad-types";
 import { V3 } from "./v3";
 
@@ -6,10 +6,13 @@ export type QuadRegistryKeys = Record<QuadSide, string>;
 
 export class QuadRegistry {
     private readonly _maxDifference: number;
-    private readonly _levelQuadMap = new Map<number, Map<number, QuadGeometry>>();
+    private readonly _levelQuadMap = new Map<number, Map<number, Quad>>();
+
+    private _id: number;
 
     constructor(maxDifference?: number) {
         this._maxDifference = maxDifference ?? 0.001;
+        this._id = 0;
     }
 
     get depth(): number {
@@ -22,22 +25,22 @@ export class QuadRegistry {
         return d;
     }
 
-    register(quad: QuadGeometry): this {
+    register(quad: Quad): this {
         if (!this._levelQuadMap.has(quad.level)) {
-            this._levelQuadMap.set(quad.level, new Map<number, QuadGeometry>());
+            this._levelQuadMap.set(quad.level, new Map<number, Quad>());
         }
         this._levelQuadMap.get(quad.level).set(quad.id, quad);
         return this;
     }
 
-    deregister(quad: QuadGeometry): this {
+    deregister(quad: Quad): this {
         if (this._levelQuadMap.has(quad.level)) {
             this._levelQuadMap.get(quad.level).delete(quad.id);
         }
         return this;
     }
 
-    getNeighbor(side: QuadSide, quad: QuadGeometry): QuadGeometry {
+    getNeighbor(side: QuadSide, quad: Quad): Quad {
         if (quad) {
             const possibleNeighbors = this.getQuadsAtLevel(quad.level)
                 .filter(q => q.id !== quad.id); // don't attempt to match with ourself
@@ -69,7 +72,7 @@ export class QuadRegistry {
         return null;
     }
 
-    getNeighbors(quad: QuadGeometry): QuadNeighbors {
+    getNeighbors(quad: Quad): QuadNeighbors {
         const neighbors: QuadNeighbors = {
             left: this.getNeighbor('left', quad),
             bottom: this.getNeighbor('bottom', quad),
@@ -79,12 +82,16 @@ export class QuadRegistry {
         return neighbors;
     }
 
-    getQuadsAtLevel(level: number = 0): Array<QuadGeometry> {
-        const quads = new Array<QuadGeometry>();
+    getQuadsAtLevel(level: number = 0): Array<Quad> {
+        const quads = new Array<Quad>();
         if (this._levelQuadMap.has(level)) {
             quads.push(...Array.from(this._levelQuadMap.get(level).values()));
         }
         return quads;
+    }
+
+    getId(): number {
+        return this._id++;
     }
 
     private _edgeMatches(edge1: Array<V3>, edge2: Array<V3>, level: number): boolean {
