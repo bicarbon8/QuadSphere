@@ -502,10 +502,7 @@ export class Quad {
     dispose(): void {
         this.registry.deregister(this);
         if (this.hasChildren()) {
-            this._children.forEach((c: Quad, k: Quadrant) => {
-                c.dispose();
-                this._children.delete(k);
-            });
+            this._removeChildren();
         }
         this._vertices.splice(0, this._vertices.length);
     }
