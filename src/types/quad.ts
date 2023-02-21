@@ -314,12 +314,13 @@ export class Quad {
     }
 
     activate(...sides: Array<QuadSide>): this {
-        console.debug('quad', this.id, 'activate', sides.join(', '));
+        console.debug('quad', this.id, 'activate', sides);
         sides?.forEach(s => this._active.add(s));
         return this;
     }
 
     deactivate(...sides: Array<QuadSide>): this {
+        console.debug('quad', this.id, 'deactivate', sides);
         sides.forEach(s => this._active.delete(s));
         return this;
     }
