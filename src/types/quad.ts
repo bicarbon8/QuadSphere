@@ -321,41 +321,7 @@ export class Quad {
         }
         console.debug('quad', this.id, 'level', this.level, 'subdivide');
         // create child Quads
-        const children = [
-            new Quad({
-                parent: this,
-                centre: V3.midpoint(this.bottomleft, this.centre),
-                radius: this.radius / 2,
-                level: this.level + 1,
-                registry: this.registry,
-                quadrant: 'bottomleft'
-            }),
-            new Quad({
-                parent: this,
-                centre: V3.midpoint(this.bottomright, this.centre),
-                radius: this.radius / 2,
-                level: this.level + 1,
-                registry: this.registry,
-                quadrant: 'bottomright'
-            }),
-            new Quad({
-                parent: this,
-                centre: V3.midpoint(this.topleft, this.centre),
-                radius: this.radius / 2,
-                level: this.level + 1,
-                registry: this.registry,
-                quadrant: 'topleft'
-            }),
-            new Quad({
-                parent: this,
-                centre: V3.midpoint(this.topright, this.centre),
-                radius: this.radius / 2,
-                level: this.level + 1,
-                registry: this.registry,
-                quadrant: 'topright'
-            })
-        ];
-        children.forEach(c => this._children.set(c.quadrant, c));
+        this._createChildren();
         const neighbors = this.registry.getNeighbors(this);
         const sides = Object.getOwnPropertyNames(neighbors) as Array<QuadSide>;
         sides.forEach(side => {
@@ -408,56 +374,37 @@ export class Quad {
         }
         console.debug('quad', this.id, 'level', this.level, 'unify');
         // remove child Quads
-        this._children.forEach((c: Quad, k: Quadrant) => {
-            c.dispose();
-            this._children.delete(k);
-        });
+        this._removeChildren();
+        const shouldUnify = new Set(this.registry.getQuadsAtLevel(this.level)
+            .filter(q => !this.isSibling(q))
+            .map(q => q.parent)
+            .filter(p => p != null));
+        shouldUnify.forEach(q => q.unify());
         // update neighbors
         const neighbors = this.registry.getNeighbors(this);
         const sides = Object.getOwnPropertyNames(neighbors) as Array<QuadSide>;
         sides.forEach(side => {
-            const neighbor = neighbors[side];
+            const neighbor = neighbors[side] ?? this.registry.getNeighbor(side, this.parent);
             if (neighbor) {
                 if (!this.isSibling(neighbor)) {
-                    // cousin (parent's sibling's child)
-                    neighbor.parent?.unify();
-                    const pn = this.registry.getNeighbor(side, this.parent);
-                    if (pn) {
-                        switch (side) {
-                            case 'left':
-                                pn.activate('right');
-                                break;
-                            case 'bottom':
-                                pn.activate('top');
-                                break;
-                            case 'right':
-                                pn.activate('left');
-                                break;
-                            case 'top':
-                                pn.activate('bottom');
-                                break;
-                        }
-                    }
-                } else {
-                    // siblings
                     switch (side) {
-                        case 'bottom':
-                            // deactivate neighbor's top
-                            neighbor.deactivate('top');
-                            break;
                         case 'left':
-                            // deactivate neighbor's right
-                            neighbor.deactivate('right');
+                            neighbor.activate('right');
+                            break;
+                        case 'bottom':
+                            neighbor.activate('top');
                             break;
                         case 'right':
-                            // deactivate neighbor's left
-                            neighbor.deactivate('left');
+                            neighbor.activate('left');
                             break;
                         case 'top':
-                            // deactivate neighbor's bottom
-                            neighbor.deactivate('bottom');
+                            neighbor.activate('bottom');
                             break;
                     }
+                } else {
+                    // siblings should all look the same
+                    neighbor.deactivate('left', 'bottom', 'right', 'top');
+                    neighbor.unify();
                 }
             }
         });
@@ -544,6 +491,14 @@ export class Quad {
         ];
     }
 
+    applyCurve(point: V3): V3 {
+        if (this.parent) {
+            return this.parent.applyCurve(point);
+        }
+        const elevation = 0; // TODO: use UV's to lookup elevation values
+        return V3.multiply(point, this.radius + elevation);
+    }
+
     dispose(): void {
         this.registry.deregister(this);
         if (this.hasChildren()) {
@@ -574,16 +529,53 @@ export class Quad {
         }
     }
 
-    applyCurve(point: V3): V3 {
-        if (this.parent) {
-            return this.parent.applyCurve(point);
-        }
-        const elevation = 0; // TODO: use UV's to lookup elevation values
-        return V3.multiply(point, this.radius + elevation);
-    }
-
     private _getPointIndices(index: number = 0): V3 {
         const i = index * 3;
         return {x: i, y: i+1, z: i+2};
+    }
+
+    private _createChildren(): void {
+        const children = [
+            new Quad({
+                parent: this,
+                centre: V3.midpoint(this.bottomleft, this.centre),
+                radius: this.radius / 2,
+                level: this.level + 1,
+                registry: this.registry,
+                quadrant: 'bottomleft'
+            }),
+            new Quad({
+                parent: this,
+                centre: V3.midpoint(this.bottomright, this.centre),
+                radius: this.radius / 2,
+                level: this.level + 1,
+                registry: this.registry,
+                quadrant: 'bottomright'
+            }),
+            new Quad({
+                parent: this,
+                centre: V3.midpoint(this.topleft, this.centre),
+                radius: this.radius / 2,
+                level: this.level + 1,
+                registry: this.registry,
+                quadrant: 'topleft'
+            }),
+            new Quad({
+                parent: this,
+                centre: V3.midpoint(this.topright, this.centre),
+                radius: this.radius / 2,
+                level: this.level + 1,
+                registry: this.registry,
+                quadrant: 'topright'
+            })
+        ];
+        children.forEach(c => this._children.set(c.quadrant, c));
+    }
+
+    private _removeChildren(): void {
+        this._children.forEach((c: Quad, k: Quadrant) => {
+            c.dispose();
+            this._children.delete(k);
+        });
     }
 }
