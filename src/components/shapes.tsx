@@ -78,15 +78,21 @@ function MeshBufferGeom(props: {quad: Quad}) {
 function subdivide(quad: Quad) {
     const neighbors = quad.neighbors;
     console.info('left-clicked on quad', quad.id, 'containing neighbors', {
-        left: neighbors.left?.id,
-        bottom: neighbors.bottom?.id,
-        right: neighbors.right?.id,
-        top: neighbors.top?.id
+        left: neighbors?.left?.id,
+        bottom: neighbors?.bottom?.id,
+        right: neighbors?.right?.id,
+        top: neighbors?.top?.id
     });
     quad.subdivide();
 }
 
 function unify(quad: Quad) {
-    console.info('right-clicked on quad', quad.id, 'with parent', quad.parent?.id);
+    const parentNeighbors = quad.parent?.neighbors;
+    console.info('right-clicked on quad', quad.id, 'with parent', quad.parent?.id, 'containing neighbors', {
+        left: parentNeighbors?.left?.id,
+        bottom: parentNeighbors?.bottom?.id,
+        right: parentNeighbors?.right?.id,
+        top: parentNeighbors?.top?.id
+    });
     quad.parent?.unify();
 }

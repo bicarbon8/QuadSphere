@@ -322,7 +322,7 @@ export class Quad {
         console.debug('quad', this.id, 'level', this.level, 'subdivide');
         // create child Quads
         this._createChildren();
-        const neighbors = this.registry.getNeighbors(this);
+        const neighbors = this.neighbors;
         const sides = Object.getOwnPropertyNames(neighbors) as Array<QuadSide>;
         sides.forEach(side => {
             const neighbor = neighbors[side] ?? this.registry.getNeighbor(side, this.parent);
@@ -381,7 +381,7 @@ export class Quad {
             .filter(p => p != null));
         shouldUnify.forEach(q => q.unify());
         // update neighbors
-        const neighbors = this.registry.getNeighbors(this);
+        const neighbors = this.neighbors;
         const sides = Object.getOwnPropertyNames(neighbors) as Array<QuadSide>;
         sides.forEach(side => {
             const neighbor = neighbors[side] ?? this.registry.getNeighbor(side, this.parent);
