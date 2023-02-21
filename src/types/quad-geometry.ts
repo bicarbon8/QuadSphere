@@ -1,11 +1,8 @@
 import * as THREE from "three";
 import { Float32BufferAttribute } from "three";
 import { QuadNeighbors, QuadRegistry } from "./quad-registry";
+import { Quadrant, QuadSide } from "./quad-types";
 import { V3 } from "./v3";
-
-export type QuadSide = 'left' | 'bottom' | 'right' | 'top';
-
-export type QuadChild = 'bottomleft' | 'bottomright' | 'topleft' | 'topright';
 
 export type QuadOptions = {
     parent?: QuadGeometry;
@@ -13,6 +10,7 @@ export type QuadOptions = {
     radius?: number;
     level?: number;
     registry?: QuadRegistry;
+    quadrant?: Quadrant;
 };
 
 /**
@@ -70,9 +68,10 @@ export class QuadGeometry extends THREE.BufferGeometry {
     public readonly radius: number;
     public readonly level: number;
     public readonly registry: QuadRegistry;
+    public readonly quadrant: Quadrant;
 
     private readonly _neighbors = new Map<QuadSide, QuadGeometry>();
-    private readonly _children = new Map<QuadChild, QuadGeometry>();
+    private readonly _children = new Map<Quadrant, QuadGeometry>();
     private readonly _vertices = new Array<number>();
     private readonly _normals = new Array<number>();
     private readonly _uvs = new Array<number>();
@@ -85,6 +84,7 @@ export class QuadGeometry extends THREE.BufferGeometry {
         this.radius = options.radius ?? 1;
         this.level = options.level ?? 0;
         this.registry = options.registry ?? new QuadRegistry();
+        this.quadrant = options.quadrant; // root is null
         this._generatePoints(options.centre ?? V3.ZERO);
         this.registry.register(this);
     }
@@ -342,46 +342,49 @@ export class QuadGeometry extends THREE.BufferGeometry {
         }
         console.debug('quad', this.id, 'level', this.level, 'subdivide');
         // create child Quads
-        const bottomleft = new QuadGeometry({
-            parent: this,
-            centre: V3.midpoint(this.bottomleft, this.centre),
-            radius: this.radius / 2,
-            level: this.level + 1,
-            registry: this.registry
-        });
-        const bottomright = new QuadGeometry({
-            parent: this,
-            centre: V3.midpoint(this.bottomright, this.centre),
-            radius: this.radius / 2,
-            level: this.level + 1,
-            registry: this.registry
-        });
-        const topleft = new QuadGeometry({
-            parent: this,
-            centre: V3.midpoint(this.topleft, this.centre),
-            radius: this.radius / 2,
-            level: this.level + 1,
-            registry: this.registry
-        });
-        const topright = new QuadGeometry({
-            parent: this,
-            centre: V3.midpoint(this.topright, this.centre),
-            radius: this.radius / 2,
-            level: this.level + 1,
-            registry: this.registry
-        });
-        bottomleft.setNeighbor('right', bottomright)
-            .setNeighbor('top', topleft);
-        bottomright.setNeighbor('left', bottomleft)
-            .setNeighbor('top', topright);
-        topleft.setNeighbor('bottom', bottomleft)
-            .setNeighbor('right', topright);
-        topright.setNeighbor('left', topleft)
-            .setNeighbor('bottom', bottomright);
-        this._children.set('bottomleft', bottomleft);
-        this._children.set('bottomright', bottomright);
-        this._children.set('topleft', topleft);
-        this._children.set('topright', topright);
+        const children = [
+            new QuadGeometry({
+                parent: this,
+                centre: V3.midpoint(this.bottomleft, this.centre),
+                radius: this.radius / 2,
+                level: this.level + 1,
+                registry: this.registry,
+                quadrant: 'bottomleft'
+            }),
+            new QuadGeometry({
+                parent: this,
+                centre: V3.midpoint(this.bottomright, this.centre),
+                radius: this.radius / 2,
+                level: this.level + 1,
+                registry: this.registry,
+                quadrant: 'bottomright'
+            }),
+            new QuadGeometry({
+                parent: this,
+                centre: V3.midpoint(this.topleft, this.centre),
+                radius: this.radius / 2,
+                level: this.level + 1,
+                registry: this.registry,
+                quadrant: 'topleft'
+            }),
+            new QuadGeometry({
+                parent: this,
+                centre: V3.midpoint(this.topright, this.centre),
+                radius: this.radius / 2,
+                level: this.level + 1,
+                registry: this.registry,
+                quadrant: 'topright'
+            })
+        ];
+        children.forEach(c => this._children.set(c.quadrant, c));
+        this.bottomleftChild.setNeighbor('right', this.bottomrightChild)
+            .setNeighbor('top', this.topleftChild);
+        this.bottomrightChild.setNeighbor('left', this.bottomleftChild)
+            .setNeighbor('top', this.toprightChild);
+        this.topleftChild.setNeighbor('bottom', this.bottomleftChild)
+            .setNeighbor('right', this.toprightChild);
+        this.toprightChild.setNeighbor('left', this.topleftChild)
+            .setNeighbor('bottom', this.bottomrightChild);
         const neighbors = this.neighbors;
         const sides = Object.getOwnPropertyNames(neighbors) as Array<QuadSide>;
         sides.forEach(side => {
@@ -435,7 +438,7 @@ export class QuadGeometry extends THREE.BufferGeometry {
         }
         console.debug('quad', this.id, 'level', this.level, 'unify');
         // remove child Quads
-        this._children.forEach((c: QuadGeometry, k: QuadChild) => {
+        this._children.forEach((c: QuadGeometry, k: Quadrant) => {
             c.dispose();
             this._children.delete(k);
         });
@@ -558,7 +561,7 @@ export class QuadGeometry extends THREE.BufferGeometry {
     override dispose(): void {
         this.registry.deregister(this);
         if (this.hasChildren()) {
-            this._children.forEach((c: QuadGeometry, k: QuadChild) => {
+            this._children.forEach((c: QuadGeometry, k: Quadrant) => {
                 c.dispose();
                 this._children.delete(k);
             });

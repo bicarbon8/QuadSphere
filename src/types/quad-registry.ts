@@ -1,4 +1,5 @@
-import { QuadGeometry, QuadSide } from "./quad-geometry";
+import { QuadGeometry } from "./quad-geometry";
+import { QuadSide } from "./quad-types";
 import { V3 } from "./v3";
 
 export type QuadRegistryKeys = Record<QuadSide, string>;
