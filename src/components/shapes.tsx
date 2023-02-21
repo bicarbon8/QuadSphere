@@ -40,7 +40,14 @@ export function QuadMesh(props: QuadMeshProps) {
 
 function MeshBufferGeom(props: {quad: Quad}) {
     const meshes = new Array<MeshProps>();
-    if (!props.quad.hasChildren()) {
+    if (props.quad.hasChildren()) {
+        meshes.push(...[
+            props.quad.bottomleftChild,
+            props.quad.bottomrightChild,
+            props.quad.topleftChild,
+            props.quad.toprightChild
+        ].map(c => MeshBufferGeom({quad: c})));
+    } else {
         const positions = new Float32Array(props.quad.vertices);
         const indices = new Uint16Array(props.quad.indices);
         meshes.push(
@@ -60,13 +67,6 @@ function MeshBufferGeom(props: {quad: Quad}) {
                 <meshBasicMaterial attach="material" wireframe={true} />
             </mesh>
         );
-    } else {
-        meshes.push(...[
-            props.quad.bottomleftChild,
-            props.quad.bottomrightChild,
-            props.quad.topleftChild,
-            props.quad.toprightChild
-        ].map(c => MeshBufferGeom({quad: c})));
     }
     return (
         <>
