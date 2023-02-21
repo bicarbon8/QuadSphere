@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { Float32BufferAttribute } from "three";
-import { QuadNeighbors, QuadRegistry } from "./quad-registry";
-import { Quadrant, QuadSide } from "./quad-types";
+import { QuadRegistry } from "./quad-registry";
+import { QuadNeighbors, Quadrant, QuadSide } from "./quad-types";
 import { V3 } from "./v3";
 
 export type QuadOptions = {

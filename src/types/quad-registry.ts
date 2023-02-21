@@ -1,10 +1,8 @@
 import { QuadGeometry } from "./quad-geometry";
-import { QuadSide } from "./quad-types";
+import { QuadNeighbors, QuadSide } from "./quad-types";
 import { V3 } from "./v3";
 
 export type QuadRegistryKeys = Record<QuadSide, string>;
-
-export type QuadNeighbors = Record<QuadSide, QuadGeometry>;
 
 export class QuadRegistry {
     private readonly _maxDifference: number;
