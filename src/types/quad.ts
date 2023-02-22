@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { QuadLogger, QuadLoggerLevel } from "./quad-logger";
 import { QuadRegistry } from "./quad-registry";
-import { QuadChildren, QuadMeshData, QuadNeighbors, Quadrant, QuadSide } from "./quad-types";
+import { QuadChildren, QuadMeshData, QuadNeighbors, Quadrant, QuadSide, QuadSphereFace } from "./quad-types";
 import { V3 } from "./v3";
 
 export type QuadOptions = {
@@ -12,6 +12,7 @@ export type QuadOptions = {
     registry?: QuadRegistry;
     quadrant?: Quadrant;
     loglevel?: QuadLoggerLevel;
+    face?: QuadSphereFace;
 };
 
 /**
@@ -71,10 +72,10 @@ export class Quad {
     public readonly level: number;
     public readonly registry: QuadRegistry;
     public readonly quadrant: Quadrant;
+    public readonly face: QuadSphereFace;
 
     private readonly _children = new Map<Quadrant, Quad>();
     private readonly _vertices = new Array<number>();
-    private readonly _normals = new Array<number>();
     private readonly _uvs = new Array<number>();
     private readonly _active = new Set<QuadSide>();
     private readonly _loglevel: QuadLoggerLevel;
@@ -87,13 +88,14 @@ export class Quad {
         this.registry = options.registry ?? new QuadRegistry();
         this.id = this.registry.getId();
         this.quadrant = options.quadrant; // root is null
-        this._generatePoints(options.centre ?? V3.ZERO);
-        this.registry.register(this);
+        this.face = options.face ?? 'front';
         this._loglevel = options.loglevel ?? 'warn';
         this._logger = new QuadLogger({
             level: this._loglevel,
-            preface: (logger) => `[${this.id}:${this.level}:${this.depth}:${this.activeSides.map(s => s.charAt(0)).join('.')}]`
+            preface: () => `[${this.id}:${this.level}:${this.depth}:${this.activeSides.map(s => s.charAt(0)).join('.')}]`
         });
+        this._generatePoints(options.centre ?? V3.ZERO);
+        this.registry.register(this);
     }
 
     /**
@@ -595,21 +597,33 @@ export class Quad {
     }
 
     private _generatePoints(centre: V3): void {
-        const point = new THREE.Vector3();
-        const normal = new THREE.Vector3();
         for (let y = centre.y - this.radius; y <= centre.y + this.radius; y += this.radius) {
             const v = y / 3;
             let uOffset = 0;
             for (let x = centre.x - this.radius; x <= centre.x + this.radius; x += this.radius) {
                 const u = x / 3;
-                point.x = x;
-                point.y = y;
-                point.z = centre.z;
-                this._vertices.push(point.x, point.y, point.z);
-                normal.copy(point).normalize();
-                this._normals.push(normal.x, normal.y, normal.z);
+                const facev = this._updatePointForFace({x, y, z: centre.z});
+                this._vertices.push(facev.x, facev.y, facev.z);
                 this._uvs.push(u + uOffset, 1 - v);
             }
+        }
+    }
+
+    private _updatePointForFace(point: V3): V3 {
+        switch (this.face) {
+            case 'bottom':
+                return {x: point.x, y: -point.z, z: point.y};
+            case 'top':
+                return {x: point.x, y: point.z, z: -point.y};
+            case 'right':
+                return {x: point.z, y: point.y, z: -point.x};
+            case 'left':
+                return {x: -point.z, y: point.y, z: point.x};
+            case 'back':
+                return {x: -point.x, y: point.y, z: -point.z};
+            case 'front':
+            default:
+                return point; // no change
         }
     }
 

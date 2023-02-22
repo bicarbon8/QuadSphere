@@ -97,13 +97,13 @@ export class QuadSphere {
     }
 
     private _createFaces(): void {
-        const front = new Quad({
+        const faces = new Array<QuadSphereFace>('front', 'back', 'left', 'right', 'top', 'bottom');
+        faces.forEach(f => this._faces.set(f, new Quad({
             centre: {x: this.centre.x, y: this.centre.y, z: this.centre.z + this.radius},
             loglevel: this._loglevel,
             radius: this.radius,
-            registry: this.registry
-        });
-
-        this._faces.set('front', front);
+            registry: this.registry,
+            face: f
+        })));
     }
 }

@@ -5,8 +5,9 @@ import { QuadRegistry } from "../types/quad-registry";
 import { QuadSphere } from "../types/quad-sphere";
 
 export type QuadMeshProps = {
-    position: Array<number>;
-    radius: number;
+    position?: Array<number>;
+    radius?: number;
+    wireframe?: boolean;
 };
 
 export function QuadSphereMesh(props: QuadMeshProps) {
@@ -44,7 +45,7 @@ export function QuadSphereMesh(props: QuadMeshProps) {
                     count={indices.length}
                     itemSize={1} />
             </bufferGeometry>
-            <meshBasicMaterial attach="material" wireframe={true} />
+            <meshBasicMaterial attach="material" wireframe={props.wireframe ?? true} />
         </mesh>
     );
 }
@@ -72,10 +73,10 @@ export function QuadMesh(props: QuadMeshProps) {
             setLevel(level + 1);
         }
     });
-    return MeshBufferGeom({quad});
+    return MeshBufferGeom({quad, wireframe: props.wireframe});
 }
 
-function MeshBufferGeom(props: {quad: Quad}) {
+function MeshBufferGeom(props: {quad: Quad, wireframe: boolean}) {
     const meshes = new Array<MeshProps>();
     if (props.quad.hasChildren()) {
         meshes.push(...[
@@ -83,7 +84,7 @@ function MeshBufferGeom(props: {quad: Quad}) {
             props.quad.bottomrightChild,
             props.quad.topleftChild,
             props.quad.toprightChild
-        ].map(c => MeshBufferGeom({quad: c})));
+        ].map(c => MeshBufferGeom({quad: c, wireframe: props.wireframe})));
     } else {
         const data = props.quad.meshData;
         const positions = new Float32Array(data.vertices);
@@ -102,7 +103,7 @@ function MeshBufferGeom(props: {quad: Quad}) {
                         count={indices.length}
                         itemSize={1} />
                 </bufferGeometry>
-                <meshBasicMaterial attach="material" wireframe={true} />
+                <meshBasicMaterial attach="material" wireframe={props.wireframe ?? true} />
             </mesh>
         );
     }

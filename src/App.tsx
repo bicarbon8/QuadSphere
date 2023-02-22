@@ -2,7 +2,7 @@ import './App.css'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Stats } from '@react-three/drei'
 import { QuadMesh, QuadSphereMesh } from './components/shapes';
-import { Fragment } from 'react';
+import { Fragment, useState } from 'react';
 
 function App() {
   return (

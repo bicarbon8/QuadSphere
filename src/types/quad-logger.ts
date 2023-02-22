@@ -1,12 +1,12 @@
 export type QuadLoggerLevel = 'error' | 'warn' | 'info' | 'debug' | 'trace' | 'none';
 
 export type QuadLoggerOptions = {
-    preface?: (logger: QuadLogger) => string;
+    preface?: (logger?: QuadLogger) => string;
     level?: QuadLoggerLevel;
 }
 
 export class QuadLogger {
-    private readonly _preface: (logger: QuadLogger) => string;
+    private readonly _preface: (logger?: QuadLogger) => string;
     private _level: QuadLoggerLevel;
 
     constructor(options: QuadLoggerOptions) {
