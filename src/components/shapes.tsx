@@ -52,17 +52,6 @@ export function QuadSphereMesh(props: QuadMeshProps) {
     );
 }
 
-function handleSphereClick(e: ThreeEvent<MouseEvent>, sphere: QuadSphere): void {
-    e.stopPropagation();
-    const loc = e.point;
-    console.info('left-clicked QuadSphere at', loc);
-    let closest: Quad;
-    while (sphere.depth <= sphere.maxlevel) {
-        closest = sphere.getClosestQuad(loc);
-        closest.subdivide();
-    }
-}
-
 export function QuadMesh(props: QuadMeshProps) {
     const [level, setLevel] = useState<number>(0);
     const registry = useMemo<QuadRegistry>(() => {
@@ -110,16 +99,20 @@ export function QuadMesh(props: QuadMeshProps) {
 }
 
 function subdivide(event: ThreeEvent<MouseEvent>, quad: Quad | QuadSphere) {
+    const point = event.point;
+    console.info('left-clicked object at', point);
     event.stopPropagation();
     let closest: Quad;
     do {
-        closest = quad.getClosestQuad(event.point);
+        closest = quad.getClosestQuad(point);
         closest.subdivide();
     } while (quad.depth <= quad.maxlevel);
 }
 
 function unify(event: ThreeEvent<MouseEvent>, quad: Quad | QuadSphere) {
+    const point = event.point;
+    console.info('right-clicked object at', point);
     event.stopPropagation();
-    const closest = quad.getClosestQuad(event.point);
+    const closest = quad.getClosestQuad(point);
     closest.parent?.unify();
 }

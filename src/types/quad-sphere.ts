@@ -108,7 +108,6 @@ export class QuadSphere {
         const closestFace = from.sort((a, b) => V3.length(a.centre, point) - V3.length(b.centre, point))
             .find(q => q != null);
         const closest = closestFace.getClosestQuad(point);
-        this._logger.log('debug', 'closest quad is', closest.id);
         return closest;
     }
 

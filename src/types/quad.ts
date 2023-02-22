@@ -529,7 +529,7 @@ export class Quad {
                 closest.toprightChild
             ]);
         }
-        this._logger.log('debug', 'closest quad is', closest.id);
+        this._logger.log('debug', 'closest quad is', closest.key);
         return closest;
     }
 
