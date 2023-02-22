@@ -47,4 +47,7 @@ export module V3 {
         z ??= y;
         return new THREE.Vector3(input.x, input.y, input.z).normalize().multiply(new THREE.Vector3(x, y, z));
     }
+    export function length(p1: V3, p2: V3): number {
+        return Math.sqrt(Math.pow(p2.x-p1.x, 2) + Math.pow(p2.y-p1.y, 2) + Math.pow(p2.z+p1.z, 2));
+    }
 }

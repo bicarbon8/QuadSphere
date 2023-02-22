@@ -7,13 +7,15 @@ import { V3 } from "./v3"
 export type QuadSphereOptions = {
     centre?: V3,
     radius?: number,
-    loglevel?: QuadLoggerLevel
+    loglevel?: QuadLoggerLevel,
+    maxlevel?: number;
 }
 
 export class QuadSphere {
     readonly centre: V3;
     readonly radius: number;
     readonly registry: QuadRegistry;
+    readonly maxlevel: number;
 
     private readonly _faces = new Map<QuadSphereFace, Quad>();
     private readonly _loglevel: QuadLoggerLevel;
@@ -23,6 +25,7 @@ export class QuadSphere {
         this.centre = options.centre ?? {x: 0, y: 0, z: 0};
         this.radius = options.radius ?? 1;
         this.registry = new QuadRegistry();
+        this.maxlevel = options.maxlevel ?? 100;
         this._loglevel = options.loglevel ?? 'warn';
         this._logger = new QuadLogger({
             level: this._loglevel
@@ -36,6 +39,14 @@ export class QuadSphere {
             keyArray.push(quad.key);
         });
         return keyArray.join('_');
+    }
+
+    get depth(): number {
+        const d = Array.from(this._faces.values())
+            .map(c => c.depth) // gets all child depths
+            .sort((a, b) => b - a) // sorts in descending
+            .find(v => v > 0); // returns first value (max)
+        return d;
     }
 
     get faces(): Array<Quad> {
@@ -91,7 +102,18 @@ export class QuadSphere {
         };
     }
 
+    getClosestQuad(point: V3, from?: Array<Quad>): Quad {
+        from ??= Array.from(this._faces.values());
+        // sort quads in ascending order by distance to point
+        const closestFace = from.sort((a, b) => V3.length(a.centre, point) - V3.length(b.centre, point))
+            .find(q => q != null);
+        const closest = closestFace.getClosestQuad(point);
+        this._logger.log('debug', 'closest quad is', closest.id);
+        return closest;
+    }
+
     applyCurve(point: V3): V3 {
+        return point;
         const elevation = 0; // TODO: use UV's to lookup elevation values
         return V3.multiply(point, this.radius + elevation);
     }
@@ -103,6 +125,7 @@ export class QuadSphere {
             loglevel: this._loglevel,
             radius: this.radius,
             registry: this.registry,
+            maxlevel: this.maxlevel,
             face: f
         })));
     }

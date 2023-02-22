@@ -74,6 +74,7 @@ export class Quad {
     public readonly registry: QuadRegistry;
     public readonly quadrant: Quadrant;
     public readonly face: QuadSphereFace;
+    public readonly maxlevel: number;
 
     private readonly _children = new Map<Quadrant, Quad>();
     private readonly _vertices = new Array<number>();
@@ -81,8 +82,7 @@ export class Quad {
     private readonly _active = new Set<QuadSide>();
     private readonly _loglevel: QuadLoggerLevel;
     private readonly _logger: QuadLogger;
-    private readonly _maxlevel: number;
-
+    
     constructor(options: QuadOptions) {
         this.parent = options.parent;
         this.radius = options.radius ?? 1;
@@ -91,7 +91,7 @@ export class Quad {
         this.id = this.registry.getId();
         this.quadrant = options.quadrant; // root is null
         this.face = options.face ?? 'front';
-        this._maxlevel = options.maxlevel ?? Infinity; // maybe this should be lower?
+        this.maxlevel = options.maxlevel ?? 100;
         this._loglevel = options.loglevel ?? 'warn';
         this._logger = new QuadLogger({
             level: this._loglevel,
@@ -363,7 +363,7 @@ export class Quad {
      * subdivide their edges facing this quad
      */
     subdivide(initiator?: Quad): this {
-        if (this.hasChildren() || this.level >= this._maxlevel) {
+        if (this.hasChildren() || this.level >= this.maxlevel) {
             return; // do nothing if we're already subdivided or at max level
         }
         this._logger.log('debug', 'subdivide; initiated by', initiator?.id);
@@ -516,6 +516,23 @@ export class Quad {
         return this;
     }
 
+    getClosestQuad(point: V3, from?: Array<Quad>): Quad {
+        from ??= Array.from([this]);
+        // sort quads in ascending order by distance to point
+        let closest = from.sort((a, b) => V3.length(a.centre, point) - V3.length(b.centre, point))
+            .find(q => q != null);
+        if (closest.hasChildren()) {
+            closest = this.getClosestQuad(point, [
+                closest.bottomleftChild,
+                closest.bottomrightChild,
+                closest.topleftChild,
+                closest.toprightChild
+            ]);
+        }
+        this._logger.log('debug', 'closest quad is', closest.id);
+        return closest;
+    }
+
     /**
      * ```
      * 6      6
@@ -649,7 +666,9 @@ export class Quad {
                 level: this.level + 1,
                 registry: this.registry,
                 quadrant: 'bottomleft',
-                loglevel: this._loglevel
+                loglevel: this._loglevel,
+                face: this.face,
+                maxlevel: this.maxlevel
             }),
             new Quad({
                 parent: this,
@@ -658,7 +677,9 @@ export class Quad {
                 level: this.level + 1,
                 registry: this.registry,
                 quadrant: 'bottomright',
-                loglevel: this._loglevel
+                loglevel: this._loglevel,
+                face: this.face,
+                maxlevel: this.maxlevel
             }),
             new Quad({
                 parent: this,
@@ -667,7 +688,9 @@ export class Quad {
                 level: this.level + 1,
                 registry: this.registry,
                 quadrant: 'topleft',
-                loglevel: this._loglevel
+                loglevel: this._loglevel,
+                face: this.face,
+                maxlevel: this.maxlevel
             }),
             new Quad({
                 parent: this,
@@ -676,7 +699,9 @@ export class Quad {
                 level: this.level + 1,
                 registry: this.registry,
                 quadrant: 'topright',
-                loglevel: this._loglevel
+                loglevel: this._loglevel,
+                face: this.face,
+                maxlevel: this.maxlevel
             })
         ];
         children.forEach(c => this._children.set(c.quadrant, c));
