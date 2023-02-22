@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { QuadLog, QuadLogLevel } from "./quad-log";
+import { QuadLogger, QuadLoggerLevel } from "./quad-logger";
 import { QuadRegistry } from "./quad-registry";
 import { QuadChildren, QuadNeighbors, Quadrant, QuadSide } from "./quad-types";
 import { V3 } from "./v3";
@@ -11,7 +11,7 @@ export type QuadOptions = {
     level?: number;
     registry?: QuadRegistry;
     quadrant?: Quadrant;
-    loglevel?: QuadLogLevel;
+    loglevel?: QuadLoggerLevel;
 };
 
 /**
@@ -77,8 +77,8 @@ export class Quad {
     private readonly _normals = new Array<number>();
     private readonly _uvs = new Array<number>();
     private readonly _active = new Set<QuadSide>();
-    private readonly _loglevel: QuadLogLevel;
-    private readonly _logger: QuadLog;
+    private readonly _loglevel: QuadLoggerLevel;
+    private readonly _logger: QuadLogger;
 
     constructor(options: QuadOptions) {
         this.parent = options.parent;
@@ -90,7 +90,10 @@ export class Quad {
         this._generatePoints(options.centre ?? V3.ZERO);
         this.registry.register(this);
         this._loglevel = options.loglevel ?? 'warn';
-        this._logger = new QuadLog(this, this._loglevel);
+        this._logger = new QuadLogger({
+            level: this._loglevel,
+            preface: (logger) => `[${this.id}:${this.level}:${this.depth}:${this.activeSides.map(s => s.charAt(0)).join('.')}]`
+        });
     }
 
     /**
@@ -219,21 +222,16 @@ export class Quad {
      * ```
      */
     get vertices(): Array<number> {
-        const vertices = new Array<number>();
+        const verts = new Array<number>();
         if (this.hasChildren()) {
-            vertices.push(...this.bottomleftChild.vertices);
-            vertices.push(...this.bottomrightChild.vertices);
-            vertices.push(...this.topleftChild.vertices);
-            vertices.push(...this.toprightChild.vertices);
+            verts.push(...this.bottomleftChild.vertices);
+            verts.push(...this.bottomrightChild.vertices);
+            verts.push(...this.topleftChild.vertices);
+            verts.push(...this.toprightChild.vertices);
         } else {
-            vertices.push(...this._vertices);
+            verts.push(...this._vertices);
         }
-        const elevated = new Array<number>;
-        for (let i=0; i<vertices.length; i += 3) {
-            const e = this.applyCurve({x: vertices[i], y: vertices[i+1], z: vertices[i+2]});
-            elevated.push(e.x, e.y, e.z);
-        }
-        return elevated;
+        return verts;
     }
 
     /**
@@ -255,24 +253,24 @@ export class Quad {
      * vertices array and with the same ordering
      */
     get indices(): Array<number> {
-        const indices = new Array<number>();
+        const tris = new Array<number>();
         if (this.hasChildren()) {
             let offset: number = 0;
             // NOTE: the order the child indices are added is critical and **MUST** match vertices order
-            indices.push(...this.bottomleftChild.indices); // no offset
+            tris.push(...this.bottomleftChild.indices); // no offset
             offset += this.bottomleftChild.vertices.length / 3; // offset by vertices of first child
-            indices.push(...this.bottomrightChild.indices.map(i => i+offset));
+            tris.push(...this.bottomrightChild.indices.map(i => i+offset));
             offset += this.bottomrightChild.vertices.length / 3; // offset by vertices of second child
-            indices.push(...this.topleftChild.indices.map(i => i+offset));
+            tris.push(...this.topleftChild.indices.map(i => i+offset));
             offset += this.topleftChild.vertices.length / 3; // offset by vertices of third child
-            indices.push(...this.toprightChild.indices.map(i => i+offset));
+            tris.push(...this.toprightChild.indices.map(i => i+offset));
         } else {
-            indices.push(...this.getLeftTriangleIndices());
-            indices.push(...this.getBottomTriangleIndices());
-            indices.push(...this.getRightTriagnleIndices());
-            indices.push(...this.getTopTriangleIndices());
+            tris.push(...this.getLeftTriangleIndices());
+            tris.push(...this.getBottomTriangleIndices());
+            tris.push(...this.getRightTriagnleIndices());
+            tris.push(...this.getTopTriangleIndices());
         }
-        return indices;
+        return tris;
     }
 
     /**
@@ -400,7 +398,7 @@ export class Quad {
         sides.forEach(side => {
             const neighbor = neighbors[side] ?? this.registry.getNeighbor(side, this.parent);
             if (neighbor) {
-                this._logger.log('debug', 'depth', this.depth, 'neighbor', neighbor.id, 'level', neighbor.level, 'depth', neighbor.depth);
+                this._logger.log('debug', 'neighbor', neighbor.id, 'level', neighbor.level, 'depth', neighbor.depth);
                 if (this.level === neighbor.level) {
                     if (this.depth - neighbor.depth < -1) {
                         neighbor.bottomleftChild?.unify(this);
@@ -561,14 +559,6 @@ export class Quad {
         return [
             4, 8, 6 // centre, topright, topleft
         ];
-    }
-
-    applyCurve(point: V3): V3 {
-        if (this.parent) {
-            return this.parent.applyCurve(point);
-        }
-        const elevation = 0; // TODO: use UV's to lookup elevation values
-        return V3.multiply(point, this.radius + elevation);
     }
 
     dispose(): void {

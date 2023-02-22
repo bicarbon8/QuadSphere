@@ -1,26 +1,29 @@
-import { Quad } from "./quad";
+export type QuadLoggerLevel = 'error' | 'warn' | 'info' | 'debug' | 'trace' | 'none';
 
-export type QuadLogLevel = 'error' | 'warn' | 'info' | 'debug' | 'trace' | 'none';
+export type QuadLoggerOptions = {
+    preface?: (logger: QuadLogger) => string;
+    level?: QuadLoggerLevel;
+}
 
-export class QuadLog {
-    private readonly _quad: Quad;
-    private _level: QuadLogLevel;
+export class QuadLogger {
+    private readonly _preface: (logger: QuadLogger) => string;
+    private _level: QuadLoggerLevel;
 
-    constructor(quad: Quad, level: QuadLogLevel) {
-        this._quad = quad;
-        this._level = level;
+    constructor(options: QuadLoggerOptions) {
+        this._preface = options.preface;
+        this._level = options.level ?? 'warn';
     }
 
-    get level(): QuadLogLevel {
+    get level(): QuadLoggerLevel {
         return this._level
     }
 
-    setLevel(lvl: QuadLogLevel): this {
+    setLevel(lvl: QuadLoggerLevel): this {
         this._level = lvl;
         return this;
     }
 
-    log(level: QuadLogLevel, ...data: Array<any>): this {
+    log(level: QuadLoggerLevel, ...data: Array<any>): this {
         if (this.shouldLog(level)) {
             let logFunction: (...args: Array<any>) => void;
             switch (level) {
@@ -43,12 +46,19 @@ export class QuadLog {
                 default:
                     return this;
             }
-            logFunction('quad', this._quad.id, 'level', this._quad.level, ...data);
+            if (this._preface) {
+                try {
+                    data.unshift(this._preface(this));
+                } catch (e) {
+                    console.warn('error calling preface function', e);
+                }
+            }
+            logFunction(...data);
         }
     }
 
-    shouldLog(level: QuadLogLevel): boolean {
-        const allowed = new Array<QuadLogLevel>();
+    shouldLog(level: QuadLoggerLevel): boolean {
+        const allowed = new Array<QuadLoggerLevel>();
         switch (this._level) {
             case 'trace':
                 allowed.push('trace');

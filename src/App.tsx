@@ -13,7 +13,7 @@ function App() {
             <pointLight position={[10, 10, 10]} />
             <OrbitControls />
             <axesHelper args={[0.5]} />
-            <QuadMesh position={[0, 0, 1]} radius={1} />
+            <QuadMesh position={[0, 0, 0]} radius={1} />
             <Stats />
         </Canvas>
       </div>
