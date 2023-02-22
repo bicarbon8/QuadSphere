@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { QuadLogger, QuadLoggerLevel } from "./quad-logger";
 import { QuadRegistry } from "./quad-registry";
-import { QuadChildren, QuadNeighbors, Quadrant, QuadSide } from "./quad-types";
+import { QuadChildren, QuadMeshData, QuadNeighbors, Quadrant, QuadSide } from "./quad-types";
 import { V3 } from "./v3";
 
 export type QuadOptions = {
@@ -94,6 +94,19 @@ export class Quad {
             level: this._loglevel,
             preface: (logger) => `[${this.id}:${this.level}:${this.depth}:${this.activeSides.map(s => s.charAt(0)).join('.')}]`
         });
+    }
+
+    /**
+     * generates a unique configuration key that can be used to force mesh updates
+     */
+    get key(): string {
+        let k = `${this.id}:${this.level}:${this.depth}:${this.activeSides.map(s => s.charAt(0)).join('.')}`;
+        if (this.hasChildren()) {
+            k += '-' + Array.from(this._children.values())
+                .map(c => c.key)
+                .join('-');
+        }
+        return k;
     }
 
     /**
@@ -271,6 +284,18 @@ export class Quad {
             tris.push(...this.getTopTriangleIndices());
         }
         return tris;
+    }
+
+    /**
+     * consolidates the `vertices` and `indices` getters into a single
+     * object containing both values for convenience and to ensure no
+     * mismatch between the values
+     */
+    get meshData(): QuadMeshData {
+        return {
+            vertices: this.vertices,
+            indices: this.indices
+        };
     }
 
     /**

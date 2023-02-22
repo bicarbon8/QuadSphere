@@ -1,7 +1,7 @@
 import { Quad } from "./quad";
 import { QuadLogger, QuadLoggerLevel } from "./quad-logger";
 import { QuadRegistry } from "./quad-registry";
-import { QuadSphereFace } from "./quad-types";
+import { QuadMeshData, QuadSphereFace } from "./quad-types";
 import { V3 } from "./v3"
 
 export type QuadSphereOptions = {
@@ -26,21 +26,54 @@ export class QuadSphere {
         this._createFaces();
     }
 
-    get vertices(): Array<number> {
-        const verts = new Array<number>();
-
-        const elevated = new Array<number>;
-        for (let i=0; i<verts.length; i += 3) {
-            const e = this.applyCurve({x: verts[i], y: verts[i+1], z: verts[i+2]});
-            elevated.push(e.x, e.y, e.z);
-        }
-        return elevated;
+    get key(): string {
+        const keyArray = new Array<string>();
+        this._faces.forEach(quad => {
+            keyArray.push(quad.key);
+        });
+        return keyArray.join('_');
     }
 
-    get indices(): Array<number> {
+    get front(): Quad {
+        return this._faces.get('front');
+    }
+
+    get back(): Quad {
+        return this._faces.get('back');
+    }
+
+    get left(): Quad {
+        return this._faces.get('left');
+    }
+
+    get right(): Quad {
+        return this._faces.get('right');
+    }
+
+    get top(): Quad {
+        return this._faces.get('top');
+    }
+
+    get bottom(): Quad {
+        return this._faces.get('bottom');
+    }
+
+    get meshData(): QuadMeshData {
+        const verts = new Array<number>();
         const tris = new Array<number>();
+
+        let offset = 0;
+        this._faces.forEach(quad => {
+            const data = quad.meshData;
+            verts.push(...data.vertices);
+            tris.push(...data.indices.map(i => i+offset));
+            offset += data.vertices.length / 3;
+        });
         
-        return tris;
+        return {
+            vertices: verts,
+            indices: tris
+        };
     }
 
     applyCurve(point: V3): V3 {
@@ -51,7 +84,11 @@ export class QuadSphere {
     private _createFaces(): void {
         const front = new Quad({
             centre: {x: this.centre.x, y: this.centre.y, z: this.centre.z + this.radius},
+            loglevel: this._loglevel,
+            radius: this.radius,
+            registry: this.registry
+        });
 
-        })
+        this._faces.set('front', front);
     }
 }

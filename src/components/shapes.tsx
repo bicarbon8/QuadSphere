@@ -1,7 +1,5 @@
-import { Detailed } from "@react-three/drei";
 import { MeshProps, useFrame } from "@react-three/fiber";
-import { useMemo, useRef, useState } from "react";
-import { Mesh } from "three";
+import { useMemo, useState } from "react";
 import { Quad } from "../types/quad";
 import { QuadRegistry } from "../types/quad-registry";
 
@@ -49,8 +47,9 @@ function MeshBufferGeom(props: {quad: Quad}) {
             props.quad.toprightChild
         ].map(c => MeshBufferGeom({quad: c})));
     } else {
-        const positions = new Float32Array(props.quad.vertices);
-        const indices = new Uint16Array(props.quad.indices);
+        const data = props.quad.meshData;
+        const positions = new Float32Array(data.vertices);
+        const indices = new Uint16Array(data.indices);
         meshes.push(
             <mesh key={`${props.quad.id}-${props.quad.activeSides.join('-')}`} onClick={() => subdivide(props.quad)} onContextMenu={() => unify(props.quad)} castShadow receiveShadow>
                 <bufferGeometry>
