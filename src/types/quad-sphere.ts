@@ -113,7 +113,6 @@ export class QuadSphere {
     }
 
     applyCurve(point: V3): V3 {
-        return point;
         const elevation = 0; // TODO: use UV's to lookup elevation values
         return V3.multiply(point, this.radius + elevation);
     }

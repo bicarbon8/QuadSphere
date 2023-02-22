@@ -34,7 +34,7 @@ export function QuadSphereMesh(props: QuadMeshProps) {
     const positions = new Float32Array(data.vertices);
     const indices = new Uint16Array(data.indices);
     return (
-        <mesh key={`${sphere.key}`} onClick={(e: ThreeEvent<MouseEvent>) => handleClick(e, sphere)} onContextMenu={() => null} castShadow receiveShadow>
+        <mesh key={`${sphere.key}`} onClick={(e: ThreeEvent<MouseEvent>) => subdivide(e, sphere)} onContextMenu={(e) => unify(e, sphere)} castShadow receiveShadow>
             <bufferGeometry>
                 <bufferAttribute 
                     attach="attributes-position"
@@ -52,7 +52,7 @@ export function QuadSphereMesh(props: QuadMeshProps) {
     );
 }
 
-function handleClick(e: ThreeEvent<MouseEvent>, sphere: QuadSphere): void {
+function handleSphereClick(e: ThreeEvent<MouseEvent>, sphere: QuadSphere): void {
     e.stopPropagation();
     const loc = e.point;
     console.info('left-clicked QuadSphere at', loc);
@@ -109,16 +109,16 @@ export function QuadMesh(props: QuadMeshProps) {
     );
 }
 
-function subdivide(event: ThreeEvent<MouseEvent>, quad: Quad) {
+function subdivide(event: ThreeEvent<MouseEvent>, quad: Quad | QuadSphere) {
     event.stopPropagation();
     let closest: Quad;
-    while (quad.depth <= quad.maxlevel) {
+    do {
         closest = quad.getClosestQuad(event.point);
         closest.subdivide();
-    }
+    } while (quad.depth <= quad.maxlevel);
 }
 
-function unify(event: ThreeEvent<MouseEvent>, quad: Quad) {
+function unify(event: ThreeEvent<MouseEvent>, quad: Quad | QuadSphere) {
     event.stopPropagation();
     const closest = quad.getClosestQuad(event.point);
     closest.parent?.unify();
