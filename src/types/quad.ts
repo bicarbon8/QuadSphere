@@ -9,6 +9,7 @@ export type QuadOptions = {
     centre?: V3;
     radius?: number;
     level?: number;
+    maxlevel?: number;
     registry?: QuadRegistry;
     quadrant?: Quadrant;
     loglevel?: QuadLoggerLevel;
@@ -80,6 +81,7 @@ export class Quad {
     private readonly _active = new Set<QuadSide>();
     private readonly _loglevel: QuadLoggerLevel;
     private readonly _logger: QuadLogger;
+    private readonly _maxlevel: number;
 
     constructor(options: QuadOptions) {
         this.parent = options.parent;
@@ -89,6 +91,7 @@ export class Quad {
         this.id = this.registry.getId();
         this.quadrant = options.quadrant; // root is null
         this.face = options.face ?? 'front';
+        this._maxlevel = options.maxlevel ?? Infinity; // maybe this should be lower?
         this._loglevel = options.loglevel ?? 'warn';
         this._logger = new QuadLogger({
             level: this._loglevel,
@@ -360,10 +363,15 @@ export class Quad {
      * subdivide their edges facing this quad
      */
     subdivide(initiator?: Quad): this {
-        if (this.hasChildren()) {
-            return; // do nothing if we're already subdivided
+        if (this.hasChildren() || this.level >= this._maxlevel) {
+            return; // do nothing if we're already subdivided or at max level
         }
         this._logger.log('debug', 'subdivide; initiated by', initiator?.id);
+        if (!initiator) {
+            const shouldUnify = this.registry.getQuadsAtLevel(this.level)
+                .filter(q => q.id !== this.id);
+            shouldUnify.forEach(q => q.unify(this));
+        }
         // create child Quads
         this._createChildren();
         const neighbors = this.neighbors;
