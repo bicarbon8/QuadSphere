@@ -17,12 +17,16 @@ export class QuadSphere {
 
     private readonly _faces = new Map<QuadSphereFace, Quad>();
     private readonly _loglevel: QuadLoggerLevel;
+    private readonly _logger: QuadLogger;
     
     constructor(options: QuadSphereOptions) {
         this.centre = options.centre ?? {x: 0, y: 0, z: 0};
         this.radius = options.radius ?? 1;
         this.registry = new QuadRegistry();
         this._loglevel = options.loglevel ?? 'warn';
+        this._logger = new QuadLogger({
+            level: this._loglevel
+        });
         this._createFaces();
     }
 
@@ -32,6 +36,10 @@ export class QuadSphere {
             keyArray.push(quad.key);
         });
         return keyArray.join('_');
+    }
+
+    get faces(): Array<Quad> {
+        return Array.from(this._faces.values());
     }
 
     get front(): Quad {
@@ -69,9 +77,16 @@ export class QuadSphere {
             tris.push(...data.indices.map(i => i+offset));
             offset += data.vertices.length / 3;
         });
-        
+        const curved = new Array<number>();
+        for (let i=0; i<verts.length; i+=3) {
+            const x = verts[i];
+            const y = verts[i+1];
+            const z = verts[i+2];
+            const c = this.applyCurve({x, y, z});
+            curved.push(c.x, c.y, c.z);
+        }
         return {
-            vertices: verts,
+            vertices: curved,
             indices: tris
         };
     }
