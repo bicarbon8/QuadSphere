@@ -103,10 +103,10 @@ function subdivide(event: ThreeEvent<MouseEvent>, quad: Quad | QuadSphere) {
     console.info('left-clicked object at', point);
     event.stopPropagation();
     let closest: Quad;
-    do {
+    // do {
         closest = quad.getClosestQuad(point);
         closest.subdivide();
-    } while (quad.depth <= quad.maxlevel);
+    // } while (quad.depth <= quad.maxlevel);
 }
 
 function unify(event: ThreeEvent<MouseEvent>, quad: Quad | QuadSphere) {

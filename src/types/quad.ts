@@ -14,6 +14,7 @@ export type QuadOptions = {
     quadrant?: Quadrant;
     loglevel?: QuadLoggerLevel;
     face?: QuadSphereFace;
+    offset?: number;
 };
 
 /**
@@ -75,6 +76,7 @@ export class Quad {
     public readonly quadrant: Quadrant;
     public readonly face: QuadSphereFace;
     public readonly maxlevel: number;
+    public readonly offset: number;
 
     private readonly _children = new Map<Quadrant, Quad>();
     private readonly _vertices = new Array<number>();
@@ -92,20 +94,31 @@ export class Quad {
         this.quadrant = options.quadrant; // root is null
         this.face = options.face ?? 'front';
         this.maxlevel = options.maxlevel ?? 100;
+        this.offset = options.offset ?? 0;
         this._loglevel = options.loglevel ?? 'warn';
         this._logger = new QuadLogger({
             level: this._loglevel,
-            preface: () => `[${this.id}:${this.level}:${this.depth}:${this.activeSides.map(s => s.charAt(0)).join('.')}]`
+            preface: () => this.fingerprint
         });
         this._generatePoints(options.centre ?? V3.ZERO);
         this.registry.register(this);
+    }
+
+    get fingerprint(): string {
+        return [
+            `${this.id}`,
+            `${this.level}`,
+            `${this.depth}`,
+            `${this.face.substring(0, 2)}`, 
+            ...this.activeSides.map(s => s.charAt(0))
+        ].join(':');
     }
 
     /**
      * generates a unique configuration key that can be used to force mesh updates
      */
     get key(): string {
-        let k = `${this.id}:${this.level}:${this.depth}:${this.activeSides.map(s => s.charAt(0)).join('.')}`;
+        let k = this.fingerprint;
         if (this.hasChildren()) {
             k += '-' + Array.from(this._children.values())
                 .map(c => c.key)
@@ -366,7 +379,7 @@ export class Quad {
         if (this.hasChildren() || this.level >= this.maxlevel) {
             return; // do nothing if we're already subdivided or at max level
         }
-        this._logger.log('debug', 'subdivide; initiated by', initiator?.id);
+        this._logger.log('debug', 'subdivide; initiated by', initiator?.fingerprint);
         if (!initiator) {
             const shouldUnify = this.registry.getQuadsAtLevel(this.level)
                 .filter(q => q.id !== this.id);
@@ -424,7 +437,7 @@ export class Quad {
         if (!this.hasChildren()) {
             return;
         }
-        this._logger.log('debug', 'unify; initiated by', initiator?.id);
+        this._logger.log('debug', 'unify; initiated by', initiator?.fingerprint);
         // remove child Quads
         this._removeChildren();
         // update neighbors
@@ -433,7 +446,7 @@ export class Quad {
         sides.forEach(side => {
             const neighbor = neighbors[side] ?? this.registry.getNeighbor(side, this.parent);
             if (neighbor) {
-                this._logger.log('debug', 'neighbor', neighbor.id, 'level', neighbor.level, 'depth', neighbor.depth);
+                this._logger.log('debug', 'neighbor', neighbor.fingerprint);
                 if (this.level === neighbor.level) {
                     if (this.depth - neighbor.depth < -1) {
                         neighbor.bottomleftChild?.unify(this);
@@ -529,7 +542,7 @@ export class Quad {
                 closest.toprightChild
             ]);
         }
-        this._logger.log('debug', 'closest quad is', closest.key);
+        this._logger.log('debug', 'closest quad is', closest.fingerprint);
         return closest;
     }
 
@@ -627,7 +640,7 @@ export class Quad {
             let uOffset = 0;
             for (let x = centre.x - this.radius; x <= centre.x + this.radius; x += this.radius) {
                 const u = x / 3;
-                const facev = this._updatePointForFace({x, y, z: centre.z});
+                const facev = this._updatePointForFace({x, y, z: centre.z + this.offset});
                 this._vertices.push(facev.x, facev.y, facev.z);
                 this._uvs.push(u + uOffset, 1 - v);
             }
@@ -668,7 +681,8 @@ export class Quad {
                 quadrant: 'bottomleft',
                 loglevel: this._loglevel,
                 face: this.face,
-                maxlevel: this.maxlevel
+                maxlevel: this.maxlevel,
+                offset: this.offset
             }),
             new Quad({
                 parent: this,
@@ -679,7 +693,8 @@ export class Quad {
                 quadrant: 'bottomright',
                 loglevel: this._loglevel,
                 face: this.face,
-                maxlevel: this.maxlevel
+                maxlevel: this.maxlevel,
+                offset: this.offset
             }),
             new Quad({
                 parent: this,
@@ -690,7 +705,8 @@ export class Quad {
                 quadrant: 'topleft',
                 loglevel: this._loglevel,
                 face: this.face,
-                maxlevel: this.maxlevel
+                maxlevel: this.maxlevel,
+                offset: this.offset
             }),
             new Quad({
                 parent: this,
@@ -701,7 +717,8 @@ export class Quad {
                 quadrant: 'topright',
                 loglevel: this._loglevel,
                 face: this.face,
-                maxlevel: this.maxlevel
+                maxlevel: this.maxlevel,
+                offset: this.offset
             })
         ];
         children.forEach(c => this._children.set(c.quadrant, c));
