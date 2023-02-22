@@ -446,6 +446,7 @@ export class Quad {
                                 break;
                         }
                     } else { // same depth
+                        this.deactivate(side);
                         switch (side) {
                             case 'left':
                                 neighbor.deactivate('right');
