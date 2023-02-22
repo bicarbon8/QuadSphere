@@ -18,7 +18,7 @@ export function QuadMesh(props: QuadMeshProps) {
         return new QuadRegistry();
     }, [props]);
     const quad = useMemo<Quad>(() => {
-        console.info('creating new QuadGeometry!', {props});
+        console.info('creating new Quad!', {props});
         return new Quad({
             centre: {x: props.position[0] ?? 0, y: props.position[1] ?? 0, z: props.position[2] ?? 0},
             radius: props.radius ?? 1,
