@@ -1,6 +1,7 @@
 import { MeshProps, ThreeEvent, useFrame, Vector3 } from "@react-three/fiber";
 import { useEffect, useMemo, useState } from "react";
 import { Quad } from "../types/quad";
+import { QuadLoggerLevel } from "../types/quad-logger";
 import { QuadRegistry } from "../types/quad-registry";
 import { QuadSphere } from "../types/quad-sphere";
 import { V3 } from "../types/v3";
@@ -8,31 +9,25 @@ import { V3 } from "../types/v3";
 export type QuadMeshProps = MeshProps & {
     radius?: number;
     maxlevel?: number;
+    loglevel?: QuadLoggerLevel;
 };
 
 export function QuadSphereMesh(props: QuadMeshProps) {
-    const [level, setLevel] = useState<number>(0);
     const sphere = useMemo<QuadSphere>(() => {
         console.info('creating new QuadSphere!', {props});
         return new QuadSphere({
             centre: processPositionInput(props.position),
             radius: props.radius ?? 1,
             maxlevel: props.maxlevel ?? 5,
-            loglevel: 'debug'
+            loglevel: props.loglevel ?? 'warn'
         });
     }, [props]);
-    useEffect(() => {
-        if (level >= 5) {
-            setLevel(0);
-        } else {
-            setLevel(level + 1);
-        }
-    });
+    const [key, setKey] = useState<string>(sphere.key);
     const data = sphere.meshData;
     const positions = new Float32Array(data.vertices);
     const indices = new Uint16Array(data.indices);
     return (
-        <mesh key={`${sphere.key}`} onClick={(e: ThreeEvent<MouseEvent>) => subdivide(e, sphere)} onContextMenu={(e) => unify(e, sphere)} castShadow receiveShadow>
+        <mesh key={key} onClick={(e: ThreeEvent<MouseEvent>) => setKey(subdivide(e, sphere))} onContextMenu={(e) => setKey(unify(e, sphere))} castShadow receiveShadow>
             <bufferGeometry>
                 <bufferAttribute 
                     attach="attributes-position"
@@ -51,7 +46,6 @@ export function QuadSphereMesh(props: QuadMeshProps) {
 }
 
 export function QuadMesh(props: QuadMeshProps) {
-    const [level, setLevel] = useState<number>(0);
     const registry = useMemo<QuadRegistry>(() => {
         console.info('creating new QuadRegistry!');
         return new QuadRegistry();
@@ -63,21 +57,15 @@ export function QuadMesh(props: QuadMeshProps) {
             radius: props.radius ?? 1,
             registry: registry,
             maxlevel: props.maxlevel ?? 5,
-            loglevel: 'debug'
+            loglevel: props.loglevel ?? 'warn'
         });
     }, [props]);
-    useEffect(() => {
-        if (level >= 5) {
-            setLevel(0);
-        } else {
-            setLevel(level + 1);
-        }
-    });
+    const [key, setKey] = useState<string>(quad.key);
     const data = quad.meshData;
     const positions = new Float32Array(data.vertices);
     const indices = new Uint16Array(data.indices);
     return (
-        <mesh key={`${quad.key}`} onClick={(e) => subdivide(e, quad)} onContextMenu={(e) => unify(e, quad)} castShadow receiveShadow>
+        <mesh key={key} onClick={(e) => setKey(subdivide(e, quad))} onContextMenu={(e) => setKey(unify(e, quad))} castShadow receiveShadow>
             <bufferGeometry>
                 <bufferAttribute 
                     attach="attributes-position"
@@ -95,7 +83,7 @@ export function QuadMesh(props: QuadMeshProps) {
     );
 }
 
-function subdivide(event: ThreeEvent<MouseEvent>, quad: Quad | QuadSphere) {
+function subdivide(event: ThreeEvent<MouseEvent>, quad: Quad | QuadSphere): string {
     const point = event.point;
     console.info('left-clicked object at', point);
     event.stopPropagation();
@@ -104,14 +92,16 @@ function subdivide(event: ThreeEvent<MouseEvent>, quad: Quad | QuadSphere) {
         closest = quad.getClosestQuad(point);
         closest.subdivide();
     // } while (quad.depth <= quad.maxlevel);
+    return quad.key;
 }
 
-function unify(event: ThreeEvent<MouseEvent>, quad: Quad | QuadSphere) {
+function unify(event: ThreeEvent<MouseEvent>, quad: Quad | QuadSphere): string {
     const point = event.point;
     console.info('right-clicked object at', point);
     event.stopPropagation();
     const closest = quad.getClosestQuad(point);
     closest.parent?.unify();
+    return quad.key;
 }
 
 function processPositionInput(position?: Vector3): V3 {
