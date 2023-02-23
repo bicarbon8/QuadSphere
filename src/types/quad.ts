@@ -377,15 +377,15 @@ export class Quad {
         const neighbors = this.neighbors;
         const sides = Object.getOwnPropertyNames(neighbors) as Array<QuadSide>;
         sides.forEach(side => {
-            const neighbor = neighbors[side] ?? this.registry.getNeighbor(side, this.parent);
+            const neighbor = neighbors[side];
             if (neighbor) {
-                if (this.level === neighbor.level) {
-                    if (neighbor.hasChildren()) {
-                        this.activate(side);
-                    } else {
-                        this.deactivate(side);
-                    }
+                if (neighbor.hasChildren()) {
+                    this.activate(side);
+                } else {
+                    this.deactivate(side);
                 }
+            } else {
+                this.deactivate(side);
             }
         });
         return this;
@@ -443,84 +443,22 @@ export class Quad {
                 this._logger.log('debug', 'neighbor', neighbor.fingerprint);
                 if (this.level === neighbor.level) {
                     if (this.depth - neighbor.depth < -1) {
-                        neighbor.bottomleftChild?.unify(this);
-                        neighbor.bottomrightChild?.unify(this);
-                        neighbor.topleftChild?.unify(this);
-                        neighbor.toprightChild?.unify(this);
-                        switch (side) {
-                            case 'left':
-                                neighbor.bottomrightChild.deactivate('right');
-                                neighbor.toprightChild.deactivate('right');
-                                break;
-                            case 'bottom':
-                                neighbor.topleftChild.deactivate('top');
-                                neighbor.toprightChild.deactivate('top');
-                                break;
-                            case 'right':
-                                neighbor.bottomleftChild.deactivate('left');
-                                neighbor.topleftChild.deactivate('left');
-                                break;
-                            case 'top':
-                                neighbor.bottomleftChild.deactivate('bottom');
-                                neighbor.bottomrightChild.deactivate('bottom');
-                                break;
-                        }
+                        neighbor.bottomleftChild?.unify(this)?.updateSides();
+                        neighbor.bottomrightChild?.unify(this)?.updateSides();
+                        neighbor.topleftChild?.unify(this)?.updateSides();
+                        neighbor.toprightChild?.unify(this)?.updateSides();
                     } else if (this.depth - neighbor.depth < 0) { // -1
                         this.activate(side);
-                        switch (side) {
-                            case 'left':
-                                neighbor.bottomrightChild.deactivate('right');
-                                neighbor.toprightChild.deactivate('right');
-                                break;
-                            case 'bottom':
-                                neighbor.topleftChild.deactivate('top');
-                                neighbor.toprightChild.deactivate('top');
-                                break;
-                            case 'right':
-                                neighbor.bottomleftChild.deactivate('left');
-                                neighbor.topleftChild.deactivate('left');
-                                break;
-                            case 'top':
-                                neighbor.bottomleftChild.deactivate('bottom');
-                                neighbor.bottomrightChild.deactivate('bottom');
-                                break;
-                        }
-                    } else { // same depth
-                        this.deactivate(side);
-                        switch (side) {
-                            case 'left':
-                                neighbor.deactivate('right');
-                                break;
-                            case 'bottom':
-                                neighbor.deactivate('top');
-                                break;
-                            case 'right':
-                                neighbor.deactivate('left');
-                                break;
-                            case 'top':
-                                neighbor.deactivate('bottom');
-                                break;
-                        }
-                    }
-                } else if (this.level - neighbor.level > 0) {
-                    switch (side) {
-                        case 'left':
-                            neighbor.activate('right');
-                            break;
-                        case 'bottom':
-                            neighbor.activate('top');
-                            break;
-                        case 'right':
-                            neighbor.activate('left');
-                            break;
-                        case 'top':
-                            neighbor.activate('bottom');
-                            break;
+                        neighbor.bottomleftChild?.updateSides();
+                        neighbor.bottomrightChild?.updateSides();
+                        neighbor.topleftChild?.updateSides();
+                        neighbor.toprightChild?.updateSides();
                     }
                 }
+                neighbor.updateSides();
             }
         });
-        return this;
+        return this.updateSides();
     }
 
     getClosestQuad(point: V3, from?: Array<Quad>): Quad {
