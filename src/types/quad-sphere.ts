@@ -114,7 +114,10 @@ export class QuadSphere {
 
     applyCurve(point: V3): V3 {
         const elevation = 0; // TODO: use UV's to lookup elevation values
-        return V3.multiply(V3.normalise(point), this.radius + elevation);
+        const offset = V3.subtract(point, this.centre.x, this.centre.y, this.centre.z);
+        const curvedOffset = V3.multiply(V3.normalise(offset), this.radius + elevation);
+        const curved = V3.add(curvedOffset, this.centre.x, this.centre.y, this.centre.z);
+        return curved;
     }
 
     private _createFaces(): void {
