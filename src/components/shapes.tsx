@@ -1,11 +1,11 @@
-import { MeshProps, ThreeEvent, useFrame } from "@react-three/fiber";
+import { MeshProps, ThreeEvent, useFrame, Vector3 } from "@react-three/fiber";
 import { useEffect, useMemo, useState } from "react";
 import { Quad } from "../types/quad";
 import { QuadRegistry } from "../types/quad-registry";
 import { QuadSphere } from "../types/quad-sphere";
+import { V3 } from "../types/v3";
 
 export type QuadMeshProps = MeshProps & {
-    position?: Array<number>;
     radius?: number;
     maxlevel?: number;
 };
@@ -15,7 +15,7 @@ export function QuadSphereMesh(props: QuadMeshProps) {
     const sphere = useMemo<QuadSphere>(() => {
         console.info('creating new QuadSphere!', {props});
         return new QuadSphere({
-            centre: {x: props.position[0] ?? 0, y: props.position[1] ?? 0, z: props.position[2] ?? 0},
+            centre: processPositionInput(props.position),
             radius: props.radius ?? 1,
             maxlevel: props.maxlevel ?? 5,
             loglevel: 'debug'
@@ -59,7 +59,7 @@ export function QuadMesh(props: QuadMeshProps) {
     const quad = useMemo<Quad>(() => {
         console.info('creating new Quad!', {props});
         return new Quad({
-            centre: {x: props.position[0] ?? 0, y: props.position[1] ?? 0, z: props.position[2] ?? 0},
+            centre: processPositionInput(props.position),
             radius: props.radius ?? 1,
             registry: registry,
             maxlevel: props.maxlevel ?? 5,
@@ -112,4 +112,23 @@ function unify(event: ThreeEvent<MouseEvent>, quad: Quad | QuadSphere) {
     event.stopPropagation();
     const closest = quad.getClosestQuad(point);
     closest.parent?.unify();
+}
+
+function processPositionInput(position?: Vector3): V3 {
+    const pos = V3.zero();
+    if (Array.isArray(position)) {
+        pos.x = position?.[0] ?? 0;
+        pos.y = position?.[1] ?? pos.x;
+        pos.z = position?.[2] ?? pos.y;
+    } else if (typeof position === "number") {
+        pos.x = position;
+        pos.y = position;
+        pos.z = position;
+    } else if (typeof position === "object") {
+        const p = position as THREE.Vector3;
+        pos.x = p?.x ?? 0;
+        pos.y = p?.y ?? pos.x;
+        pos.z = p?.z ?? pos.y;
+    }
+    return pos;
 }
