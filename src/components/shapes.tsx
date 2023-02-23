@@ -1,5 +1,5 @@
 import { MeshProps, ThreeEvent, useFrame } from "@react-three/fiber";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Quad } from "../types/quad";
 import { QuadRegistry } from "../types/quad-registry";
 import { QuadSphere } from "../types/quad-sphere";
@@ -21,8 +21,7 @@ export function QuadSphereMesh(props: QuadMeshProps) {
             loglevel: 'debug'
         });
     }, [props]);
-    useFrame(({ clock }) => {
-        const time = clock.getElapsedTime(); // in seconds
+    useEffect(() => {
         if (level >= 5) {
             setLevel(0);
         } else {
@@ -67,8 +66,7 @@ export function QuadMesh(props: QuadMeshProps) {
             loglevel: 'debug'
         });
     }, [props]);
-    useFrame(({ clock }) => {
-        const time = clock.getElapsedTime(); // in seconds
+    useEffect(() => {
         if (level >= 5) {
             setLevel(0);
         } else {
