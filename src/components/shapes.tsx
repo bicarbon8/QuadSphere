@@ -4,11 +4,10 @@ import { Quad } from "../types/quad";
 import { QuadRegistry } from "../types/quad-registry";
 import { QuadSphere } from "../types/quad-sphere";
 
-export type QuadMeshProps = {
+export type QuadMeshProps = MeshProps & {
     position?: Array<number>;
     radius?: number;
     maxlevel?: number;
-    wireframe?: boolean;
 };
 
 export function QuadSphereMesh(props: QuadMeshProps) {
@@ -47,7 +46,7 @@ export function QuadSphereMesh(props: QuadMeshProps) {
                     count={indices.length}
                     itemSize={1} />
             </bufferGeometry>
-            <meshBasicMaterial attach="material" wireframe={props.wireframe ?? true} />
+            {props.children}
         </mesh>
     );
 }
@@ -93,7 +92,7 @@ export function QuadMesh(props: QuadMeshProps) {
                     count={indices.length}
                     itemSize={1} />
             </bufferGeometry>
-            <meshBasicMaterial attach="material" wireframe={props.wireframe ?? true} />
+            {props.children}
         </mesh>
     );
 }

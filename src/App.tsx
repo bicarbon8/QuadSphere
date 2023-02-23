@@ -9,12 +9,16 @@ function App() {
     <Fragment>
       <div className='absolute_full'>
         <Canvas>
-            <ambientLight />
-            <pointLight position={[10, 10, 10]} />
+            <ambientLight intensity={0.4} />
+            <pointLight position={[10, 10, 10]} color={0xffffcc} />
             <OrbitControls />
             <axesHelper args={[0.5]} />
-            <QuadMesh position={[-3, 0, 0]} radius={1} />
-            <QuadSphereMesh position={[0, 0, 0]} radius={1} wireframe={true} />
+            <QuadMesh position={[-3, 0, 0]} radius={1}>
+                <meshStandardMaterial attach="material" wireframe={true} />
+            </QuadMesh>
+            <QuadSphereMesh position={[0, 0, 0]} radius={1}>
+                <meshStandardMaterial attach="material" wireframe={true} />
+            </QuadSphereMesh>
             <Stats />
         </Canvas>
       </div>
