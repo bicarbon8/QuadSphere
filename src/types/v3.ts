@@ -7,10 +7,10 @@ export type V3 = {
 };
 
 export module V3 {
-    export const ZERO: V3 = {x: 0, y: 0, z: 0};
-    export const RIGHT: V3 = {x: 1, y: 0, z: 0};
-    export const UP: V3 = {x: 0, y: 1, z: 0};
-    export const FORWARD: V3 = {x: 0, y: 0, z: 1};
+    export const zero = () => {return {x: 0, y: 0, z: 0}};
+    export const right = () => {return {x: 1, y: 0, z: 0}};
+    export const up = () => {return {x: 0, y: 1, z: 0}};
+    export const forward = () => {return {x: 0, y: 0, z: 1}};
     export function toVector3(input: V3): THREE.Vector3 {
         return new THREE.Vector3(input.x, input.y, input.z);
     }
@@ -42,12 +42,34 @@ export module V3 {
         }
         return output;
     }
+    export function divide(input: V3, x: number, y?: number, z?: number): V3 {
+        y ??= x;
+        z ??= y;
+        return multiply(input, 1/x, 1/y, 1/z);
+    }
     export function multiply(input: V3, x: number, y?: number, z?: number): V3 {
         y ??= x;
         z ??= y;
-        return new THREE.Vector3(input.x, input.y, input.z).normalize().multiply(new THREE.Vector3(x, y, z));
+        return {x: input.x*x, y: input.y*y, z: input.z*z};
     }
-    export function length(p1: V3, p2: V3): number {
-        return Math.sqrt(Math.pow(p2.x-p1.x, 2) + Math.pow(p2.y-p1.y, 2) + Math.pow(p2.z+p1.z, 2));
+    export function subtract(input: V3, x: number, y?: number, z?: number): V3 {
+        y ??= x;
+        z ??= y;
+        return add(input, -x, -y, -z);
+    }
+    export function add(input: V3, x: number, y?: number, z?: number): V3 {
+        y ??= x;
+        z ??= y;
+        return {x: input.x+x, y: input.y+y, z: input.z+z};
+    }
+    export function length(p1: V3, p2?: V3): number {
+        if (p2) {
+            return Math.sqrt(Math.pow(p2.x-p1.x, 2) + Math.pow(p2.y-p1.y, 2) + Math.pow(p2.z+p1.z, 2));
+        } else {
+            return Math.sqrt(p1.x*p1.x + p1.y*p1.y + p1.z*p1.z);
+        }
+    }
+    export function normalise(point: V3): V3 {
+        return divide(point, V3.length(point) || 1);
     }
 }

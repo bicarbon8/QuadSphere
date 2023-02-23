@@ -50,9 +50,29 @@ export class QuadRegistry {
                         if (this._edgeMatches(quad.leftedge, possibleNeighbor.rightedge, quad.level)) {
                             return possibleNeighbor;
                         }
+                        // special case for top of quadsphere
+                        if (this._edgeMatches(quad.leftedge, possibleNeighbor.topedge.reverse(), quad.level)) {
+                            return possibleNeighbor;
+                        }
+                        // special case for bottom of quadsphere
+                        if (this._edgeMatches(quad.leftedge, possibleNeighbor.bottomedge, quad.level)) {
+                            return possibleNeighbor;
+                        }
                         break;
                     case 'bottom':
                         if (this._edgeMatches(quad.bottomedge, possibleNeighbor.topedge, quad.level)) {
+                            return possibleNeighbor;
+                        }
+                        // special case for left of quadsphere
+                        if (this._edgeMatches(quad.bottomedge, possibleNeighbor.leftedge, quad.level)) {
+                            return possibleNeighbor;
+                        }
+                        // special case for right of quadsphere
+                        if (this._edgeMatches(quad.bottomedge, possibleNeighbor.rightedge.reverse(), quad.level)) {
+                            return possibleNeighbor;
+                        }
+                        // special case for back of quadsphere
+                        if (this._edgeMatches(quad.bottomedge, possibleNeighbor.bottomedge.reverse(), quad.level)) {
                             return possibleNeighbor;
                         }
                         break;
@@ -60,9 +80,29 @@ export class QuadRegistry {
                         if (this._edgeMatches(quad.rightedge, possibleNeighbor.leftedge, quad.level)) {
                             return possibleNeighbor;
                         }
+                        // special case for top of quadsphere
+                        if (this._edgeMatches(quad.rightedge, possibleNeighbor.topedge, quad.level)) {
+                            return possibleNeighbor;
+                        }
+                        // special case for bottom of quadsphere
+                        if (this._edgeMatches(quad.rightedge, possibleNeighbor.bottomedge.reverse(), quad.level)) {
+                            return possibleNeighbor;
+                        }
                         break;
                     case 'top':
                         if (this._edgeMatches(quad.topedge, possibleNeighbor.bottomedge, quad.level)) {
+                            return possibleNeighbor;
+                        }
+                        // special case for left of quadsphere
+                        if (this._edgeMatches(quad.topedge, possibleNeighbor.leftedge.reverse(), quad.level)) {
+                            return possibleNeighbor;
+                        }
+                        // special case for right of quadsphere
+                        if (this._edgeMatches(quad.topedge, possibleNeighbor.rightedge, quad.level)) {
+                            return possibleNeighbor;
+                        }
+                        // special case for back of quadsphere
+                        if (this._edgeMatches(quad.topedge, possibleNeighbor.topedge.reverse(), quad.level)) {
                             return possibleNeighbor;
                         }
                         break;

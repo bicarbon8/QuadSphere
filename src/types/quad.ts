@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { QuadLogger, QuadLoggerLevel } from "./quad-logger";
 import { QuadRegistry } from "./quad-registry";
-import { QuadChildren, QuadMeshData, QuadNeighbors, Quadrant, QuadSide, QuadSphereFace } from "./quad-types";
+import { QuadChildren, QuadMeshData, QuadNeighbors, Quadrant, QuadSide } from "./quad-types";
 import { V3 } from "./v3";
 
 export type QuadOptions = {
@@ -13,8 +13,10 @@ export type QuadOptions = {
     registry?: QuadRegistry;
     quadrant?: Quadrant;
     loglevel?: QuadLoggerLevel;
-    face?: QuadSphereFace;
-    offset?: number;
+    /** normalised vector */
+    rotationAxis?: V3;
+    /** angle in degrees */
+    angle?: number;
 };
 
 /**
@@ -74,9 +76,7 @@ export class Quad {
     public readonly level: number;
     public readonly registry: QuadRegistry;
     public readonly quadrant: Quadrant;
-    public readonly face: QuadSphereFace;
     public readonly maxlevel: number;
-    public readonly offset: number;
 
     private readonly _children = new Map<Quadrant, Quad>();
     private readonly _vertices = new Array<number>();
@@ -85,6 +85,9 @@ export class Quad {
     private readonly _loglevel: QuadLoggerLevel;
     private readonly _logger: QuadLogger;
     
+    private _axis: V3;
+    private _angle: number;
+    
     constructor(options: QuadOptions) {
         this.parent = options.parent;
         this.radius = options.radius ?? 1;
@@ -92,15 +95,15 @@ export class Quad {
         this.registry = options.registry ?? new QuadRegistry();
         this.id = this.registry.getId();
         this.quadrant = options.quadrant; // root is null
-        this.face = options.face ?? 'front';
         this.maxlevel = options.maxlevel ?? 100;
-        this.offset = options.offset ?? 0;
         this._loglevel = options.loglevel ?? 'warn';
         this._logger = new QuadLogger({
             level: this._loglevel,
             preface: () => this.fingerprint
         });
-        this._generatePoints(options.centre ?? V3.ZERO);
+        this._axis = options.rotationAxis ?? V3.zero();
+        this._angle = options.angle ?? 0;
+        this._generatePoints(options.centre ?? V3.zero());
         this.registry.register(this);
     }
 
@@ -109,7 +112,6 @@ export class Quad {
             `${this.id}`,
             `${this.level}`,
             `${this.depth}`,
-            `${this.face.substring(0, 2)}`, 
             ...this.activeSides.map(s => s.charAt(0))
         ].join(':');
     }
@@ -371,6 +373,24 @@ export class Quad {
         return this;
     }
 
+    updateSides(): this {
+        const neighbors = this.neighbors;
+        const sides = Object.getOwnPropertyNames(neighbors) as Array<QuadSide>;
+        sides.forEach(side => {
+            const neighbor = neighbors[side] ?? this.registry.getNeighbor(side, this.parent);
+            if (neighbor) {
+                if (this.level === neighbor.level) {
+                    if (neighbor.hasChildren()) {
+                        this.activate(side);
+                    } else {
+                        this.deactivate(side);
+                    }
+                }
+            }
+        });
+        return this;
+    }
+
     /**
      * causes this quad to generate 4 child quads and update all neighbors so they can 
      * subdivide their edges facing this quad
@@ -394,35 +414,9 @@ export class Quad {
             if (neighbor) {
                 if (this.level - neighbor.level > 0) {
                     neighbor.subdivide(this);
-                    switch (side) {
-                        case 'left':
-                            this.registry.getNeighbor('left', this)?.activate('right');
-                            break;
-                        case 'bottom':
-                            this.registry.getNeighbor('bottom', this)?.activate('top');
-                            break;
-                        case 'right':
-                            this.registry.getNeighbor('right', this)?.activate('left');
-                            break;
-                        case 'top':
-                            this.registry.getNeighbor('top', this)?.activate('bottom');
-                            break;
-                    }
+                    this.registry.getNeighbor(side, this)?.updateSides();
                 } else {
-                    switch (side) {
-                        case 'left':
-                            neighbor.activate('right');
-                            break;
-                        case 'bottom':
-                            neighbor.activate('top');
-                            break;
-                        case 'right':
-                            neighbor.activate('left');
-                            break;
-                        case 'top':
-                            neighbor.activate('bottom');
-                            break;
-                    }
+                    neighbor.updateSides();
                 }
             }
         });
@@ -640,29 +634,26 @@ export class Quad {
             let uOffset = 0;
             for (let x = centre.x - this.radius; x <= centre.x + this.radius; x += this.radius) {
                 const u = x / 3;
-                const facev = this._updatePointForFace({x, y, z: centre.z + this.offset});
+                const facev = this._rotatePoint({x, y, z: centre.z}, centre);
                 this._vertices.push(facev.x, facev.y, facev.z);
                 this._uvs.push(u + uOffset, 1 - v);
             }
         }
     }
 
-    private _updatePointForFace(point: V3): V3 {
-        switch (this.face) {
-            case 'bottom':
-                return {x: point.x, y: -point.z, z: point.y};
-            case 'top':
-                return {x: point.x, y: point.z, z: -point.y};
-            case 'right':
-                return {x: point.z, y: point.y, z: -point.x};
-            case 'left':
-                return {x: -point.z, y: point.y, z: point.x};
-            case 'back':
-                return {x: -point.x, y: point.y, z: -point.z};
-            case 'front':
-            default:
-                return point; // no change
+    private _rotatePoint(point: V3, around?: V3): V3 {
+        if (this._angle === 0) {
+            return point;
         }
+        around ??= point;
+        const radians = this._angle * (Math.PI / 180);
+        const p = new THREE.Vector3(point.x, point.y, point.z);
+        const a = new THREE.Vector3(around.x, around.y, around.z);
+        const axis = new THREE.Vector3(this._axis.x, this._axis.y, this._axis.z).normalize();
+        
+        return p.sub(a)
+            .applyAxisAngle(axis, radians)
+            .add(a);
     }
 
     private _getPointIndices(index: number = 0): V3 {
@@ -680,9 +671,9 @@ export class Quad {
                 registry: this.registry,
                 quadrant: 'bottomleft',
                 loglevel: this._loglevel,
-                face: this.face,
                 maxlevel: this.maxlevel,
-                offset: this.offset
+                angle: this._angle,
+                rotationAxis: this._axis
             }),
             new Quad({
                 parent: this,
@@ -692,9 +683,9 @@ export class Quad {
                 registry: this.registry,
                 quadrant: 'bottomright',
                 loglevel: this._loglevel,
-                face: this.face,
                 maxlevel: this.maxlevel,
-                offset: this.offset
+                angle: this._angle,
+                rotationAxis: this._axis
             }),
             new Quad({
                 parent: this,
@@ -704,9 +695,9 @@ export class Quad {
                 registry: this.registry,
                 quadrant: 'topleft',
                 loglevel: this._loglevel,
-                face: this.face,
                 maxlevel: this.maxlevel,
-                offset: this.offset
+                angle: this._angle,
+                rotationAxis: this._axis
             }),
             new Quad({
                 parent: this,
@@ -716,9 +707,9 @@ export class Quad {
                 registry: this.registry,
                 quadrant: 'topright',
                 loglevel: this._loglevel,
-                face: this.face,
                 maxlevel: this.maxlevel,
-                offset: this.offset
+                angle: this._angle,
+                rotationAxis: this._axis
             })
         ];
         children.forEach(c => this._children.set(c.quadrant, c));
