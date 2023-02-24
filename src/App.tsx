@@ -1,6 +1,6 @@
 import './App.css'
 import { Canvas } from '@react-three/fiber'
-import { OrbitControls, Stats } from '@react-three/drei'
+import { Edges, OrbitControls, Stats } from '@react-three/drei'
 import { QuadMesh, QuadSphereMesh } from './components/shapes';
 import { Fragment } from 'react';
 import { MyText } from "./components/my-text";
@@ -22,7 +22,8 @@ function App() {
                         <meshStandardMaterial attach="material" wireframe={true} />
                     </QuadMesh>
                     <QuadSphereMesh position={[1.2, 0, 0]} radius={1} loglevel="debug">
-                        <meshStandardMaterial attach="material" wireframe={false} flatShading={true} />
+                        <meshStandardMaterial transparent />
+                        <Edges threshold={0.001} />
                     </QuadSphereMesh>
                     <Stats />
                 </Canvas>
