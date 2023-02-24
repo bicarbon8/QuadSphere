@@ -10,7 +10,7 @@ export type textProps = {
 
 export function MyText(props: textProps) {
     const ref = useRef<Mesh>();
-    const fontProps = { font: '/Inter-Bold.woff', fontSize: 0.25, letterSpacing: -0.05, lineHeight: 1, 'material-toneMapped': false };
+    const fontProps = { fontSize: 0.25, letterSpacing: -0.05, lineHeight: 1, 'material-toneMapped': false };
     useFrame(({ camera }) => {
         // Make text face the camera
         ref.current.quaternion.copy(camera.quaternion)

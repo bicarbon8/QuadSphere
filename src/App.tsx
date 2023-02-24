@@ -21,7 +21,7 @@ function App() {
                     <QuadMesh position={[-1.2, 0, 0]} radius={1}>
                         <meshStandardMaterial attach="material" wireframe={true} />
                     </QuadMesh>
-                    <QuadSphereMesh position={[1.2, 0, 0]} radius={1} loglevel="debug">
+                    <QuadSphereMesh position={[1.2, 0, 0]} radius={1}>
                         <meshStandardMaterial transparent />
                         <Edges threshold={0.001} />
                     </QuadSphereMesh>

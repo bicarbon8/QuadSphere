@@ -14,8 +14,8 @@ export module V3 {
     export function toVector3(input: V3): THREE.Vector3 {
         return new THREE.Vector3(input.x, input.y, input.z);
     }
-    export function midpoint(start: V3, end: V3): THREE.Vector3 {
-        return new THREE.Vector3((start.x+end.x)/2, (start.y+end.y)/2, (start.z+end.z)/2);
+    export function midpoint(p1: V3, p2: V3): V3 {
+        return {x: (p1.x+p2.x)/2, y: (p1.y+p2.y)/2, z: (p1.z+p2.z)/2};
     }
     export function reducePrecision(input: V3, precision: number): V3 {
         const output = {x: 0, y: 0, z: 0};
@@ -32,7 +32,7 @@ export module V3 {
         const ydiff = Math.abs(point1.y - point2.y);
         if (ydiff > maxDiff) { return false; }
         const zdiff = Math.abs(point1.z - point2.z);
-        if (zdiff > maxDiff) { return false; }
+        if (zdiff > Math.abs(maxDiff)) { return false; }
         return true;
     }
     export function toArray(...inputs: Array<V3>): Array<number> {
