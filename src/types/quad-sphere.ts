@@ -84,14 +84,7 @@ export class QuadSphere {
         let offset = 0;
         this._faces.forEach((quad: Quad, face: QuadSphereFace) => {
             const data = quad.meshData;
-            const updated = new Array<number>();
-            for (let i=0; i<data.vertices.length; i+=3) {
-                const x = data.vertices[i];
-                const y = data.vertices[i+1];
-                const z = data.vertices[i+2];
-                const c = this.applyCurve({x, y, z});
-                updated.push(c.x, c.y, c.z);
-            }
+            const updated = V3.toArray(...V3.fromArray(data.vertices).map(v => this.applyCurve(v)));
             verts.push(...updated);
             tris.push(...data.indices.map(i => i+offset));
             offset += data.vertices.length / 3;
@@ -103,14 +96,20 @@ export class QuadSphere {
         };
     }
 
-    getClosestQuad(point: V3): Quad {
-        const faces = Array.from(this._faces.values());
+    getClosestQuad(point: V3, from?: Array<Quad>): Quad {
+        from ??= Array.from(this._faces.values());
         // sort quads in ascending order by distance to point
-        const sortedFaces = faces.sort((a, b) => V3.length(a.centre, point) - V3.length(b.centre, point));
-        this._logger.log('debug', 'faces sorted by distance to', point, sortedFaces.map(f => f.centre));
-        const closestFace = sortedFaces
-            .find(q => q != null);
-        const closest = closestFace.getClosestQuad(point);
+        const sorted = from.sort((a, b) => V3.length(this.applyCurve(a.centre), point) - V3.length(this.applyCurve(b.centre), point));
+        this._logger.log('debug', 'faces sorted by distance to', point, sorted.map(f => this.applyCurve(f.centre)));
+        let closest = sorted.find(q => q != null);
+        if (closest.hasChildren()) {
+            closest = this.getClosestQuad(point, [
+                closest.bottomleftChild,
+                closest.bottomrightChild,
+                closest.topleftChild,
+                closest.toprightChild
+            ]);
+        }
         return closest;
     }
 

@@ -42,6 +42,16 @@ export module V3 {
         }
         return output;
     }
+    export function fromArray(input: Array<number>): Array<V3> {
+        if (input.length % 3 !== 0) {
+            throw new Error('input array must have length evenly divisible by 3');
+        }
+        const verts = new Array<V3>();
+        for (let i=0; i<input.length; i+=3) {
+            verts.push({x: input[i], y: input[i+1], z: input[i+2]});
+        }
+        return verts;
+    }
     export function divide(input: V3, x: number, y?: number, z?: number): V3 {
         y ??= x;
         z ??= y;
