@@ -332,12 +332,12 @@ export class Quad {
      * @returns a `THREE.Vector3` containing the x, y, and z values 
      * for the point at the specified index
      */
-    getPoint(index: number = 0): THREE.Vector3 {
+    getPoint(index: number = 0): V3 {
         const i = this._getPointIndices(index);
         const x = this._vertices[i.x];
         const y = this._vertices[i.y];
         const z = this._vertices[i.z];
-        return new THREE.Vector3(x, y, z);
+        return {x, y, z};
     }
 
     hasChildren(): boolean {
@@ -464,7 +464,9 @@ export class Quad {
     getClosestQuad(point: V3, from?: Array<Quad>): Quad {
         from ??= Array.from([this]);
         // sort quads in ascending order by distance to point
-        let closest = from.sort((a, b) => V3.length(a.centre, point) - V3.length(b.centre, point))
+        const sortedQuads = from.sort((a, b) => V3.length(a.centre, point) - V3.length(b.centre, point));
+        this._logger.log('debug', 'quads sorted by distance to', point, sortedQuads.map(q => q.centre));
+        let closest = sortedQuads
             .find(q => q != null);
         if (closest.hasChildren()) {
             closest = this.getClosestQuad(point, [

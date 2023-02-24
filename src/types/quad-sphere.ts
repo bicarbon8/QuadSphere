@@ -106,7 +106,9 @@ export class QuadSphere {
     getClosestQuad(point: V3): Quad {
         const faces = Array.from(this._faces.values());
         // sort quads in ascending order by distance to point
-        const closestFace = faces.sort((a, b) => V3.length(a.centre, point) - V3.length(b.centre, point))
+        const sortedFaces = faces.sort((a, b) => V3.length(b.centre, point) - V3.length(a.centre, point));
+        this._logger.log('debug', 'faces sorted by distance to', point, sortedFaces.map(f => f.centre));
+        const closestFace = sortedFaces
             .find(q => q != null);
         const closest = closestFace.getClosestQuad(point);
         return closest;
