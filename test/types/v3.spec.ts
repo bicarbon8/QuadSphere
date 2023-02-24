@@ -3,8 +3,8 @@ import { V3 } from "../../src/types/v3";
 
 describe.concurrent('V3', () => {
     test.each([
-        {p1: {x: 0, y: 0, z: 0}, p2: {x: 1, y: 1, z: 1}, expected: {x: 0.5, y: 0.5, z: 0.5}},
-        {p1: {x: 0, y: 0, z: 0}, p2: {x: -1, y: -1, z: -1}, expected: {x: -0.5, y: -0.5, z: -0.5}},
+        {p1: V3.zero(), p2: {x: 1, y: 1, z: 1}, expected: {x: 0.5, y: 0.5, z: 0.5}},
+        {p1: V3.zero(), p2: {x: -1, y: -1, z: -1}, expected: {x: -0.5, y: -0.5, z: -0.5}},
         {p1: {x: 1, y: 0, z: 0}, p2: {x: 2, y: 0, z: 0}, expected: {x: 1.5, y: 0, z: 0}}
     ])('midpoint($p1, $p2) -> $expected', ({p1, p2, expected}) => {
         expect(V3.midpoint(p1, p2)).toEqual(expected);
@@ -20,10 +20,10 @@ describe.concurrent('V3', () => {
     })
 
     test.each([
-        {p1: {x: 0, y: 0, z: 0}, p2: {x: 0.1, y: 0.1, z: 0.1}, diff: 0.1, expected: true},
-        {p1: {x: 0, y: 0, z: 0}, p2: {x: -0.1, y: -0.1, z: -0.1}, diff: 0.1, expected: true},
-        {p1: {x: 0, y: 0, z: 0}, p2: {x: 0.1, y: 0.1, z: 0.1}, diff: 0.01, expected: false},
-        {p1: {x: 0, y: 0, z: 0}, p2: {x: -0.1, y: -0.1, z: -0.1}, diff: 0.01, expected: false}
+        {p1: V3.zero(), p2: {x: 0.1, y: 0.1, z: 0.1}, diff: 0.1, expected: true},
+        {p1: V3.zero(), p2: {x: -0.1, y: -0.1, z: -0.1}, diff: 0.1, expected: true},
+        {p1: V3.zero(), p2: {x: 0.1, y: 0.1, z: 0.1}, diff: 0.01, expected: false},
+        {p1: V3.zero(), p2: {x: -0.1, y: -0.1, z: -0.1}, diff: 0.01, expected: false}
     ])('fuzzyEquals($p1, $p2, $diff) -> $expected', ({p1, p2, diff, expected}) => {
         expect(V3.fuzzyEquals(p1, p2, diff)).toBe(expected);
     })
