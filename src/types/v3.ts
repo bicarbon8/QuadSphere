@@ -64,7 +64,7 @@ export module V3 {
     }
     export function length(p1: V3, p2?: V3): number {
         if (p2) {
-            return Math.sqrt(Math.pow(p2.x-p1.x, 2) + Math.pow(p2.y-p1.y, 2) + Math.pow(p2.z+p1.z, 2));
+            return Math.sqrt(Math.pow(p2.x-p1.x, 2) + Math.pow(p2.y-p1.y, 2) + Math.pow(p2.z-p1.z, 2));
         } else {
             return Math.sqrt(p1.x*p1.x + p1.y*p1.y + p1.z*p1.z);
         }
