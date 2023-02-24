@@ -1,5 +1,5 @@
-import { MeshProps, ThreeEvent, useFrame, Vector3 } from "@react-three/fiber";
-import { useEffect, useMemo, useState } from "react";
+import { MeshProps, ThreeEvent, Vector3 } from "@react-three/fiber";
+import { useMemo, useState } from "react";
 import { Quad } from "../types/quad";
 import { QuadLoggerLevel } from "../types/quad-logger";
 import { QuadRegistry } from "../types/quad-registry";
@@ -18,7 +18,7 @@ export function QuadSphereMesh(props: QuadMeshProps) {
         return new QuadSphere({
             centre: processPositionInput(props.position),
             radius: props.radius ?? 1,
-            maxlevel: props.maxlevel ?? 5,
+            maxlevel: props.maxlevel ?? 10,
             loglevel: props.loglevel ?? 'warn'
         });
     }, [props]);
@@ -56,7 +56,7 @@ export function QuadMesh(props: QuadMeshProps) {
             centre: processPositionInput(props.position),
             radius: props.radius ?? 1,
             registry: registry,
-            maxlevel: props.maxlevel ?? 5,
+            maxlevel: props.maxlevel ?? 10,
             loglevel: props.loglevel ?? 'warn'
         });
     }, [props]);
