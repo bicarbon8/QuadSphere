@@ -1,8 +1,7 @@
 import * as THREE from "three";
+import { V2 } from "./v2";
 
-export type V3 = {
-    x: number;
-    y: number;
+export type V3 = V2 & {
     z: number;
 };
 

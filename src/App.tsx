@@ -19,10 +19,10 @@ function App() {
                         left-click objects to subdivide; right-click to unify
                     </MyText>
                     <QuadMesh position={[-1.2, 0, 0]} radius={1}>
-                        <meshStandardMaterial attach="material" wireframe={true} />
+                        <meshStandardMaterial wireframe={true} />
                     </QuadMesh>
                     <QuadSphereMesh position={[1.2, 0, 0]} radius={1}>
-                        <meshStandardMaterial transparent />
+                        <meshStandardMaterial transparent opacity={0.5} />
                         <Edges threshold={0.001} />
                     </QuadSphereMesh>
                     <Stats />

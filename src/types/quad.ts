@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { QuadLogger, QuadLoggerLevel } from "./quad-logger";
 import { QuadRegistry } from "./quad-registry";
 import { QuadChildren, QuadMeshData, QuadNeighbors, Quadrant, QuadSide } from "./quad-types";
+import { UV } from "./v2";
 import { V3 } from "./v3";
 
 export type QuadOptions = {
@@ -17,6 +18,8 @@ export type QuadOptions = {
     rotationAxis?: V3;
     /** angle in degrees */
     angle?: number;
+    uvStart?: UV;
+    uvEnd?: UV;
 };
 
 /**
@@ -77,6 +80,8 @@ export class Quad {
     public readonly registry: QuadRegistry;
     public readonly quadrant: Quadrant;
     public readonly maxlevel: number;
+    public readonly uvStart: UV;
+    public readonly uvEnd: UV;
 
     private readonly _children = new Map<Quadrant, Quad>();
     private readonly _vertices = new Array<number>();
@@ -101,9 +106,12 @@ export class Quad {
             level: this._loglevel,
             preface: () => this.fingerprint
         });
+        this.uvStart = options.uvStart ?? UV.zero();
+        this.uvEnd = options.uvEnd ?? UV.one();
         this._axis = options.rotationAxis ?? V3.zero();
         this._angle = options.angle ?? 0;
         this._generatePoints(options.centre ?? V3.zero());
+        this._generateUVs();
         this.registry.register(this);
     }
 
@@ -306,6 +314,19 @@ export class Quad {
         return tris;
     }
 
+    get uvs(): Array<number> {
+        const uvArr = new Array<number>();
+        if (this.hasChildren()) {
+            uvArr.push(...this.bottomleftChild.uvs);
+            uvArr.push(...this.bottomrightChild.uvs);
+            uvArr.push(...this.topleftChild.uvs);
+            uvArr.push(...this.toprightChild.uvs);
+        } else {
+            uvArr.push(...this._uvs);
+        }
+        return uvArr;
+    }
+
     /**
      * consolidates the `vertices` and `indices` getters into a single
      * object containing both values for convenience and to ensure no
@@ -314,7 +335,8 @@ export class Quad {
     get meshData(): QuadMeshData {
         return {
             vertices: this.vertices,
-            indices: this.indices
+            indices: this.indices,
+            uvs: this.uvs
         };
     }
 
@@ -570,15 +592,19 @@ export class Quad {
 
     private _generatePoints(centre: V3): void {
         for (let y = centre.y - this.radius; y <= centre.y + this.radius; y += this.radius) {
-            const v = y / 3;
-            let uOffset = 0;
             for (let x = centre.x - this.radius; x <= centre.x + this.radius; x += this.radius) {
-                const u = x / 3;
                 const facev = this._rotatePoint({x, y, z: centre.z}, centre);
                 this._vertices.push(facev.x, facev.y, facev.z);
-                this._uvs.push(u + uOffset, 1 - v);
             }
         }
+    }
+
+    private _generateUVs(): void {
+        this._uvs.push(...UV.toArray(
+            this.uvStart, {u: (this.uvStart.u+this.uvEnd.u)/2, v: this.uvStart.v}, {u: this.uvEnd.u, v: this.uvStart.v},
+            {u: this.uvStart.u, v: (this.uvStart.v+this.uvEnd.v)/2}, UV.midpoint(this.uvStart, this.uvEnd), {u: this.uvEnd.u, v: (this.uvStart.v+this.uvEnd.v)/2},
+            {u: this.uvStart.u, v: this.uvEnd.v}, {u: (this.uvStart.u+this.uvEnd.u)/2, v: this.uvEnd.v}, this.uvEnd
+        ));
     }
 
     private _rotatePoint(point: V3, around?: V3): V3 {
@@ -613,7 +639,9 @@ export class Quad {
                 loglevel: this._loglevel,
                 maxlevel: this.maxlevel,
                 angle: this._angle,
-                rotationAxis: this._axis
+                rotationAxis: this._axis,
+                uvStart: {u: this.uvStart.u, v: (this.uvStart.v+this.uvEnd.v)/2},
+                uvEnd: {u: (this.uvStart.u+this.uvEnd.u)/2, v: this.uvEnd.v}
             }),
             new Quad({
                 parent: this,
@@ -625,7 +653,9 @@ export class Quad {
                 loglevel: this._loglevel,
                 maxlevel: this.maxlevel,
                 angle: this._angle,
-                rotationAxis: this._axis
+                rotationAxis: this._axis,
+                uvStart: {u: (this.uvStart.u+this.uvEnd.u)/2, v: (this.uvStart.v+this.uvEnd.v)/2},
+                uvEnd: {u: this.uvEnd.u, v: this.uvEnd.v}
             }),
             new Quad({
                 parent: this,
@@ -637,7 +667,9 @@ export class Quad {
                 loglevel: this._loglevel,
                 maxlevel: this.maxlevel,
                 angle: this._angle,
-                rotationAxis: this._axis
+                rotationAxis: this._axis,
+                uvStart: {u: this.uvStart.u, v: this.uvStart.v},
+                uvEnd: {u: (this.uvStart.u+this.uvEnd.u)/2, v: (this.uvStart.v+this.uvEnd.v)/2}
             }),
             new Quad({
                 parent: this,
@@ -649,7 +681,9 @@ export class Quad {
                 loglevel: this._loglevel,
                 maxlevel: this.maxlevel,
                 angle: this._angle,
-                rotationAxis: this._axis
+                rotationAxis: this._axis,
+                uvStart: {u: (this.uvStart.u+this.uvEnd.u)/2, v: this.uvStart.v},
+                uvEnd: {u: this.uvEnd.u, v: (this.uvStart.v+this.uvEnd.v)/2}
             })
         ];
         children.forEach(c => this._children.set(c.quadrant, c));

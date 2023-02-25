@@ -80,6 +80,7 @@ export class QuadSphere {
     get meshData(): QuadMeshData {
         const verts = new Array<number>();
         const tris = new Array<number>();
+        const uvArr = new Array<number>();
 
         let offset = 0;
         this._faces.forEach((quad: Quad, face: QuadSphereFace) => {
@@ -88,11 +89,13 @@ export class QuadSphere {
             verts.push(...updated);
             tris.push(...data.indices.map(i => i+offset));
             offset += data.vertices.length / 3;
+            uvArr.push(...data.uvs);
         });
         
         return {
             vertices: verts,
-            indices: tris
+            indices: tris,
+            uvs: uvArr
         };
     }
 

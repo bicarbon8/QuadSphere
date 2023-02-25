@@ -13,4 +13,5 @@ export type QuadChildren = Record<Quadrant, Quad>;
 export type QuadMeshData = {
     vertices: Array<number>;
     indices: Array<number>;
+    uvs: Array<number>;
 }
