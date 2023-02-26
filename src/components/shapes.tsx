@@ -22,13 +22,17 @@ export function QuadSphereMesh(props: QuadMeshProps) {
             loglevel: props.loglevel ?? 'warn'
         });
     }, [props]);
+    const meshProps: MeshProps = {
+        ...props,
+        position: [0, 0, 0]
+    };
     const [key, setKey] = useState<string>(sphere.key);
     const data = sphere.meshData;
     const positions = new Float32Array(data.vertices);
     const indices = new Uint16Array(data.indices);
     const uvs = new Float32Array(data.uvs);
     return (
-        <mesh key={key} onClick={(e: ThreeEvent<MouseEvent>) => setKey(subdivide(e, sphere))} onContextMenu={(e) => setKey(unify(e, sphere))} castShadow receiveShadow>
+        <mesh key={key} onClick={(e: ThreeEvent<MouseEvent>) => setKey(subdivide(e, sphere))} onContextMenu={(e) => setKey(unify(e, sphere))} {...meshProps}>
             <bufferGeometry>
                 <bufferAttribute 
                     attach="attributes-position"
@@ -66,13 +70,17 @@ export function QuadMesh(props: QuadMeshProps) {
             loglevel: props.loglevel ?? 'warn'
         });
     }, [props]);
+    const meshProps: MeshProps = {
+        ...props,
+        position: [0, 0, 0]
+    };
     const [key, setKey] = useState<string>(quad.key);
     const data = quad.meshData;
     const positions = new Float32Array(data.vertices);
     const indices = new Uint16Array(data.indices);
     const uvs = new Float32Array(data.uvs);
     return (
-        <mesh key={key} onClick={(e) => setKey(subdivide(e, quad))} onContextMenu={(e) => setKey(unify(e, quad))} castShadow receiveShadow>
+        <mesh key={key} onClick={(e) => setKey(subdivide(e, quad))} onContextMenu={(e) => setKey(unify(e, quad))} {...meshProps}>
             <bufferGeometry>
                 <bufferAttribute 
                     attach="attributes-position"

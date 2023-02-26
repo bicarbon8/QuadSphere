@@ -1,11 +1,13 @@
 import './App.css'
-import { Canvas } from '@react-three/fiber'
+import { Canvas, useLoader } from '@react-three/fiber'
 import { Edges, OrbitControls, Stats } from '@react-three/drei'
 import { QuadMesh, QuadSphereMesh } from './components/shapes';
 import { Fragment } from 'react';
 import { MyText } from "./components/my-text";
+import * as THREE from 'three';
 
 function App() {
+    const texture = useLoader(THREE.TextureLoader, './assets/grid.png');
     return (
         <Fragment>
             <div className='absolute_full'>
@@ -18,9 +20,16 @@ function App() {
                     <MyText position={[0, 2, 0]}>
                         left-click objects to subdivide; right-click to unify
                     </MyText>
-                    <QuadMesh position={[-1.2, 0, 0]} radius={1}>
-                        <meshStandardMaterial wireframe={true} />
-                    </QuadMesh>
+                    <QuadMesh 
+                        position={[-1.2, 0, 0]} 
+                        radius={1} 
+                        material={new THREE.MeshBasicMaterial({
+                            map: texture, 
+                            wireframe: true, 
+                            transparent: true, 
+                            opacity: 0.5
+                        })} 
+                    />
                     <QuadSphereMesh position={[1.2, 0, 0]} radius={1}>
                         <meshStandardMaterial transparent opacity={0.5} />
                         <Edges threshold={0.001} />
