@@ -26,6 +26,7 @@ export function QuadSphereMesh(props: QuadMeshProps) {
     const data = sphere.meshData;
     const positions = new Float32Array(data.vertices);
     const indices = new Uint16Array(data.indices);
+    const uvs = new Float32Array(data.uvs);
     return (
         <mesh key={key} onClick={(e: ThreeEvent<MouseEvent>) => setKey(subdivide(e, sphere))} onContextMenu={(e) => setKey(unify(e, sphere))} castShadow receiveShadow>
             <bufferGeometry>
@@ -39,6 +40,11 @@ export function QuadSphereMesh(props: QuadMeshProps) {
                     array={indices}
                     count={indices.length}
                     itemSize={1} />
+                <bufferAttribute
+                    attach="attributes-uv"
+                    count={uvs.length / 2}
+                    array={uvs}
+                    itemSize={2} />
             </bufferGeometry>
             {props.children}
         </mesh>
@@ -79,7 +85,7 @@ export function QuadMesh(props: QuadMeshProps) {
                     count={indices.length}
                     itemSize={1} />
                 <bufferAttribute
-                    attach="attributes-uv2"
+                    attach="attributes-uv"
                     count={uvs.length / 2}
                     array={uvs}
                     itemSize={2} />
