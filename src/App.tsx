@@ -25,15 +25,17 @@ function App() {
                         radius={1} 
                         material={new THREE.MeshBasicMaterial({
                             map: texture, 
-                            wireframe: true, 
-                            transparent: true, 
-                            opacity: 0.5
+                            wireframe: true
                         })} 
                     />
-                    <QuadSphereMesh position={[1.2, 0, 0]} radius={1}>
-                        <meshStandardMaterial transparent opacity={0.5} />
-                        <Edges threshold={0.001} />
-                    </QuadSphereMesh>
+                    <QuadSphereMesh 
+                        position={[1.2, 0, 0]} 
+                        radius={1} 
+                        material={new THREE.MeshBasicMaterial({
+                            map: texture, 
+                            wireframe: true
+                        })} 
+                    />
                     <Stats />
                 </Canvas>
             </div>
