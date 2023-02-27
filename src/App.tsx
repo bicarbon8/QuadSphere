@@ -38,20 +38,11 @@ function App() {
                         <meshStandardMaterial 
                             map={bump} 
                             displacementMap={bump}
-                            displacementScale={0.3}
+                            displacementScale={0.1}
                             transparent 
                             opacity={0.5} />
                         <Edges threshold={0} />
                     </QuadSphereMesh>
-                    <mesh position={[3.2, 0, 0]}>
-                        <sphereBufferGeometry args={[1, 180, 180]} />
-                        <meshStandardMaterial 
-                            map={bump} 
-                            displacementMap={bump}
-                            displacementScale={0.3}
-                            transparent 
-                            opacity={0.5} />
-                    </mesh>
                     <Stats />
                 </Canvas>
             </div>

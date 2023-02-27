@@ -1,3 +1,4 @@
+import * as THREE from "three";
 import { Quad } from "./quad";
 import { QuadLogger, QuadLoggerLevel } from "./quad-logger";
 import { QuadRegistry } from "./quad-registry";
@@ -78,23 +79,27 @@ export class QuadSphere {
     }
 
     get meshData(): QuadMeshData {
-        const verts = new Array<number>();
         const tris = new Array<number>();
+        const verts = new Array<number>();
+        const norms = new Array<number>();
         const uvArr = new Array<number>();
 
         let offset = 0;
         this._faces.forEach((quad: Quad, face: QuadSphereFace) => {
             const data = quad.meshData;
-            const updated = V3.toArray(...V3.fromArray(data.vertices).map(v => this.applyCurve(v)));
-            verts.push(...updated);
             tris.push(...data.indices.map(i => i+offset));
             offset += data.vertices.length / 3;
+            const sphericalVerts = V3.toArray(...V3.fromArray(data.vertices).map(v => this.applyCurve(v)));
+            verts.push(...sphericalVerts);
+            const sphericalNorms = V3.fromArray(sphericalVerts).map(v => new THREE.Vector3(v.x, v.y, v.z).normalize());
+            norms.push(...V3.toArray(...sphericalNorms));
             uvArr.push(...data.uvs);
         });
         
         return {
-            vertices: verts,
             indices: tris,
+            vertices: verts,
+            normals: norms,
             uvs: uvArr
         };
     }
@@ -117,9 +122,8 @@ export class QuadSphere {
     }
 
     applyCurve(point: V3): V3 {
-        const elevation = 0; // TODO: use UV's to lookup elevation values
         const offset = V3.subtract(point, this.centre.x, this.centre.y, this.centre.z);
-        const curvedOffset = V3.multiply(V3.normalise(offset), this.radius + elevation);
+        const curvedOffset = V3.multiply(V3.normalise(offset), this.radius);
         const curved = V3.add(curvedOffset, this.centre.x, this.centre.y, this.centre.z);
         return curved;
     }
