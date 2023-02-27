@@ -1,9 +1,8 @@
-import { MeshProps, ThreeEvent, Vector3 } from "@react-three/fiber";
+import { MeshProps, ThreeEvent } from "@react-three/fiber";
 import { useMemo, useState } from "react";
 import { Mesh } from "three";
 import { Quad } from "../types/quad";
 import { QuadLoggerLevel } from "../types/quad-logger";
-import { QuadRegistry } from "../types/quad-registry";
 import { QuadSphere } from "../types/quad-sphere";
 import { V3 } from "../types/v3";
 
@@ -65,6 +64,7 @@ export function QuadMesh(props: QuadMeshProps) {
     const [key, setKey] = useState<string>(quad.key);
     const data = quad.meshData;
     const positions = new Float32Array(data.vertices);
+    const normals = new Float32Array(data.normals);
     const indices = new Uint16Array(data.indices);
     const uvs = new Float32Array(data.uvs);
     return (
@@ -80,6 +80,11 @@ export function QuadMesh(props: QuadMeshProps) {
                     array={indices}
                     count={indices.length}
                     itemSize={1} />
+                <bufferAttribute 
+                    attach="attributes-normal"
+                    array={normals}
+                    count={normals.length / 3}
+                    itemSize={3} />
                 <bufferAttribute
                     attach="attributes-uv"
                     count={uvs.length / 2}

@@ -8,6 +8,7 @@ import * as THREE from 'three';
 
 function App() {
     const texture = useLoader(THREE.TextureLoader, './assets/grid.png');
+    const bump = useLoader(THREE.TextureLoader, './assets/bump.jpg');
     return (
         <Fragment>
             <div className='absolute_full'>
@@ -23,15 +24,34 @@ function App() {
                     <QuadMesh 
                         position={[-1.2, 0, 0]} 
                         radius={1}>
-                        <meshBasicMaterial map={texture} transparent opacity={0.5} />
+                        <meshStandardMaterial 
+                            map={bump} 
+                            displacementMap={bump}
+                            displacementScale={0.3}
+                            transparent 
+                            opacity={0.5} />
                         <Edges threshold={0} />
                     </QuadMesh>
                     <QuadSphereMesh 
                         position={[1.2, 0, 0]} 
                         radius={1}>
-                        <meshBasicMaterial map={texture} transparent opacity={0.5} />
+                        <meshStandardMaterial 
+                            map={bump} 
+                            displacementMap={bump}
+                            displacementScale={0.3}
+                            transparent 
+                            opacity={0.5} />
                         <Edges threshold={0} />
                     </QuadSphereMesh>
+                    <mesh position={[3.2, 0, 0]}>
+                        <sphereBufferGeometry args={[1, 180, 180]} />
+                        <meshStandardMaterial 
+                            map={bump} 
+                            displacementMap={bump}
+                            displacementScale={0.3}
+                            transparent 
+                            opacity={0.5} />
+                    </mesh>
                     <Stats />
                 </Canvas>
             </div>

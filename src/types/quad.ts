@@ -85,6 +85,7 @@ export class Quad {
 
     private readonly _children = new Map<Quadrant, Quad>();
     private readonly _vertices = new Array<number>();
+    private readonly _normals = new Array<number>();
     private readonly _uvs = new Array<number>();
     private readonly _active = new Set<QuadSide>();
     private readonly _loglevel: QuadLoggerLevel;
@@ -111,6 +112,7 @@ export class Quad {
         this._axis = options.rotationAxis ?? V3.zero();
         this._angle = options.angle ?? 0;
         this._generatePoints(options.centre ?? V3.zero());
+        this._generateNormals();
         this._generateUVs();
         this.registry.register(this);
     }
@@ -276,6 +278,23 @@ export class Quad {
     }
 
     /**
+     * returns the normal direction for each vertex grouping as an array
+     * of the x, y, z values
+     */
+    get normals(): Array<number> {
+        const norms = new Array<number>();
+        if (this.hasChildren()) {
+            norms.push(...this.bottomleftChild.normals);
+            norms.push(...this.bottomrightChild.normals);
+            norms.push(...this.topleftChild.normals);
+            norms.push(...this.toprightChild.normals);
+        } else {
+            norms.push(...this._normals);
+        }
+        return norms;
+    }
+
+    /**
      * returns the index of each vertex coordinate grouping from the `this.vertices`
      * array ordered in groups of three that form a clockwise triangle like
      * ```
@@ -334,8 +353,9 @@ export class Quad {
      */
     get meshData(): QuadMeshData {
         return {
-            vertices: this.vertices,
             indices: this.indices,
+            vertices: this.vertices,
+            normals: this.normals,
             uvs: this.uvs
         };
     }
@@ -597,6 +617,21 @@ export class Quad {
                 this._vertices.push(facev.x, facev.y, facev.z);
             }
         }
+    }
+
+    private _generateNormals(): void {
+        const normals = new Array<number>(
+            0, 0, 1,   0, 0, 1,   0, 0, 1,
+            0, 0, 1,   0, 0, 1,   0, 0, 1,
+            0, 0, 1,   0, 0, 1,   0, 0, 1,
+        );
+        const normalPoints = V3.fromArray(normals);
+        const zero = V3.zero();
+        for (let i=0; i<normalPoints.length; i++) {
+            const normalPoint = normalPoints[i];
+            normalPoints[i] = this._rotatePoint(normalPoint, zero);
+        }
+        this._normals.push(...V3.toArray(...normalPoints));
     }
 
     private _generateUVs(): void {
