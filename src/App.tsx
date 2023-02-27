@@ -3,7 +3,7 @@ import { Canvas, useLoader } from '@react-three/fiber'
 import { Edges, OrbitControls, Stats } from '@react-three/drei'
 import { QuadMesh, QuadSphereMesh } from './components/shapes';
 import { Fragment } from 'react';
-import { MyText } from "./components/my-text";
+import { CameraFacingText } from "./components/camera-facing-text";
 import * as THREE from 'three';
 
 function App() {
@@ -17,12 +17,13 @@ function App() {
                     <pointLight position={[-10, 10, -10]} color={0x6666ff} intensity={0.5} />
                     <OrbitControls />
                     <axesHelper args={[0.5]} />
-                    <MyText position={[0, 2, 0]}>
+                    <CameraFacingText position={[0, 2, 0]}>
                         left-click objects to subdivide; right-click to unify
-                    </MyText>
+                    </CameraFacingText>
                     <QuadMesh 
                         position={[-1.2, 0, 0]} 
-                        radius={1}>
+                        radius={1}
+                        rotation={[-90*(Math.PI / 180), 0, 0]}>
                         <meshBasicMaterial map={texture} transparent opacity={0.5} />
                         <Edges threshold={0} />
                     </QuadMesh>

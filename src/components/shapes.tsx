@@ -1,5 +1,6 @@
 import { MeshProps, ThreeEvent, Vector3 } from "@react-three/fiber";
 import { useMemo, useState } from "react";
+import { Mesh } from "three";
 import { Quad } from "../types/quad";
 import { QuadLoggerLevel } from "../types/quad-logger";
 import { QuadRegistry } from "../types/quad-registry";
@@ -16,15 +17,14 @@ export function QuadSphereMesh(props: QuadMeshProps) {
     const sphere = useMemo<QuadSphere>(() => {
         console.info('creating new QuadSphere!', {props});
         return new QuadSphere({
-            centre: processPositionInput(props.position),
+            centre: V3.zero(),
             radius: props.radius ?? 1,
             maxlevel: props.maxlevel ?? 10,
             loglevel: props.loglevel ?? 'warn'
         });
     }, [props]);
     const meshProps: MeshProps = {
-        ...props,
-        position: [0, 0, 0]
+        ...props
     };
     const [key, setKey] = useState<string>(sphere.key);
     const data = sphere.meshData;
@@ -63,7 +63,7 @@ export function QuadMesh(props: QuadMeshProps) {
     const quad = useMemo<Quad>(() => {
         console.info('creating new Quad!', {props});
         return new Quad({
-            centre: processPositionInput(props.position),
+            centre: V3.zero(),
             radius: props.radius ?? 1,
             registry: registry,
             maxlevel: props.maxlevel ?? 10,
@@ -71,8 +71,7 @@ export function QuadMesh(props: QuadMeshProps) {
         });
     }, [props]);
     const meshProps: MeshProps = {
-        ...props,
-        position: [0, 0, 0]
+        ...props
     };
     const [key, setKey] = useState<string>(quad.key);
     const data = quad.meshData;
@@ -105,40 +104,26 @@ export function QuadMesh(props: QuadMeshProps) {
 
 function subdivide(event: ThreeEvent<MouseEvent>, quad: Quad | QuadSphere): string {
     const point = event.point;
+    const target = event.object as Mesh;
+    const offsetPoint = point.clone()
+        .sub(target.position)
+        .applyQuaternion(target.quaternion.invert());
     console.info('left-clicked object at', point);
     event.stopPropagation();
-    let closest: Quad;
-    // do {
-        closest = quad.getClosestQuad(point);
-        closest.subdivide();
-    // } while (quad.depth <= quad.maxlevel);
+    const closest = quad.getClosestQuad(offsetPoint);
+    closest.subdivide();
     return quad.key;
 }
 
 function unify(event: ThreeEvent<MouseEvent>, quad: Quad | QuadSphere): string {
     const point = event.point;
+    const target = event.object as Mesh;
+    const offsetPoint = point.clone()
+        .sub(target.position)
+        .applyQuaternion(target.quaternion.invert());
     console.info('right-clicked object at', point);
     event.stopPropagation();
-    const closest = quad.getClosestQuad(point);
+    const closest = quad.getClosestQuad(offsetPoint);
     closest.parent?.unify();
     return quad.key;
-}
-
-function processPositionInput(position?: Vector3): V3 {
-    const pos = V3.zero();
-    if (Array.isArray(position)) {
-        pos.x = position?.[0] ?? 0;
-        pos.y = position?.[1] ?? pos.x;
-        pos.z = position?.[2] ?? pos.y;
-    } else if (typeof position === "number") {
-        pos.x = position;
-        pos.y = position;
-        pos.z = position;
-    } else if (typeof position === "object") {
-        const p = position as THREE.Vector3;
-        pos.x = p?.x ?? 0;
-        pos.y = p?.y ?? pos.x;
-        pos.z = p?.z ?? pos.y;
-    }
-    return pos;
 }
