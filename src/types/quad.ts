@@ -640,8 +640,8 @@ export class Quad {
                 maxlevel: this.maxlevel,
                 angle: this._angle,
                 rotationAxis: this._axis,
-                uvStart: {u: this.uvStart.u, v: (this.uvStart.v+this.uvEnd.v)/2},
-                uvEnd: {u: (this.uvStart.u+this.uvEnd.u)/2, v: this.uvEnd.v}
+                uvStart: {u: this.uvStart.u, v: this.uvStart.v},
+                uvEnd: {u: (this.uvStart.u+this.uvEnd.u)/2, v: (this.uvStart.v+this.uvEnd.v)/2}
             }),
             new Quad({
                 parent: this,
@@ -654,8 +654,8 @@ export class Quad {
                 maxlevel: this.maxlevel,
                 angle: this._angle,
                 rotationAxis: this._axis,
-                uvStart: {u: (this.uvStart.u+this.uvEnd.u)/2, v: (this.uvStart.v+this.uvEnd.v)/2},
-                uvEnd: {u: this.uvEnd.u, v: this.uvEnd.v}
+                uvStart: {u: (this.uvStart.u+this.uvEnd.u)/2, v: this.uvStart.v},
+                uvEnd: {u: this.uvEnd.u, v: (this.uvStart.v+this.uvEnd.v)/2}
             }),
             new Quad({
                 parent: this,
@@ -668,8 +668,8 @@ export class Quad {
                 maxlevel: this.maxlevel,
                 angle: this._angle,
                 rotationAxis: this._axis,
-                uvStart: {u: this.uvStart.u, v: this.uvStart.v},
-                uvEnd: {u: (this.uvStart.u+this.uvEnd.u)/2, v: (this.uvStart.v+this.uvEnd.v)/2}
+                uvStart: {u: this.uvStart.u, v: (this.uvStart.v+this.uvEnd.v)/2},
+                uvEnd: {u: (this.uvStart.u+this.uvEnd.u)/2, v: this.uvEnd.v}
             }),
             new Quad({
                 parent: this,
@@ -682,8 +682,8 @@ export class Quad {
                 maxlevel: this.maxlevel,
                 angle: this._angle,
                 rotationAxis: this._axis,
-                uvStart: {u: (this.uvStart.u+this.uvEnd.u)/2, v: this.uvStart.v},
-                uvEnd: {u: this.uvEnd.u, v: (this.uvStart.v+this.uvEnd.v)/2}
+                uvStart: {u: (this.uvStart.u+this.uvEnd.u)/2, v: (this.uvStart.v+this.uvEnd.v)/2},
+                uvEnd: {u: this.uvEnd.u, v: this.uvEnd.v}
             })
         ];
         children.forEach(c => this._children.set(c.quadrant, c));

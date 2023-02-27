@@ -22,20 +22,16 @@ function App() {
                     </MyText>
                     <QuadMesh 
                         position={[-1.2, 0, 0]} 
-                        radius={1} 
-                        material={new THREE.MeshBasicMaterial({
-                            map: texture, 
-                            wireframe: true
-                        })} 
-                    />
+                        radius={1}>
+                        <meshBasicMaterial map={texture} transparent opacity={0.5} />
+                        <Edges threshold={0} />
+                    </QuadMesh>
                     <QuadSphereMesh 
                         position={[1.2, 0, 0]} 
-                        radius={1} 
-                        material={new THREE.MeshBasicMaterial({
-                            map: texture, 
-                            wireframe: true
-                        })} 
-                    />
+                        radius={1}>
+                        <meshBasicMaterial map={texture} transparent opacity={0.5} />
+                        <Edges threshold={0.0001} />
+                    </QuadSphereMesh>
                     <Stats />
                 </Canvas>
             </div>
