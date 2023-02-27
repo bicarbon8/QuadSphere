@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { BufferGeometryUtils } from "three";
 import { Quad } from "./quad";
 import { QuadLogger, QuadLoggerLevel } from "./quad-logger";
 import { QuadRegistry } from "./quad-registry";
@@ -96,13 +97,79 @@ export class QuadSphere {
             uvArr.push(...data.uvs);
         });
         
-        return {
+        return this.mergeVertices({
             indices: tris,
             vertices: verts,
             normals: norms,
             uvs: uvArr
-        };
+        }, 4);
     }
+
+    /*
+	 * Checks for duplicate vertices with hashmap.
+	 * Duplicated vertices are removed
+	 * and faces' vertices are updated.
+	 */
+	mergeVertices(data: QuadMeshData, precision: number): QuadMeshData {
+        const vertices = V3.fromArray(data.vertices).map(v => V3.reducePrecision(v, precision));
+        const faces = V3.fromArray(data.indices);
+        const uvs = [...data.uvs];
+        const normals = [...data.normals];
+		const verticesMap = new Map<string, number>(); // Hashmap for looking up vertices by position coordinates (and making sure they are unique)
+		const unique = new Array<V3>();
+        const changes = new Array<number>();
+
+		for (let i = 0; i<vertices.length; i++) {
+			const v = vertices[i];
+			const key = `${v.x}_${v.y}_${v.z}`;
+
+			if (!verticesMap.has(key)) {
+				verticesMap.set(key, i);
+				unique.push(v);
+				changes[i] = unique.length - 1;
+			} else {
+				//console.log('Duplicate vertex found. ', i, ' could be using ', verticesMap[key]);
+				changes[i] = changes[verticesMap.get(key)];
+			}
+		}
+
+		// if faces are completely degenerate after merging vertices, we
+		// have to remove them from the geometry.
+		const faceIndicesToRemove = new Array<number>();
+		for (let i = 0; i<faces.length; i++) {
+			const face = faces[i];
+			face.x = changes[face.x];
+			face.y = changes[face.y];
+			face.z = changes[face.z];
+			const indices = new Array<number>(face.x, face.y, face.z);
+
+			// if any duplicate vertices are found in a Face3
+			// we have to remove the face as nothing can be saved
+			for (let n = 0; n < 3; n++) {
+				if (indices[n] === indices[(n+1) % 3]) {
+					faceIndicesToRemove.push(i);
+					break;
+				}
+			}
+		}
+
+		for (let i = faceIndicesToRemove.length - 1; i >= 0; i--) {
+			var idx = faceIndicesToRemove[i];
+			this.faces.splice(idx, 1);
+			uvs.splice(idx, 2);
+            normals.splice(idx, 3);
+		}
+
+		// Use unique set of vertices
+		var diff = vertices.length - unique.length;
+		const updated: QuadMeshData = {
+            indices: V3.toArray(...faces),
+            vertices: V3.toArray(...unique),
+            normals: normals,
+            uvs: uvs
+        };
+		return updated;
+	}
 
     getClosestQuad(point: V3, from?: Array<Quad>): Quad {
         from ??= Array.from(this._faces.values());

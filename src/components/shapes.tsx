@@ -1,6 +1,6 @@
 import { MeshProps, ThreeEvent } from "@react-three/fiber";
-import { useMemo, useRef, useState } from "react";
-import { Mesh } from "three";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { BufferGeometryUtils, Mesh } from "three";
 import { Quad } from "../types/quad";
 import { QuadLoggerLevel } from "../types/quad-logger";
 import { QuadSphere } from "../types/quad-sphere";
@@ -13,7 +13,8 @@ export type QuadMeshProps = MeshProps & {
 };
 
 export function QuadSphereMesh(props: QuadMeshProps) {
-    const ref = useRef<THREE.Mesh>(null);
+    const meshRef = useRef<THREE.Mesh>(null);
+    const geomRef = useRef<THREE.BufferGeometry>(null);
     const sphere = useMemo<QuadSphere>(() => {
         console.info('creating new QuadSphere!', {props});
         return new QuadSphere({
@@ -30,8 +31,8 @@ export function QuadSphereMesh(props: QuadMeshProps) {
     const normals = new Float32Array(data.normals);
     const uvs = new Float32Array(data.uvs);
     return (
-        <mesh ref={ref} key={key} onClick={(e: ThreeEvent<MouseEvent>) => setKey(subdivide(e, sphere))} onContextMenu={(e) => setKey(unify(e, sphere))} {...props}>
-            <bufferGeometry>
+        <mesh ref={meshRef} key={key} onClick={(e: ThreeEvent<MouseEvent>) => setKey(subdivide(e, sphere))} onContextMenu={(e) => setKey(unify(e, sphere))} {...props}>
+            <bufferGeometry ref={geomRef}>
                 <bufferAttribute 
                     attach="attributes-position"
                     array={positions}

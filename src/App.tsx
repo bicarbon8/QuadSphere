@@ -1,49 +1,14 @@
 import './App.css'
-import { Canvas, useLoader } from '@react-three/fiber'
-import { Edges, OrbitControls, Stats } from '@react-three/drei'
-import { QuadMesh, QuadSphereMesh } from './components/shapes';
+import { Canvas } from '@react-three/fiber'
 import { Fragment } from 'react';
-import { CameraFacingText } from "./components/camera-facing-text";
-import * as THREE from 'three';
+import { InCanvas } from './components/in-canvas';
 
 function App() {
-    const texture = useLoader(THREE.TextureLoader, './assets/grid.png');
-    const bump = useLoader(THREE.TextureLoader, './assets/bump.jpg');
     return (
         <Fragment>
             <div className='absolute_full'>
                 <Canvas>
-                    <ambientLight intensity={0.4} />
-                    <pointLight position={[10, 10, 10]} color={0xffff66} />
-                    <pointLight position={[-10, 10, -10]} color={0x6666ff} intensity={0.5} />
-                    <OrbitControls />
-                    <axesHelper args={[0.5]} />
-                    <CameraFacingText position={[0, 2, 0]}>
-                        left-click objects to subdivide; right-click to unify
-                    </CameraFacingText>
-                    <QuadMesh 
-                        position={[-1.2, 0, 0]} 
-                        radius={1}>
-                        <meshStandardMaterial 
-                            map={bump} 
-                            displacementMap={bump}
-                            displacementScale={0.3}
-                            transparent 
-                            opacity={0.5} />
-                        <Edges threshold={0} />
-                    </QuadMesh>
-                    <QuadSphereMesh 
-                        position={[1.2, 0, 0]} 
-                        radius={1}>
-                        <meshStandardMaterial 
-                            map={bump} 
-                            displacementMap={bump}
-                            displacementScale={0.1}
-                            transparent 
-                            opacity={0.5} />
-                        <Edges threshold={0} />
-                    </QuadSphereMesh>
-                    <Stats />
+                    <InCanvas />
                 </Canvas>
             </div>
         </Fragment>

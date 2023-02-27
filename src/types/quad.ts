@@ -107,8 +107,8 @@ export class Quad {
             level: this._loglevel,
             preface: () => this.fingerprint
         });
-        this.uvStart = options.uvStart ?? UV.zero();
-        this.uvEnd = options.uvEnd ?? UV.one();
+        this.uvStart = options.uvStart ?? UV.zero(); // bottomleft
+        this.uvEnd = options.uvEnd ?? UV.one();      // topright
         this._axis = options.rotationAxis ?? V3.zero();
         this._angle = options.angle ?? 0;
         this._generatePoints(options.centre ?? V3.zero());
