@@ -22,8 +22,7 @@ function App() {
                     </CameraFacingText>
                     <QuadMesh 
                         position={[-1.2, 0, 0]} 
-                        radius={1}
-                        rotation={[-90*(Math.PI / 180), 0, 0]}>
+                        radius={1}>
                         <meshBasicMaterial map={texture} transparent opacity={0.5} />
                         <Edges threshold={0} />
                     </QuadMesh>
@@ -31,7 +30,7 @@ function App() {
                         position={[1.2, 0, 0]} 
                         radius={1}>
                         <meshBasicMaterial map={texture} transparent opacity={0.5} />
-                        <Edges threshold={0.0001} />
+                        <Edges threshold={0} />
                     </QuadSphereMesh>
                     <Stats />
                 </Canvas>

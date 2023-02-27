@@ -23,16 +23,13 @@ export function QuadSphereMesh(props: QuadMeshProps) {
             loglevel: props.loglevel ?? 'warn'
         });
     }, [props]);
-    const meshProps: MeshProps = {
-        ...props
-    };
     const [key, setKey] = useState<string>(sphere.key);
     const data = sphere.meshData;
     const positions = new Float32Array(data.vertices);
     const indices = new Uint16Array(data.indices);
     const uvs = new Float32Array(data.uvs);
     return (
-        <mesh key={key} onClick={(e: ThreeEvent<MouseEvent>) => setKey(subdivide(e, sphere))} onContextMenu={(e) => setKey(unify(e, sphere))} {...meshProps}>
+        <mesh key={key} onClick={(e: ThreeEvent<MouseEvent>) => setKey(subdivide(e, sphere))} onContextMenu={(e) => setKey(unify(e, sphere))} {...props}>
             <bufferGeometry>
                 <bufferAttribute 
                     attach="attributes-position"
@@ -56,30 +53,22 @@ export function QuadSphereMesh(props: QuadMeshProps) {
 }
 
 export function QuadMesh(props: QuadMeshProps) {
-    const registry = useMemo<QuadRegistry>(() => {
-        console.info('creating new QuadRegistry!');
-        return new QuadRegistry();
-    }, [props]);
     const quad = useMemo<Quad>(() => {
         console.info('creating new Quad!', {props});
         return new Quad({
             centre: V3.zero(),
             radius: props.radius ?? 1,
-            registry: registry,
             maxlevel: props.maxlevel ?? 10,
             loglevel: props.loglevel ?? 'warn'
         });
     }, [props]);
-    const meshProps: MeshProps = {
-        ...props
-    };
     const [key, setKey] = useState<string>(quad.key);
     const data = quad.meshData;
     const positions = new Float32Array(data.vertices);
     const indices = new Uint16Array(data.indices);
     const uvs = new Float32Array(data.uvs);
     return (
-        <mesh key={key} onClick={(e) => setKey(subdivide(e, quad))} onContextMenu={(e) => setKey(unify(e, quad))} {...meshProps}>
+        <mesh key={key} onClick={(e) => setKey(subdivide(e, quad))} onContextMenu={(e) => setKey(unify(e, quad))} {...props}>
             <bufferGeometry>
                 <bufferAttribute 
                     attach="attributes-position"
