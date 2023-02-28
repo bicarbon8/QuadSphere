@@ -1,11 +1,13 @@
-import { useLoader, useThree } from '@react-three/fiber'
+import { useLoader } from '@react-three/fiber'
 import { Edges, OrbitControls, Stats } from '@react-three/drei'
 import { QuadMesh, QuadSphereMesh } from './shapes';
 import { CameraFacingText } from "./camera-facing-text";
 import * as THREE from 'three';
 
 export function InCanvas() {
-    const texture = useLoader(THREE.TextureLoader, './assets/grid.png');
+    const grid = useLoader(THREE.TextureLoader, './assets/grid.png');
+    const uvtest = useLoader(THREE.TextureLoader, './assets/uvCubeMapTexture.png');
+    const earth = useLoader(THREE.TextureLoader, './assets/EarthCubeMapTexture.png');
     const bump = useLoader(THREE.TextureLoader, './assets/bump.jpg');
     return (
         <>
@@ -19,8 +21,7 @@ export function InCanvas() {
             </CameraFacingText>
             <QuadMesh 
                 position={[-1.2, 0, 0]} 
-                radius={1}
-                loglevel="debug">
+                radius={1}>
                 <meshStandardMaterial 
                     map={bump} 
                     displacementMap={bump}
@@ -30,14 +31,11 @@ export function InCanvas() {
             </QuadMesh>
             <QuadSphereMesh 
                 position={[1.2, 0, 0]} 
-                radius={1}
-                loglevel="debug">
+                radius={1}>
                 <meshStandardMaterial 
-                    map={bump} 
-                    displacementMap={bump}
-                    displacementScale={0.1}
+                    map={uvtest}
                     transparent
-                    opacity={0.5} />
+                    opacity={0.75} />
                 <Edges threshold={0} />
             </QuadSphereMesh>
             <Stats />

@@ -4,6 +4,7 @@ import { QuadLogger, QuadLoggerLevel } from "./quad-logger";
 import { QuadRegistry } from "./quad-registry";
 import { QuadMeshData, QuadSphereFace } from "./quad-types";
 import { QuadUtils } from "./quad-utils";
+import { UV } from "./v2";
 import { V3 } from "./v3"
 
 export type QuadSphereOptions = {
@@ -99,12 +100,12 @@ export class QuadSphere {
         });
 
         // merge any duplicate vertices
-        const cubeData = this.utils.mergeVertices({
+        const cubeData = { // this.utils.mergeVertices({
             indices: tris,
             vertices: verts,
             normals: norms,
             uvs: uvs
-        }, 4);
+        } // , 4);
 
         // "inflate" our cube vertices into a sphere
         const sphericalVerts = V3.toArray(...V3.fromArray(cubeData.vertices).map(v => this.applyCurve(v)));
@@ -148,35 +149,61 @@ export class QuadSphere {
             const offset = V3.zero();
             let angle = 0;
             const axis = V3.zero();
+            const startUv = UV.zero();
+            const endUv = UV.one();
             switch (f) {
-                case 'bottom':
+                case 'bottom': // -Y
                     offset.y=-this.radius;
                     angle=90;
                     axis.x=1;
+                    startUv.u = 1/4;
+                    startUv.v = 0;
+                    endUv.u = 1/2;
+                    endUv.v = 1/3;
                     break;
-                case 'top':
+                case 'top': // +Y
                     offset.y=this.radius;
                     angle=-90;
                     axis.x=1;
+                    startUv.u = 1/4;
+                    startUv.v = 2/3;
+                    endUv.u = 1/2;
+                    endUv.v = 1;
                     break;
-                case 'right':
+                case 'right': // +X
                     offset.x=this.radius;
                     angle=90;
                     axis.y=1;
+                    startUv.u = 1/2;
+                    startUv.v = 1/3;
+                    endUv.u = 3/4;
+                    endUv.v = 2/3;
                     break;
-                case 'left':
+                case 'left': // -X
                     offset.x=-this.radius;
                     angle=-90;
                     axis.y=1;
+                    startUv.u = 0;
+                    startUv.v = 1/3;
+                    endUv.u = 1/4;
+                    endUv.v = 2/3;
                     break;
-                case 'back':
+                case 'back': // -Z
                     offset.z=-this.radius;
                     angle=180;
                     axis.y=1;
+                    startUv.u = 3/4;
+                    startUv.v = 1/3;
+                    endUv.u = 1;
+                    endUv.v = 2/3;
                     break;
-                case 'front':
+                case 'front': // +Z
                 default:
                     offset.z=this.radius;
+                    startUv.u = 1/4;
+                    startUv.v = 1/3;
+                    endUv.u = 1/2;
+                    endUv.v = 2/3;
                     break;
             }
             this._faces.set(f, new Quad({
@@ -187,7 +214,9 @@ export class QuadSphere {
                 maxlevel: this.maxlevel,
                 angle: angle,
                 rotationAxis: axis,
-                utils: this.utils
+                utils: this.utils,
+                uvStart: startUv,
+                uvEnd: endUv
             }
         ))});
     }
