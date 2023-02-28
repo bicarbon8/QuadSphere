@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { QuadLogger, QuadLoggerLevel } from "./quad-logger";
 import { QuadRegistry } from "./quad-registry";
 import { QuadChildren, QuadMeshData, QuadNeighbors, Quadrant, QuadSide } from "./quad-types";
+import { QuadUtils } from "./quad-utils";
 import { UV } from "./v2";
 import { V3 } from "./v3";
 
@@ -20,6 +21,7 @@ export type QuadOptions = {
     angle?: number;
     uvStart?: UV;
     uvEnd?: UV;
+    utils?: QuadUtils;
 };
 
 /**
@@ -82,6 +84,7 @@ export class Quad {
     public readonly maxlevel: number;
     public readonly uvStart: UV;
     public readonly uvEnd: UV;
+    public readonly utils: QuadUtils;
 
     private readonly _children = new Map<Quadrant, Quad>();
     private readonly _vertices = new Array<number>();
@@ -111,6 +114,7 @@ export class Quad {
         this.uvEnd = options.uvEnd ?? UV.one();      // topright
         this._axis = options.rotationAxis ?? V3.zero();
         this._angle = options.angle ?? 0;
+        this.utils = options.utils ?? new QuadUtils({loglevel: this._logger.level});
         this._generatePoints(options.centre ?? V3.zero());
         this._generateNormals();
         this._generateUVs();
@@ -352,12 +356,12 @@ export class Quad {
      * mismatch between the values
      */
     get meshData(): QuadMeshData {
-        return {
+        return this.utils.mergeVertices({
             indices: this.indices,
             vertices: this.vertices,
             normals: this.normals,
             uvs: this.uvs
-        };
+        }, 4);
     }
 
     /**
@@ -613,8 +617,9 @@ export class Quad {
     private _generatePoints(centre: V3): void {
         for (let y = centre.y - this.radius; y <= centre.y + this.radius; y += this.radius) {
             for (let x = centre.x - this.radius; x <= centre.x + this.radius; x += this.radius) {
-                const facev = this._rotatePoint({x, y, z: centre.z}, centre);
-                this._vertices.push(facev.x, facev.y, facev.z);
+                // rotate based on `this._angle`
+                const vert = this._rotatePoint({x, y, z: centre.z}, centre);
+                this._vertices.push(vert.x, vert.y, vert.z);
             }
         }
     }

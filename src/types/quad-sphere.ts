@@ -1,9 +1,9 @@
 import * as THREE from "three";
-import { BufferGeometryUtils } from "three";
 import { Quad } from "./quad";
 import { QuadLogger, QuadLoggerLevel } from "./quad-logger";
 import { QuadRegistry } from "./quad-registry";
 import { QuadMeshData, QuadSphereFace } from "./quad-types";
+import { QuadUtils } from "./quad-utils";
 import { V3 } from "./v3"
 
 export type QuadSphereOptions = {
@@ -11,6 +11,7 @@ export type QuadSphereOptions = {
     radius?: number,
     loglevel?: QuadLoggerLevel,
     maxlevel?: number;
+    utils?: QuadUtils;
 }
 
 export class QuadSphere {
@@ -18,6 +19,7 @@ export class QuadSphere {
     readonly radius: number;
     readonly registry: QuadRegistry;
     readonly maxlevel: number;
+    readonly utils: QuadUtils;
 
     private readonly _faces = new Map<QuadSphereFace, Quad>();
     private readonly _loglevel: QuadLoggerLevel;
@@ -32,6 +34,7 @@ export class QuadSphere {
         this._logger = new QuadLogger({
             level: this._loglevel
         });
+        this.utils = options.utils ?? new QuadUtils({loglevel: this._logger.level});
         this._createFaces();
     }
 
@@ -83,93 +86,37 @@ export class QuadSphere {
         const tris = new Array<number>();
         const verts = new Array<number>();
         const norms = new Array<number>();
-        const uvArr = new Array<number>();
+        const uvs = new Array<number>();
 
         let offset = 0;
         this._faces.forEach((quad: Quad, face: QuadSphereFace) => {
             const data = quad.meshData;
             tris.push(...data.indices.map(i => i+offset));
             offset += data.vertices.length / 3;
-            const sphericalVerts = V3.toArray(...V3.fromArray(data.vertices).map(v => this.applyCurve(v)));
-            verts.push(...sphericalVerts);
-            const sphericalNorms = V3.fromArray(sphericalVerts).map(v => new THREE.Vector3(v.x, v.y, v.z).normalize());
-            norms.push(...V3.toArray(...sphericalNorms));
-            uvArr.push(...data.uvs);
+            verts.push(...data.vertices);
+            norms.push(...data.normals);
+            uvs.push(...data.uvs);
         });
-        
-        return this.mergeVertices({
+
+        // merge any duplicate vertices
+        const cubeData = this.utils.mergeVertices({
             indices: tris,
             vertices: verts,
             normals: norms,
-            uvs: uvArr
-        }, 4);
-    }
-
-    /*
-	 * Checks for duplicate vertices with hashmap.
-	 * Duplicated vertices are removed
-	 * and faces' vertices are updated.
-	 */
-	mergeVertices(data: QuadMeshData, precision: number): QuadMeshData {
-        const vertices = V3.fromArray(data.vertices).map(v => V3.reducePrecision(v, precision));
-        const faces = V3.fromArray(data.indices);
-        const uvs = [...data.uvs];
-        const normals = [...data.normals];
-		const verticesMap = new Map<string, number>(); // Hashmap for looking up vertices by position coordinates (and making sure they are unique)
-		const unique = new Array<V3>();
-        const changes = new Array<number>();
-
-		for (let i = 0; i<vertices.length; i++) {
-			const v = vertices[i];
-			const key = `${v.x}_${v.y}_${v.z}`;
-
-			if (!verticesMap.has(key)) {
-				verticesMap.set(key, i);
-				unique.push(v);
-				changes[i] = unique.length - 1;
-			} else {
-				//console.log('Duplicate vertex found. ', i, ' could be using ', verticesMap[key]);
-				changes[i] = changes[verticesMap.get(key)];
-			}
-		}
-
-		// if faces are completely degenerate after merging vertices, we
-		// have to remove them from the geometry.
-		const faceIndicesToRemove = new Array<number>();
-		for (let i = 0; i<faces.length; i++) {
-			const face = faces[i];
-			face.x = changes[face.x];
-			face.y = changes[face.y];
-			face.z = changes[face.z];
-			const indices = new Array<number>(face.x, face.y, face.z);
-
-			// if any duplicate vertices are found in a Face3
-			// we have to remove the face as nothing can be saved
-			for (let n = 0; n < 3; n++) {
-				if (indices[n] === indices[(n+1) % 3]) {
-					faceIndicesToRemove.push(i);
-					break;
-				}
-			}
-		}
-
-		for (let i = faceIndicesToRemove.length - 1; i >= 0; i--) {
-			var idx = faceIndicesToRemove[i];
-			this.faces.splice(idx, 1);
-			uvs.splice(idx, 2);
-            normals.splice(idx, 3);
-		}
-
-		// Use unique set of vertices
-		var diff = vertices.length - unique.length;
-		const updated: QuadMeshData = {
-            indices: V3.toArray(...faces),
-            vertices: V3.toArray(...unique),
-            normals: normals,
             uvs: uvs
+        }, 4);
+
+        // "inflate" our cube vertices into a sphere
+        const sphericalVerts = V3.toArray(...V3.fromArray(cubeData.vertices).map(v => this.applyCurve(v)));
+        const sphericalNorms = V3.toArray(...V3.fromArray(sphericalVerts).map(v => new THREE.Vector3(v.x, v.y, v.z).normalize()));
+        
+        return {
+            indices: cubeData.indices,
+            vertices: sphericalVerts,
+            normals: sphericalNorms,
+            uvs: cubeData.uvs
         };
-		return updated;
-	}
+    }
 
     getClosestQuad(point: V3, from?: Array<Quad>): Quad {
         from ??= Array.from(this._faces.values());
@@ -239,7 +186,8 @@ export class QuadSphere {
                 registry: this.registry,
                 maxlevel: this.maxlevel,
                 angle: angle,
-                rotationAxis: axis
+                rotationAxis: axis,
+                utils: this.utils
             }
         ))});
     }

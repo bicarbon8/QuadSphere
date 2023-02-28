@@ -14,7 +14,12 @@ describe.concurrent('V3', () => {
         {point: {x: 1.2345, y: 1.2345, z: 1.2345}, precision: 0, expected: {x: 1, y: 1, z: 1}},
         {point: {x: 1.2345, y: 1.2345, z: 1.2345}, precision: 1, expected: {x: 1.2, y: 1.2, z: 1.2}},
         {point: {x: 1.2345, y: 1.2345, z: 1.2345}, precision: 2, expected: {x: 1.23, y: 1.23, z: 1.23}},
-        {point: {x: 1.2345, y: 1.2345, z: 1.2345}, precision: 10, expected: {x: 1.234500000, y: 1.234500000, z: 1.234500000}}
+        {point: {x: 1.2346, y: 1.2346, z: 1.2346}, precision: 3, expected: {x: 1.235, y: 1.235, z: 1.235}},
+        {point: {x: 1.2345, y: 1.2345, z: 1.2345}, precision: 3, expected: {x: 1.234, y: 1.234, z: 1.234}},
+        {point: {x: 1.2345, y: 1.2345, z: 1.2345}, precision: 10, expected: {x: 1.2345, y: 1.2345, z: 1.2345}},
+        {point: {x: 0.54321, y: 0.54321, z: 0.54321}, precision: 0, expected: {x: 1, y: 1, z: 1}},
+        {point: {x: 0.54321, y: 0.54321, z: 0.54321}, precision: 1, expected: {x: 0.5, y: 0.5, z: 0.5}},
+        {point: {x: 0.99998, y: 0.99998, z: 0.99998}, precision: 4, expected: {x: 1, y: 1, z: 1}}
     ])('reducePrecision($point, $precision) -> $expected', ({point, precision, expected}) => {
         expect(V3.reducePrecision(point, precision)).toEqual(expected);
     })

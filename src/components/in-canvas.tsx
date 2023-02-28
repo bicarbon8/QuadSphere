@@ -19,7 +19,8 @@ export function InCanvas() {
             </CameraFacingText>
             <QuadMesh 
                 position={[-1.2, 0, 0]} 
-                radius={1}>
+                radius={1}
+                loglevel="debug">
                 <meshStandardMaterial 
                     map={bump} 
                     displacementMap={bump}
@@ -29,9 +30,12 @@ export function InCanvas() {
             </QuadMesh>
             <QuadSphereMesh 
                 position={[1.2, 0, 0]} 
-                radius={1}>
+                radius={1}
+                loglevel="debug">
                 <meshStandardMaterial 
-                    map={texture}
+                    map={bump} 
+                    displacementMap={bump}
+                    displacementScale={0.1}
                     transparent
                     opacity={0.5} />
                 <Edges threshold={0} />
