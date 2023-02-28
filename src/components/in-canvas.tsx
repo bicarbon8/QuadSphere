@@ -7,7 +7,7 @@ import * as THREE from 'three';
 export function InCanvas() {
     const grid = useLoader(THREE.TextureLoader, './assets/grid.png');
     const uvtest = useLoader(THREE.TextureLoader, './assets/uvCubeMapTexture.png');
-    const earth = useLoader(THREE.TextureLoader, './assets/EarthCubeMapTexture.png');
+    const tessellation = useLoader(THREE.TextureLoader, './assets/tessellation-map.png');
     const bump = useLoader(THREE.TextureLoader, './assets/bump.jpg');
     return (
         <>
@@ -33,7 +33,9 @@ export function InCanvas() {
                 position={[1.2, 0, 0]} 
                 radius={1}>
                 <meshStandardMaterial 
-                    map={uvtest}
+                    map={tessellation} 
+                    displacementMap={tessellation}
+                    displacementScale={0.2}
                     transparent
                     opacity={0.75} />
                 <Edges threshold={0} />
