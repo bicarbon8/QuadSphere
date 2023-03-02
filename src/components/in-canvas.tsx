@@ -42,7 +42,6 @@ export function InCanvas() {
                     opacity={0.75} />
                 <Edges threshold={0} />
             </QuadSphereMesh>
-            <Stats />
         </>
     )
 }
