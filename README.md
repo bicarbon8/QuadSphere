@@ -1,18 +1,18 @@
 QuadSphere
 ============
-@Created: 29 Oct. 2018
+@Created: 29 Oct. 2018 (Unity version)
+
+@Updated: 2023 (Threejs & @react-three/fiber)
 
 @Author: Jason Holt Smith (<bicarbon8@gmail.com>)
 
 DESCRIPTION:
 ------------
-A set of Unity Game Engine scripts that generate a QuadSphere (a sphere made up of a mesh cube whose vertices are adjusted into a spherical shape) with QuadTree-based level of detail support.
+A QuadSphere (a sphere made up of a mesh cube whose vertices are adjusted into a spherical shape) with QuadTree-based level of detail support.
 
 ![QuadSphere](QuadSphere.png)
 
-[Video](https://youtu.be/b2fRNlJ61mo)
-
-INSTRUCTIONS:
+INSTRUCTIONS (Unity):
 ------------
 - Create an Empty Game Object and add the _QuadSphere_ script to it
 - within the _QuadSphere_ script, add some other game object that will be used to detect distances to the Quads in the QuadSphere
