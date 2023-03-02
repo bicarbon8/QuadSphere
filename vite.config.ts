@@ -13,7 +13,7 @@ export default defineConfig({
         filename: 'remoteEntry.js',
         // Modules to expose
         exposes: {
-          './QuadSphereModule': './src/App.tsx',
+          './QuadSphereModule': './src/main.tsx',
         }
     })
   ],
