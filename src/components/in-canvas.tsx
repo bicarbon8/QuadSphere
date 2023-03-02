@@ -4,11 +4,13 @@ import { QuadMesh, QuadSphereMesh } from './shapes';
 import { CameraFacingText } from "./camera-facing-text";
 import * as THREE from 'three';
 
+const assetPath = import.meta.env.VITE_ASSET_PATH;
+
 export function InCanvas() {
-    const grid = useLoader(THREE.TextureLoader, './assets/grid.png');
-    const uvtest = useLoader(THREE.TextureLoader, './assets/uvCubeMapTexture.png');
-    const tessellation = useLoader(THREE.TextureLoader, './assets/tessellation-map.png');
-    const bump = useLoader(THREE.TextureLoader, './assets/bump.jpg');
+    const grid = useLoader(THREE.TextureLoader, `${assetPath}/grid.png`);
+    const uvtest = useLoader(THREE.TextureLoader, `${assetPath}/uvCubeMapTexture.png`);
+    const tessellation = useLoader(THREE.TextureLoader, `${assetPath}/tessellation-map.png`);
+    const bump = useLoader(THREE.TextureLoader, `${assetPath}/bump.jpg`);
     return (
         <>
             <ambientLight intensity={0.4} />
