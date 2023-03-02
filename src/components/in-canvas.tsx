@@ -1,5 +1,5 @@
 import { useLoader } from '@react-three/fiber'
-import { Edges, OrbitControls, Stats } from '@react-three/drei'
+import { Edges, OrbitControls } from '@react-three/drei'
 import { QuadMesh, QuadSphereMesh } from './shapes';
 import { CameraFacingText } from "./camera-facing-text";
 import * as THREE from 'three';

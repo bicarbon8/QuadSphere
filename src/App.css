@@ -12,7 +12,7 @@ body {
   overflow: hidden;
 }
 
-#root {
+#quad-sphere {
   display: flex;
   flex-direction: column;
   flex-grow: 1;
