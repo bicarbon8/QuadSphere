@@ -1,37 +1,30 @@
 import './App.css'
 import { Canvas } from '@react-three/fiber'
 import { InCanvas } from './components/in-canvas';
+import { Fragment } from 'react';
 
-type Size = {
-    width: number;
-    height: number;
-};
-
-function getSize(parentId?: string): Size {
-    let size: Size;
+function setSize(parentId?: string): void {
+    const parent = document.getElementById(parentId || 'quad-sphere');
+    let rect: DOMRect;
     try {
         const main = document.querySelector('main') as HTMLElement;
-        const s = main.getBoundingClientRect();
-        size = {width: s.width, height: s.height};
+        rect = main.getBoundingClientRect();
     } catch (e) {
-        /* ignore */
+        const body = document.querySelector('body') as HTMLElement;
+        rect = body.getBoundingClientRect();
     }
-    if (!size) {
-        const parent = document.getElementById(parentId || 'quad-sphere');
-        const s = parent.getBoundingClientRect();
-        size = {width: s.width, height: s.height};
-    }
-    return size;
+    parent.style.width = `${rect.width}px`;
+    parent.style.height = `${rect.height}px`;
 }
 
 function App() {
-    const size=getSize();
+    setSize();
     return (
-        <div style={{width: size.width, height: size.height}}>
+        <Fragment>
             <Canvas>
                 <InCanvas />
             </Canvas>
-        </div>
+        </Fragment>
     );
 }
 
