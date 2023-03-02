@@ -6,11 +6,9 @@ import { InCanvas } from './components/in-canvas';
 function App() {
     return (
         <Fragment>
-            <div className='absolute_full'>
-                <Canvas>
-                    <InCanvas />
-                </Canvas>
-            </div>
+            <Canvas>
+                <InCanvas />
+            </Canvas>
         </Fragment>
     );
 }
