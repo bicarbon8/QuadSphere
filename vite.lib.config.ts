@@ -9,7 +9,7 @@ export default defineConfig({
   build: {
     lib: {
       entry: path.resolve(__dirname, 'src/index.ts'),
-      name: 'QuadSphere',
+      name: 'quadsphere',
       fileName: () => `index.js`
     },
     rollupOptions: {

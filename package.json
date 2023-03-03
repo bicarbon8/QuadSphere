@@ -2,7 +2,8 @@
   "name": "quadsphere",
   "version": "1.0.0",
   "description": "a quadsphere implementation in javascript using THREE.js supporting distance based level of detail adjustment",
-  "main": "dist/index.js",
+  "main": "index.js",
+  "types": "index.d.ts",
   "scripts": {
     "dev": "vite --port 8080",
     "build": "tsc && vite build",
