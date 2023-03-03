@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "outDir": "dist",
     "target": "ESNext",
     "useDefineForClassFields": true,
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
@@ -15,7 +16,9 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "strictNullChecks": false
+    "strictNullChecks": false,
+    "declaration": true,
+    "declarationMap": true
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
