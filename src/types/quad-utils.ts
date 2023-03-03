@@ -1,3 +1,4 @@
+import { Quad } from "./quad";
 import { QuadLogger, QuadLoggerLevel } from "./quad-logger";
 import { QuadMeshData } from "./quad-types";
 import { V3 } from "./v3";
@@ -96,4 +97,59 @@ export class QuadUtils {
         this._logger.log('info', 'removed', removedVertexCount, 'vertices and', removedTriangleCount, 'triangles');
 		return updated;
 	}
+
+    /**
+     * recursively searches the passed in `from` array for the `Quad`
+     * whose `centre` point is closest to the specified `point`
+     * @param point the `V3` in local space against which to compare
+     * @param from an array of `Quad` objects to recursively iterate over
+     * @returns the deepest quad that is closest to the specified `point`
+     */
+    getClosestQuad(point: V3, ...from: Array<Quad>): Quad {
+        if (from.length === 0) {
+            return null;
+        }
+        // sort quads in ascending order by distance to point
+        const sortedQuads = from.sort((a, b) => V3.length(a.centre, point) - V3.length(b.centre, point));
+        this._logger.log('debug', 'quads sorted by distance to', point, sortedQuads.map(q => q.centre));
+        let closest = sortedQuads
+            .find(q => q != null);
+        if (closest.hasChildren()) {
+            closest = this.getClosestQuad(point, 
+                closest.bottomleftChild,
+                closest.bottomrightChild,
+                closest.topleftChild,
+                closest.toprightChild
+            );
+        }
+        this._logger.log('debug', 'closest quad is', closest.fingerprint);
+        return closest;
+    }
+
+    /**
+     * recursively searches the passed in `from` array for any `Quad` who does not have children
+     * and whose `centre` is within the specified `distance` from the specified `point`
+     * @param point the `V3` in local space against which to compare
+     * @param distance the distance within which the length from `point` to `quad.centre` must be
+     * @param from an array of `Quad` objects to recursively interate over
+     * @returns an array of the deepest quads that are within the specified `distance` from the `point`
+     */
+    getQuadsWithinDistance(point: V3, distance: number, ...from: Array<Quad>): Array<Quad> {
+        const within = new Array<Quad>();
+        from.forEach(q => {
+            if (V3.length(point, q.centre) <= distance) {
+                if (q.hasChildren()) {
+                    within.push(...this.getQuadsWithinDistance(point, distance,
+                        q.bottomleftChild,
+                        q.bottomrightChild,
+                        q.topleftChild,
+                        q.toprightChild
+                    ).filter(q => q != null));
+                } else {
+                    within.push(q);
+                }
+            }
+        });
+        return within;
+    }
 }

@@ -84,8 +84,7 @@ export class Quad {
     public readonly maxlevel: number;
     public readonly uvStart: UV;
     public readonly uvEnd: UV;
-    public readonly utils: QuadUtils;
-
+    
     private readonly _children = new Map<Quadrant, Quad>();
     private readonly _vertices = new Array<number>();
     private readonly _normals = new Array<number>();
@@ -93,6 +92,7 @@ export class Quad {
     private readonly _active = new Set<QuadSide>();
     private readonly _loglevel: QuadLoggerLevel;
     private readonly _logger: QuadLogger;
+    private readonly _utils: QuadUtils;
     
     private _axis: V3;
     private _angle: number;
@@ -114,7 +114,7 @@ export class Quad {
         this.uvEnd = options.uvEnd ?? UV.one();      // topright
         this._axis = options.rotationAxis ?? V3.zero();
         this._angle = options.angle ?? 0;
-        this.utils = options.utils ?? new QuadUtils({loglevel: this._logger.level});
+        this._utils = options.utils ?? new QuadUtils({loglevel: this._logger.level});
         this._generatePoints(options.centre ?? V3.zero());
         this._generateNormals();
         this._generateUVs();
@@ -356,7 +356,7 @@ export class Quad {
      * mismatch between the values
      */
     get meshData(): QuadMeshData {
-        return this.utils.mergeVertices({
+        return this._utils.mergeVertices({
             indices: this.indices,
             vertices: this.vertices,
             normals: this.normals,
@@ -507,23 +507,25 @@ export class Quad {
         return this.updateSides();
     }
 
-    getClosestQuad(point: V3, from?: Array<Quad>): Quad {
-        from ??= Array.from([this]);
-        // sort quads in ascending order by distance to point
-        const sortedQuads = from.sort((a, b) => V3.length(a.centre, point) - V3.length(b.centre, point));
-        this._logger.log('debug', 'quads sorted by distance to', point, sortedQuads.map(q => q.centre));
-        let closest = sortedQuads
-            .find(q => q != null);
-        if (closest.hasChildren()) {
-            closest = this.getClosestQuad(point, [
-                closest.bottomleftChild,
-                closest.bottomrightChild,
-                closest.topleftChild,
-                closest.toprightChild
-            ]);
-        }
-        this._logger.log('debug', 'closest quad is', closest.fingerprint);
-        return closest;
+    /**
+     * recursively searches this `Quad` for the child whose `centre`
+     * point is closest to the specified `point`
+     * @param point the `V3` in local space against which to compare
+     * @returns the deepest quad that is closest to the specified `point`
+     */
+    getClosestQuad(point: V3): Quad {
+        return this._utils.getClosestQuad(point, this);
+    }
+
+    /**
+     * recursively searches this `Quad` for any `Quad` who does not have children
+     * and whose `centre` is within the specified `distance` from the specified `point`
+     * @param point the `V3` in local space against which to compare
+     * @param distance the distance within which the length from `point` to `quad.centre` must be
+     * @returns an array of the deepest quads that are within the specified `distance` from the `point`
+     */
+    getQuadsWithinDistance(point: V3, distance: number): Array<Quad> {
+        return this._utils.getQuadsWithinDistance(point, distance, this);
     }
 
     /**

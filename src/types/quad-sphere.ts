@@ -20,11 +20,11 @@ export class QuadSphere {
     readonly radius: number;
     readonly registry: QuadRegistry;
     readonly maxlevel: number;
-    readonly utils: QuadUtils;
-
+    
     private readonly _faces = new Map<QuadSphereFace, Quad>();
     private readonly _loglevel: QuadLoggerLevel;
     private readonly _logger: QuadLogger;
+    private readonly _utils: QuadUtils;
     
     constructor(options: QuadSphereOptions) {
         this.centre = options.centre ?? {x: 0, y: 0, z: 0};
@@ -35,7 +35,7 @@ export class QuadSphere {
         this._logger = new QuadLogger({
             level: this._loglevel
         });
-        this.utils = options.utils ?? new QuadUtils({loglevel: this._logger.level});
+        this._utils = options.utils ?? new QuadUtils({loglevel: this._logger.level});
         this._createFaces();
     }
 
@@ -119,21 +119,25 @@ export class QuadSphere {
         };
     }
 
-    getClosestQuad(point: V3, from?: Array<Quad>): Quad {
-        from ??= Array.from(this._faces.values());
-        // sort quads in ascending order by distance to point
-        const sorted = from.sort((a, b) => V3.length(this.applyCurve(a.centre), point) - V3.length(this.applyCurve(b.centre), point));
-        this._logger.log('debug', 'faces sorted by distance to', point, sorted.map(f => this.applyCurve(f.centre)));
-        let closest = sorted.find(q => q != null);
-        if (closest.hasChildren()) {
-            closest = this.getClosestQuad(point, [
-                closest.bottomleftChild,
-                closest.bottomrightChild,
-                closest.topleftChild,
-                closest.toprightChild
-            ]);
-        }
-        return closest;
+    /**
+     * recursively searches this `QuadSphere` for the child `Quad` whose `centre`
+     * point is closest to the specified `point`
+     * @param point the `V3` in local space against which to compare
+     * @returns the deepest quad that is closest to the specified `point`
+     */
+    getClosestQuad(point: V3): Quad {
+        return this._utils.getClosestQuad(point, ...Array.from(this._faces.values()));
+    }
+
+    /**
+     * recursively searches this `QuadSphere` for any `Quad` who does not have children
+     * and whose `centre` is within the specified `distance` from the specified `point`
+     * @param point the `V3` in local space against which to compare
+     * @param distance the distance within which the length from `point` to `quad.centre` must be
+     * @returns an array of the deepest quads that are within the specified `distance` from the `point`
+     */
+    getQuadsWithinDistance(point: V3, distance: number): Array<Quad> {
+        return this._utils.getQuadsWithinDistance(point, distance, ...Array.from(this._faces.values()));
     }
 
     applyCurve(point: V3): V3 {
@@ -221,7 +225,7 @@ export class QuadSphere {
                 maxlevel: this.maxlevel,
                 angle: angle,
                 rotationAxis: axis,
-                utils: this.utils,
+                utils: this._utils,
                 uvStart: startUv,
                 uvEnd: endUv
             }
