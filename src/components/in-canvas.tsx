@@ -24,7 +24,7 @@ export function InCanvas() {
     useFrame((state: RootState, delta: number) => {
         setElapsed(elapsed + delta);
         if (quadSphereMesh.current.mesh) {
-            setY(Math.sin(elapsed));
+            setY(0.25 * Math.sin(elapsed));
         }
     });
     return (
