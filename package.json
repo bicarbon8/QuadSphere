@@ -10,8 +10,8 @@
     "preview": "NODE_ENV=development vite preview --port 4500",
     "test": "vitest run",
     "preparedist": "cp ./package.json ./dist && cp ./README.md ./dist",
-    "pkg": "npx tsc -b && npm run preparedist && npm pack ./dist",
-    "pub": "npx tsc -b && npm run preparedist && npm publish ./dist"
+    "pkg": "tsc && npm run preparedist && npm pack ./dist",
+    "pub": "tsc && npm run preparedist && npm publish ./dist"
   },
   "repository": {
     "type": "git",
