@@ -1,9 +1,9 @@
-import { ThreeEvent, useLoader } from '@react-three/fiber'
+import { RootState, ThreeEvent, useFrame, useLoader } from '@react-three/fiber'
 import { Edges, OrbitControls } from '@react-three/drei'
 import { CameraFacingText } from "./camera-facing-text";
 import * as THREE from 'three';
 import { QuadMesh } from './quad-mesh';
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Mesh } from 'three';
 import { QuadSphereMesh } from './quad-sphere-mesh';
 import { Quad } from '../types/quad';
@@ -17,8 +17,16 @@ export function InCanvas() {
     const bump = useLoader(THREE.TextureLoader, `${assetPath}/bump.jpg`);
     const [meshKey, setMeshKey] = useState<string>('quad');
     const [sphereKey, setSphereKey] = useState<string>('sphere');
+    const [y, setY] = useState<number>(0);
     const quadMesh = useRef<QuadMesh>(null);
     const quadSphereMesh = useRef<QuadSphereMesh>(null);
+    const [elapsed, setElapsed] = useState<number>(0);
+    useFrame((state: RootState, delta: number) => {
+        setElapsed(elapsed + delta);
+        if (quadSphereMesh.current.mesh) {
+            setY(Math.sin(elapsed));
+        }
+    });
     return (
         <>
             <ambientLight intensity={0.4} />
@@ -32,7 +40,7 @@ export function InCanvas() {
             <QuadMesh ref={quadMesh} 
                 onClick={(e: ThreeEvent<MouseEvent>) => setMeshKey(subdivide(e, quadMesh.current))} 
                 onContextMenu={(e) => setMeshKey(unify(e, quadMesh.current))}
-                position={[-1.2, 0, 0]} 
+                position={[-1.2, -y, 0]} 
                 radius={1}>
                 <meshStandardMaterial 
                     map={bump} 
@@ -44,7 +52,7 @@ export function InCanvas() {
             <QuadSphereMesh ref={quadSphereMesh}
                 onClick={(e: ThreeEvent<MouseEvent>) => setSphereKey(subdivide(e, quadSphereMesh.current))} 
                 onContextMenu={(e) => setSphereKey(unify(e, quadSphereMesh.current))}
-                position={[1.2, 0, 0]} 
+                position={[1.2, y, 0]} 
                 radius={1}>
                 <meshStandardMaterial 
                     map={tessellation} 
