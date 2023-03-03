@@ -2,16 +2,17 @@
   "name": "quadsphere",
   "version": "1.0.0",
   "description": "a quadsphere implementation in javascript using THREE.js supporting distance based level of detail adjustment",
-  "main": "dist/src/index.js",
+  "main": "dist/index.js",
   "scripts": {
     "dev": "vite --port 8080",
     "build": "tsc && vite build",
     "build:dev": "NODE_ENV=development npm run build",
+    "build:lib": "tsc && vite build -c vite.lib.config.ts",
     "preview": "NODE_ENV=development vite preview --port 4500",
     "test": "vitest run",
     "preparedist": "cp ./package.json ./dist && cp ./README.md ./dist",
-    "pkg": "tsc && npm run preparedist && npm pack ./dist",
-    "pub": "tsc && npm run preparedist && npm publish ./dist"
+    "pkg": "npm run build:lib && npm run preparedist && npm pack ./dist",
+    "pub": "npm run build:lib && npm run preparedist && npm publish ./dist"
   },
   "repository": {
     "type": "git",
