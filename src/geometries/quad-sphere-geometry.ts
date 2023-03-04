@@ -9,21 +9,22 @@ export class QuadSphereGeometry extends BufferGeometry {
         super();
         this.type = 'QuadSphereGeometry';
         this.sphere = new QuadSphere(options);
-        this._updateAttributes(this.sphere.meshData);
+        this.updateAttributes();
     }
     subdivide(location: V3): this {
         const sphere = this.sphere.getClosestQuad(location);
         sphere?.subdivide();
-        this._updateAttributes(this.sphere.meshData);
+        this.updateAttributes();
         return this;
     }
     unify(location: V3): this {
         const sphere = this.sphere.getClosestQuad(location);
         sphere?.parent?.unify();
-        this._updateAttributes(this.sphere.meshData);
+        this.updateAttributes();
         return this;
     }
-    private _updateAttributes(data: QuadMeshData): void {
+    updateAttributes(): void {
+        const data = this.sphere.meshData;
         this.setIndex(data.indices);
         this.setAttribute('position', new Float32BufferAttribute(data.vertices, 3));
         this.setAttribute('normal', new Float32BufferAttribute(data.normals, 3));

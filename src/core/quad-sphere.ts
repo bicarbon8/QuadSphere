@@ -58,6 +58,19 @@ export class QuadSphere {
         return d;
     }
 
+    get leafQuads(): Array<Quad> {
+        const quads = new Array<Quad>();
+        quads.push(
+            ...this.front.leafQuads,
+            ...this.back.leafQuads,
+            ...this.left.leafQuads,
+            ...this.right.leafQuads,
+            ...this.top.leafQuads,
+            ...this.bottom.leafQuads
+        );
+        return quads;
+    }
+
     get faces(): Array<Quad> {
         return Array.from(this._faces.values());
     }
@@ -120,6 +133,13 @@ export class QuadSphere {
             normals: sphericalNorms,
             uvs: cubeData.uvs
         };
+    }
+
+    unify(): this {
+        Array.from(this._faces.values()).forEach(q => {
+            q.unify();
+        });
+        return this;
     }
 
     /**

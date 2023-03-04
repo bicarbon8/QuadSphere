@@ -92,7 +92,6 @@ export class Quad {
     private readonly _loglevel: QuadLoggerLevel;
     private readonly _logger: QuadLogger;
     private readonly _utils: QuadUtils;
-    private readonly _addSkirt: boolean;
     
     private _axis: V3;
     private _angle: number;
@@ -171,6 +170,21 @@ export class Quad {
             topleft: this.topleftChild,
             topright: this.toprightChild
         };
+    }
+
+    get leafQuads(): Array<Quad> {
+        const quads = new Array<Quad>();
+        if (this.hasChildren()) {
+            quads.push(
+                ...this.bottomleftChild.leafQuads,
+                ...this.bottomrightChild.leafQuads,
+                ...this.topleftChild.leafQuads,
+                ...this.toprightChild.leafQuads
+            )
+        } else {
+            quads.push(this);
+        }
+        return quads;
     }
 
     get activeSides(): Array<QuadSide> {
@@ -513,8 +527,11 @@ export class Quad {
      * @param point the `V3` in local space against which to compare
      * @returns the deepest quad that is closest to the specified `point`
      */
-    getClosestQuad(point: V3): Quad {
-        return this._utils.getClosestQuad(point, this);
+    getClosestQuad(point: V3, ...from: Array<Quad>): Quad {
+        if (from.length === 0) {
+            from = new Array<Quad>(this);
+        }
+        return this._utils.getClosestQuad(point, ...from);
     }
 
     /**
@@ -524,8 +541,11 @@ export class Quad {
      * @param distance the distance within which the length from `point` to `quad.centre` must be
      * @returns an array of the deepest quads that are within the specified `distance` from the `point`
      */
-    getQuadsWithinDistance(point: V3, distance: number): Array<Quad> {
-        return this._utils.getQuadsWithinDistance(point, distance, this);
+    getQuadsWithinDistance(point: V3, distance: number, ...from: Array<Quad>): Array<Quad> {
+        if (from.length === 0) {
+            from = new Array<Quad>(this);
+        }
+        return this._utils.getQuadsWithinDistance(point, distance, ...from);
     }
 
     /**
@@ -536,14 +556,6 @@ export class Quad {
      * |/     |/
      * 0      0
      * ```
-     * or if `addSkirt` option is `true`
-     * ```
-     * 11---6      11-6
-     *  |  /|\      |\|\
-     *  | / | 4 or  | 3-4
-     *  |/  |/      |/|/
-     *  9---0       9-0
-     * ```
      */
     getLeftTriangleIndices(): Array<number> {
         const indices = new Array<number>();
@@ -552,23 +564,10 @@ export class Quad {
                 4, 6, 3, // centre, topleft, middleleft
                 4, 3, 0  // centre, middleleft, bottomleft
             );
-            if (this._addSkirt) {
-                indices.push(
-                    3, 9, 0,  // middleleft, bottomleftskirt, bottomleft
-                    3, 11, 9, // middleleft, topleftskirt, bottomleftskirt
-                    3, 6, 11, // middleleft, topleft, topleftskirt
-                )
-            }
         } else {
             indices.push(
                 4, 6, 0 // centre, topleft, bottomleft
             );
-            if (this._addSkirt) {
-                indices.push(
-                    0, 6, 9,  // bottomleft, topleft, bottomleftskirt
-                    6, 11, 9, // topleft, topleftskirt, bottomleftskirt
-                )
-            }
         }
         return indices;
     }
