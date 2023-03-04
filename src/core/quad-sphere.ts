@@ -152,8 +152,23 @@ export class QuadSphere {
      * @param distance the distance within which the length from `point` to `quad.centre` must be
      * @returns an array of the deepest quads that are within the specified `distance` from the `point`
      */
-    getQuadsWithinDistance(point: V3, distance: number): Array<Quad> {
-        return this._utils.getQuadsWithinDistance(point, distance, ...Array.from(this._faces.values()));
+    getQuadsWithinDistance(point: V3, distance: number, ...from: Array<Quad>): Array<Quad> {
+        const within = new Array<Quad>();
+        from.forEach(q => {
+            if (V3.length(point, this.applyCurve(q.centre)) <= distance) {
+                if (q.hasChildren()) {
+                    within.push(...this.getQuadsWithinDistance(point, distance,
+                        q.bottomleftChild,
+                        q.bottomrightChild,
+                        q.topleftChild,
+                        q.toprightChild
+                    ).filter(q => q != null));
+                } else {
+                    within.push(q);
+                }
+            }
+        });
+        return within;
     }
 
     applyCurve(point: V3): V3 {
