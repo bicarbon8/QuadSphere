@@ -198,12 +198,12 @@ export class QuadSphere {
         from.forEach(q => {
             if (V3.length(point, q.centre) <= distance) {
                 if (q.hasChildren()) {
-                    within.push(...this.getQuadsWithinDistance(this._utils.applyCurve(point, this.centre), distance,
-                        q.bottomleftChild,
-                        q.bottomrightChild,
-                        q.topleftChild,
-                        q.toprightChild
-                    ).filter(q => q != null));
+                    within.push(
+                        ...q.bottomleftChild.getQuadsWithinDistance(point, distance),
+                        ...q.bottomrightChild.getQuadsWithinDistance(point, distance),
+                        ...q.topleftChild.getQuadsWithinDistance(point, distance),
+                        ...q.toprightChild.getQuadsWithinDistance(point, distance)
+                    );
                 } else {
                     within.push(q);
                 }

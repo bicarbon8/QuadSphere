@@ -14,7 +14,7 @@ const assetPath = import.meta.env.VITE_ASSET_PATH;
 export function InCanvas() {
     const {camera} = useThree();
     camera.near = 0.0001;
-    const distances = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 5, 2, 1, 0.5];
+    const distances = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0.5, 0.1];
     const grid = useLoader(THREE.TextureLoader, `${assetPath}/grid.png`);
     const uvtest = useLoader(THREE.TextureLoader, `${assetPath}/uvCubeMapTexture.png`);
     const tessellation = useLoader(THREE.TextureLoader, `${assetPath}/tessellation-map.png`);
@@ -33,10 +33,13 @@ export function InCanvas() {
             for (let i=0; i<distances.length; i++) {
                 const dist = distances[i];
                 const quads = geom.sphere.getQuadsWithinDistance(offsetPoint, dist);
-                const closest = geom.sphere.getClosestQuad(offsetPoint, ...quads);
-                if (closest.level <= i && !closest.hasChildren()) {
-                    closest.subdivide();
-                    geom.updateAttributes();
+                if (quads.length > 0) {
+                    // console.debug('found', quads.length, 'quads at distance', dist);
+                    const closest = geom.sphere.getClosestQuad(offsetPoint, ...quads);
+                    if (closest.level <= i && !closest.hasChildren()) {
+                        closest.subdivide();
+                        geom.updateAttributes();
+                    }
                 }
             }
         }
@@ -49,10 +52,12 @@ export function InCanvas() {
             for (let i=0; i<distances.length; i++) {
                 const dist = distances[i];
                 const quads = geom.quad.getQuadsWithinDistance(offsetPoint, dist);
-                const closest = geom.quad.getClosestQuad(offsetPoint, ...quads);
-                if (closest.level <= i && !closest.hasChildren()) {
-                    closest.subdivide();
-                    geom.updateAttributes();
+                if (quads.length > 0) {
+                    const closest = geom.quad.getClosestQuad(offsetPoint, ...quads);
+                    if (closest.level <= i && !closest.hasChildren()) {
+                        closest.subdivide();
+                        geom.updateAttributes();
+                    }
                 }
             }
         }
@@ -67,7 +72,7 @@ export function InCanvas() {
             <CameraFacingText position={[0, 2, 0]}>
                 left-click objects to subdivide; right-click to unify
             </CameraFacingText>
-            <QuadMesh ref={quadMesh} 
+            {/* <QuadMesh ref={quadMesh} 
                 onClick={(e: ThreeEvent<MouseEvent>) => subdivide(e, quadMesh.current)} 
                 onContextMenu={(e) => unify(e, quadMesh.current)}
                 position={[-1.2, 0, 0]} 
@@ -78,16 +83,16 @@ export function InCanvas() {
                     displacementScale={0.2}
                     flatShading />
                 <Edges threshold={0} />
-            </QuadMesh>
+            </QuadMesh> */}
             <QuadSphereMesh ref={quadSphereMesh}
                 onClick={(e: ThreeEvent<MouseEvent>) => subdivide(e, quadSphereMesh.current)} 
                 onContextMenu={(e) => unify(e, quadSphereMesh.current)}
-                position={[1.2, 0, 0]} 
+                position={[0, 0, 0]} 
                 radius={1}>
                 <meshStandardMaterial 
                     map={tessellation}
-                    // displacementMap={tessellation}
-                    // displacementScale={0.2} 
+                    displacementMap={tessellation}
+                    displacementScale={0.2} 
                     transparent
                     opacity={0.5} />
                 <Edges threshold={0} />
