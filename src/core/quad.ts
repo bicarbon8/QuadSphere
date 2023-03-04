@@ -1,4 +1,3 @@
-import * as THREE from "three";
 import { QuadLogger, QuadLoggerLevel } from "./quad-logger";
 import { QuadRegistry } from "./quad-registry";
 import { QuadChildren, QuadMeshData, QuadNeighbors, Quadrant, QuadSide } from "./quad-types";
@@ -22,7 +21,6 @@ export type QuadOptions = {
     uvStart?: UV;
     uvEnd?: UV;
     utils?: QuadUtils;
-    addSkirt?: boolean;
 };
 
 /**
@@ -117,7 +115,6 @@ export class Quad {
         this._axis = options.rotationAxis ?? V3.zero();
         this._angle = options.angle ?? 0;
         this._utils = options.utils ?? new QuadUtils({loglevel: this._logger.level});
-        this._addSkirt = options.addSkirt ?? false;
         this._generatePoints(options.centre ?? V3.zero());
         this._generateNormals();
         this._generateUVs();
@@ -644,24 +641,16 @@ export class Quad {
     }
 
     private _generatePoints(centre: V3): void {
-        const skirtVerts = new Array<number>();
+        const points = new Array<V3>();
         for (let y = centre.y - this.radius; y <= centre.y + this.radius; y += this.radius) {
             for (let x = centre.x - this.radius; x <= centre.x + this.radius; x += this.radius) {
                 const point: V3 = {x, y, z: centre.z};
                 // rotate based on `this._angle`
-                const vert = this._rotatePoint(point, centre);
-                this._vertices.push(vert.x, vert.y, vert.z);
-                // add skirt vertices at each corner `addSkirt`=`true`
-                if (this._addSkirt && x !== centre.x && y !== centre.y) {
-                    const skirt = {x: point.x, y: point.y, z: point.z - (this.radius / 8)};
-                    const rotatedSkirt = this._rotatePoint(skirt, centre);
-                    skirtVerts.push(rotatedSkirt.x, rotatedSkirt.y, rotatedSkirt.z);
-                }
+                const vert = this._utils.rotatePoint(point, this._angle, this._axis, centre);
+                points.push(vert);
             }
         }
-        if (skirtVerts.length > 0) {
-            this._vertices.push(...skirtVerts);
-        }
+        this._vertices.push(...V3.toArray(...points));
     }
 
     private _generateNormals(): void {
@@ -674,22 +663,9 @@ export class Quad {
         const zero = V3.zero();
         for (let i=0; i<normalPoints.length; i++) {
             const normalPoint = normalPoints[i];
-            normalPoints[i] = this._rotatePoint(normalPoint, zero);
+            normalPoints[i] = this._utils.rotatePoint(normalPoint, this._angle, this._axis, zero);
         }
         this._normals.push(...V3.toArray(...normalPoints));
-        if (this._addSkirt) {
-            const skirtNormals = new Array<number>(
-                0, 0, 1,   0, 0, 1,
-                0, 0, 1,   0, 0, 1,
-            );
-            const skirtNormalPoints = V3.fromArray(skirtNormals);
-            const zero = V3.zero();
-            for (let i=0; i<skirtNormalPoints.length; i++) {
-                const skirtNormalPoint = skirtNormalPoints[i];
-                skirtNormalPoints[i] = this._rotatePoint(skirtNormalPoint, zero);
-            }
-            this._normals.push(...V3.toArray(...skirtNormalPoints));
-        }
     }
 
     private _generateUVs(): void {
@@ -698,27 +674,6 @@ export class Quad {
             {u: this.uvStart.u, v: (this.uvStart.v+this.uvEnd.v)/2}, UV.midpoint(this.uvStart, this.uvEnd), {u: this.uvEnd.u, v: (this.uvStart.v+this.uvEnd.v)/2},
             {u: this.uvStart.u, v: this.uvEnd.v}, {u: (this.uvStart.u+this.uvEnd.u)/2, v: this.uvEnd.v}, this.uvEnd
         ));
-        if (this._addSkirt) {
-            this._uvs.push(...UV.toArray(
-                this.uvStart, {u: this.uvEnd.u, v: this.uvStart.v},
-                {u: this.uvStart.u, v: this.uvEnd.v}, this.uvEnd
-            ));
-        }
-    }
-
-    private _rotatePoint(point: V3, around?: V3): V3 {
-        if (this._angle === 0) {
-            return point;
-        }
-        around ??= point;
-        const radians = this._angle * (Math.PI / 180);
-        const p = new THREE.Vector3(point.x, point.y, point.z);
-        const a = new THREE.Vector3(around.x, around.y, around.z);
-        const axis = new THREE.Vector3(this._axis.x, this._axis.y, this._axis.z).normalize();
-        
-        return p.sub(a)
-            .applyAxisAngle(axis, radians)
-            .add(a);
     }
 
     private _getPointIndices(index: number = 0): V3 {
@@ -740,8 +695,7 @@ export class Quad {
                 angle: this._angle,
                 rotationAxis: this._axis,
                 uvStart: {u: this.uvStart.u, v: this.uvStart.v},
-                uvEnd: {u: (this.uvStart.u+this.uvEnd.u)/2, v: (this.uvStart.v+this.uvEnd.v)/2},
-                addSkirt: this._addSkirt
+                uvEnd: {u: (this.uvStart.u+this.uvEnd.u)/2, v: (this.uvStart.v+this.uvEnd.v)/2}
             }),
             new Quad({
                 parent: this,
@@ -755,8 +709,7 @@ export class Quad {
                 angle: this._angle,
                 rotationAxis: this._axis,
                 uvStart: {u: (this.uvStart.u+this.uvEnd.u)/2, v: this.uvStart.v},
-                uvEnd: {u: this.uvEnd.u, v: (this.uvStart.v+this.uvEnd.v)/2},
-                addSkirt: this._addSkirt
+                uvEnd: {u: this.uvEnd.u, v: (this.uvStart.v+this.uvEnd.v)/2}
             }),
             new Quad({
                 parent: this,
@@ -770,8 +723,7 @@ export class Quad {
                 angle: this._angle,
                 rotationAxis: this._axis,
                 uvStart: {u: this.uvStart.u, v: (this.uvStart.v+this.uvEnd.v)/2},
-                uvEnd: {u: (this.uvStart.u+this.uvEnd.u)/2, v: this.uvEnd.v},
-                addSkirt: this._addSkirt
+                uvEnd: {u: (this.uvStart.u+this.uvEnd.u)/2, v: this.uvEnd.v}
             }),
             new Quad({
                 parent: this,
@@ -785,8 +737,7 @@ export class Quad {
                 angle: this._angle,
                 rotationAxis: this._axis,
                 uvStart: {u: (this.uvStart.u+this.uvEnd.u)/2, v: (this.uvStart.v+this.uvEnd.v)/2},
-                uvEnd: {u: this.uvEnd.u, v: this.uvEnd.v},
-                addSkirt: this._addSkirt
+                uvEnd: {u: this.uvEnd.u, v: this.uvEnd.v}
             })
         ];
         children.forEach(c => this._children.set(c.quadrant, c));

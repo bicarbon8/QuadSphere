@@ -22,10 +22,10 @@ export function InCanvas() {
     useFrame((state: RootState, delta: number) => {
         setElapsed(elapsed + delta);
         if (quadSphereMesh.current) {
-            // quadSphereMesh.current.position.y = 0.25 * Math.sin(elapsed);
+            quadSphereMesh.current.position.y = 0.25 * Math.sin(elapsed);
         }
         if (quadMesh.current) {
-            // quadMesh.current.position.y = 0.25 * -Math.sin(elapsed);
+            quadMesh.current.position.y = 0.25 * -Math.sin(elapsed);
         }
     });
     return (
@@ -42,8 +42,7 @@ export function InCanvas() {
                 onClick={(e: ThreeEvent<MouseEvent>) => subdivide(e, quadMesh.current)} 
                 onContextMenu={(e) => unify(e, quadMesh.current)}
                 position={[-1.2, 0, 0]} 
-                radius={1}
-                addSkirt={true}>
+                radius={1}>
                 <meshStandardMaterial 
                     map={bump} 
                     displacementMap={bump}
@@ -55,12 +54,11 @@ export function InCanvas() {
                 onClick={(e: ThreeEvent<MouseEvent>) => subdivide(e, quadSphereMesh.current)} 
                 onContextMenu={(e) => unify(e, quadSphereMesh.current)}
                 position={[1.2, 0, 0]} 
-                radius={1}
-                addSkirts={true}>
+                radius={1}>
                 <meshStandardMaterial 
                     map={tessellation} 
-                    // displacementMap={tessellation}
-                    // displacementScale={0.2}
+                    displacementMap={tessellation}
+                    displacementScale={0.2}
                     transparent
                     opacity={0.75} />
                 <Edges threshold={0} />

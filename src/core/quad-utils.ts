@@ -1,3 +1,4 @@
+import * as THREE from "three";
 import { Quad } from "./quad";
 import { QuadLogger, QuadLoggerLevel } from "./quad-logger";
 import { QuadMeshData } from "./quad-types";
@@ -151,5 +152,40 @@ export class QuadUtils {
             }
         });
         return within;
+    }
+
+    rotatePoint(point: V3, angle: number, axis: V3, around?: V3): V3 {
+        if (angle === 0) {
+            return point;
+        }
+        around ??= point;
+        const radians = angle * (Math.PI / 180);
+        const p = new THREE.Vector3(point.x, point.y, point.z);
+        const ar = new THREE.Vector3(around.x, around.y, around.z);
+        const ax = new THREE.Vector3(axis.x, axis.y, axis.z).normalize();
+        
+        return p.sub(ar)
+            .applyAxisAngle(ax, radians)
+            .add(ar);
+    }
+
+    /**
+     * applies a curvature around the `curveOrigin` for the passed in point
+     * @param point the point to be adjusted for curvature
+     * @param curveOrigin the point around which to curve
+     * @returns the curve-adjusted point
+     */
+    applyCurve(point: V3, curveOrigin: V3): V3 {
+        const offset = V3.subtract(point, curveOrigin.x, curveOrigin.y, curveOrigin.z);
+        // const curvedOffset = V3.multiply(V3.normalise(offset), this.radius);
+        const curvedOffset = V3.zero();
+        const x2 = offset.x * offset.x;
+        const y2 = offset.y * offset.y;
+        const z2 = offset.z * offset.z;
+        curvedOffset.x = offset.x * Math.sqrt(1 - y2 / 2 - z2 / 2 + y2 * z2 / 3);
+        curvedOffset.y = offset.y * Math.sqrt(1 - x2 / 2 - z2 / 2 + x2 * z2 / 3);
+        curvedOffset.z = offset.z * Math.sqrt(1 - x2 / 2 - y2 / 2 + x2 * y2 / 3);
+        const curved = V3.add(curvedOffset, curveOrigin.x, curveOrigin.y, curveOrigin.z);
+        return curved;
     }
 }

@@ -111,7 +111,7 @@ export class QuadSphere {
         } // , 4);
 
         // "inflate" our cube vertices into a sphere
-        const sphericalVerts = V3.toArray(...V3.fromArray(cubeData.vertices).map(v => this.applyCurve(v)));
+        const sphericalVerts = V3.toArray(...V3.fromArray(cubeData.vertices).map(v => this._utils.applyCurve(v, this.centre)));
         const sphericalNorms = V3.toArray(...V3.fromArray(sphericalVerts).map(v => new THREE.Vector3(v.x, v.y, v.z).normalize()));
         
         return {
@@ -128,20 +128,31 @@ export class QuadSphere {
      * @param point the `V3` in local space against which to compare
      * @returns the deepest quad that is closest to the specified `point`
      */
-    getClosestQuad(point: V3, from?: Array<Quad>): Quad {
-        from ??= Array.from(this._faces.values());
+    getClosestQuad(point: V3, ...from: Array<Quad>): Quad {
+        if (from.length === 0) {
+            from = new Array<Quad>(
+                this.front,
+                this.back,
+                this.left,
+                this.right,
+                this.top,
+                this.bottom
+            );
+        }
         // sort quads in ascending order by distance to point
-        const sorted = from.sort((a, b) => V3.length(this.applyCurve(a.centre), point) - V3.length(this.applyCurve(b.centre), point));
-        this._logger.log('debug', 'faces sorted by distance to', point, sorted.map(f => this.applyCurve(f.centre)));
-        let closest = sorted.find(q => q != null);
+        const sortedQuads = from.sort((a, b) => V3.length(this._utils.applyCurve(a.centre, this.centre), point) - V3.length(this._utils.applyCurve(b.centre, this.centre), point));
+        this._logger.log('debug', 'quads sorted by distance to', point, sortedQuads.map(q => q.centre));
+        let closest = sortedQuads
+            .find(q => q != null);
         if (closest.hasChildren()) {
-            closest = this.getClosestQuad(point, [
+            closest = this.getClosestQuad(point, 
                 closest.bottomleftChild,
                 closest.bottomrightChild,
                 closest.topleftChild,
                 closest.toprightChild
-            ]);
+            );
         }
+        this._logger.log('debug', 'closest quad is', closest.fingerprint);
         return closest;
     }
 
@@ -153,11 +164,21 @@ export class QuadSphere {
      * @returns an array of the deepest quads that are within the specified `distance` from the `point`
      */
     getQuadsWithinDistance(point: V3, distance: number, ...from: Array<Quad>): Array<Quad> {
+        if (from.length === 0) {
+            from = new Array<Quad>(
+                this.front,
+                this.back,
+                this.left,
+                this.right,
+                this.top,
+                this.bottom
+            );
+        }
         const within = new Array<Quad>();
         from.forEach(q => {
-            if (V3.length(point, this.applyCurve(q.centre)) <= distance) {
+            if (V3.length(point, q.centre) <= distance) {
                 if (q.hasChildren()) {
-                    within.push(...this.getQuadsWithinDistance(point, distance,
+                    within.push(...this.getQuadsWithinDistance(this._utils.applyCurve(point, this.centre), distance,
                         q.bottomleftChild,
                         q.bottomrightChild,
                         q.topleftChild,
@@ -169,20 +190,6 @@ export class QuadSphere {
             }
         });
         return within;
-    }
-
-    applyCurve(point: V3): V3 {
-        const offset = V3.subtract(point, this.centre.x, this.centre.y, this.centre.z);
-        // const curvedOffset = V3.multiply(V3.normalise(offset), this.radius);
-        const curvedOffset = V3.zero();
-        const x2 = offset.x * offset.x;
-        const y2 = offset.y * offset.y;
-        const z2 = offset.z * offset.z;
-        curvedOffset.x = offset.x * Math.sqrt(1 - y2 / 2 - z2 / 2 + y2 * z2 / 3);
-        curvedOffset.y = offset.y * Math.sqrt(1 - x2 / 2 - z2 / 2 + x2 * z2 / 3);
-        curvedOffset.z = offset.z * Math.sqrt(1 - x2 / 2 - y2 / 2 + x2 * y2 / 3);
-        const curved = V3.add(curvedOffset, this.centre.x, this.centre.y, this.centre.z);
-        return curved;
     }
 
     private _createFaces(): void {
@@ -258,8 +265,7 @@ export class QuadSphere {
                 rotationAxis: axis,
                 utils: this._utils,
                 uvStart: startUv,
-                uvEnd: endUv,
-                addSkirt: this._addSkirts
+                uvEnd: endUv
             }
         ))});
     }
