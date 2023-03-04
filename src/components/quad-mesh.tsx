@@ -1,24 +1,18 @@
 import { MeshProps } from "@react-three/fiber";
 import { ForwardedRef, forwardRef, useEffect, useMemo, useRef, useState } from "react";
 import { Mesh } from "three";
-import { QuadLoggerLevel } from "../core/quad-logger";
+import { QuadOptions } from "../core/quad";
 import { V3 } from "../core/v3";
 import { QuadGeometry } from "../geometries/quad-geometry";
 
-export type QuadMeshProps = MeshProps & {
-    radius?: number;
-    maxlevel?: number;
-    loglevel?: QuadLoggerLevel;
-};
+export type QuadMeshProps = MeshProps & QuadOptions;
 
 export const QuadMesh = forwardRef((props: QuadMeshProps, ref: ForwardedRef<Mesh>) => {
     const geometry = useMemo<QuadGeometry>(() => {
         console.info('creating new Quad!', {props});
         return new QuadGeometry({
-            centre: V3.zero(),
-            radius: props.radius ?? 1,
-            maxlevel: props.maxlevel ?? 10,
-            loglevel: props.loglevel ?? 'warn'
+            ...props,
+            centre: V3.zero()
         });
     }, [props.radius, props.maxlevel, props.loglevel]);
     const mesh = useRef<Mesh>(null);

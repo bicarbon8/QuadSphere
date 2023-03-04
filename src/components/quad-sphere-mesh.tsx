@@ -1,25 +1,18 @@
 import { MeshProps } from "@react-three/fiber";
 import { ForwardedRef, forwardRef, useEffect, useMemo, useRef, useState } from "react";
 import { Mesh } from "three";
-import { QuadLoggerLevel } from "../core/quad-logger";
-import { QuadSphere } from "../core/quad-sphere";
+import { QuadSphereOptions } from "../core/quad-sphere";
 import { V3 } from "../core/v3";
-import { QuadSphereGeometry } from "./quad-sphere-geometry";
+import { QuadSphereGeometry } from "../geometries/quad-sphere-geometry";
 
-export type QuadSphereMeshProps = Omit<MeshProps, 'ref'> & {
-    radius?: number;
-    maxlevel?: number;
-    loglevel?: QuadLoggerLevel;
-};
+export type QuadSphereMeshProps = MeshProps & QuadSphereOptions;
 
 export const QuadSphereMesh = forwardRef((props: QuadSphereMeshProps, ref: ForwardedRef<Mesh>) => {
     const geometry = useMemo<QuadSphereGeometry>(() => {
         console.info('creating new QuadSphere!', {props});
         return new QuadSphereGeometry({
-            centre: V3.zero(),
-            radius: props.radius ?? 1,
-            maxlevel: props.maxlevel ?? 10,
-            loglevel: props.loglevel ?? 'warn'
+            ...props,
+            centre: V3.zero()
         });
     }, [props.radius, props.maxlevel, props.loglevel]);
     const mesh = useRef<Mesh>(null);

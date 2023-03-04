@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { Quad } from "./quad";
+import { Quad, QuadOptions } from "./quad";
 import { QuadLogger, QuadLoggerLevel } from "./quad-logger";
 import { QuadRegistry } from "./quad-registry";
 import { QuadMeshData, QuadSphereFace } from "./quad-types";
@@ -13,6 +13,7 @@ export type QuadSphereOptions = {
     loglevel?: QuadLoggerLevel,
     maxlevel?: number;
     utils?: QuadUtils;
+    addSkirts?: boolean;
 }
 
 export class QuadSphere {
@@ -25,6 +26,7 @@ export class QuadSphere {
     private readonly _loglevel: QuadLoggerLevel;
     private readonly _logger: QuadLogger;
     private readonly _utils: QuadUtils;
+    private readonly _addSkirts: boolean;
     
     constructor(options: QuadSphereOptions) {
         this.centre = options.centre ?? {x: 0, y: 0, z: 0};
@@ -36,6 +38,7 @@ export class QuadSphere {
             level: this._loglevel
         });
         this._utils = options.utils ?? new QuadUtils({loglevel: this._logger.level});
+        this._addSkirts = options.addSkirts ?? false;
         this._createFaces();
     }
 
@@ -125,8 +128,21 @@ export class QuadSphere {
      * @param point the `V3` in local space against which to compare
      * @returns the deepest quad that is closest to the specified `point`
      */
-    getClosestQuad(point: V3): Quad {
-        return this._utils.getClosestQuad(point, ...Array.from(this._faces.values()));
+    getClosestQuad(point: V3, from?: Array<Quad>): Quad {
+        from ??= Array.from(this._faces.values());
+        // sort quads in ascending order by distance to point
+        const sorted = from.sort((a, b) => V3.length(this.applyCurve(a.centre), point) - V3.length(this.applyCurve(b.centre), point));
+        this._logger.log('debug', 'faces sorted by distance to', point, sorted.map(f => this.applyCurve(f.centre)));
+        let closest = sorted.find(q => q != null);
+        if (closest.hasChildren()) {
+            closest = this.getClosestQuad(point, [
+                closest.bottomleftChild,
+                closest.bottomrightChild,
+                closest.topleftChild,
+                closest.toprightChild
+            ]);
+        }
+        return closest;
     }
 
     /**
@@ -227,7 +243,8 @@ export class QuadSphere {
                 rotationAxis: axis,
                 utils: this._utils,
                 uvStart: startUv,
-                uvEnd: endUv
+                uvEnd: endUv,
+                addSkirt: this._addSkirts
             }
         ))});
     }
