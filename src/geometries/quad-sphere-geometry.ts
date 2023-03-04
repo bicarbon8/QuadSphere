@@ -1,7 +1,7 @@
 import { BufferGeometry, Float32BufferAttribute } from "three";
-import { QuadSphere, QuadSphereOptions } from "../types/quad-sphere";
-import { QuadMeshData } from "../types/quad-types";
-import { V3 } from "../types/v3";
+import { QuadSphere, QuadSphereOptions } from "../core/quad-sphere";
+import { QuadMeshData } from "../core/quad-types";
+import { V3 } from "../core/v3";
 
 export class QuadSphereGeometry extends BufferGeometry {
     readonly sphere: QuadSphere;

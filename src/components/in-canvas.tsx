@@ -6,7 +6,7 @@ import { QuadMesh } from './quad-mesh';
 import { useRef, useState } from 'react';
 import { Mesh } from 'three';
 import { QuadSphereMesh } from './quad-sphere-mesh';
-import { QuadGeometry } from './quad-geometry';
+import { QuadGeometry } from '../geometries/quad-geometry';
 import { QuadSphereGeometry } from './quad-sphere-geometry';
 
 const assetPath = import.meta.env.VITE_ASSET_PATH;

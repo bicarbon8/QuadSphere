@@ -1,9 +1,9 @@
 import { MeshProps } from "@react-three/fiber";
 import { ForwardedRef, forwardRef, useEffect, useMemo, useRef, useState } from "react";
 import { Mesh } from "three";
-import { QuadLoggerLevel } from "../types/quad-logger";
-import { V3 } from "../types/v3";
-import { QuadGeometry } from "./quad-geometry";
+import { QuadLoggerLevel } from "../core/quad-logger";
+import { V3 } from "../core/v3";
+import { QuadGeometry } from "../geometries/quad-geometry";
 
 export type QuadMeshProps = MeshProps & {
     radius?: number;

@@ -1,9 +1,9 @@
 import { MeshProps } from "@react-three/fiber";
 import { ForwardedRef, forwardRef, useEffect, useMemo, useRef, useState } from "react";
 import { Mesh } from "three";
-import { QuadLoggerLevel } from "../types/quad-logger";
-import { QuadSphere } from "../types/quad-sphere";
-import { V3 } from "../types/v3";
+import { QuadLoggerLevel } from "../core/quad-logger";
+import { QuadSphere } from "../core/quad-sphere";
+import { V3 } from "../core/v3";
 import { QuadSphereGeometry } from "./quad-sphere-geometry";
 
 export type QuadSphereMeshProps = Omit<MeshProps, 'ref'> & {
