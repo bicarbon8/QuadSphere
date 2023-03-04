@@ -14,7 +14,7 @@ const assetPath = import.meta.env.VITE_ASSET_PATH;
 export function InCanvas() {
     const {camera} = useThree();
     camera.near = 0.0001;
-    const distances = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0.5, 0.1];
+    const distances = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0.5];
     const grid = useLoader(THREE.TextureLoader, `${assetPath}/grid.png`);
     const uvtest = useLoader(THREE.TextureLoader, `${assetPath}/uvCubeMapTexture.png`);
     const tessellation = useLoader(THREE.TextureLoader, `${assetPath}/tessellation-map.png`);
@@ -72,7 +72,7 @@ export function InCanvas() {
             <CameraFacingText position={[0, 2, 0]}>
                 left-click objects to subdivide; right-click to unify
             </CameraFacingText>
-            {/* <QuadMesh ref={quadMesh} 
+            <QuadMesh ref={quadMesh} 
                 onClick={(e: ThreeEvent<MouseEvent>) => subdivide(e, quadMesh.current)} 
                 onContextMenu={(e) => unify(e, quadMesh.current)}
                 position={[-1.2, 0, 0]} 
@@ -83,11 +83,11 @@ export function InCanvas() {
                     displacementScale={0.2}
                     flatShading />
                 <Edges threshold={0} />
-            </QuadMesh> */}
+            </QuadMesh>
             <QuadSphereMesh ref={quadSphereMesh}
                 onClick={(e: ThreeEvent<MouseEvent>) => subdivide(e, quadSphereMesh.current)} 
                 onContextMenu={(e) => unify(e, quadSphereMesh.current)}
-                position={[0, 0, 0]} 
+                position={[1.2, 0, 0]} 
                 radius={1}>
                 <meshStandardMaterial 
                     map={tessellation}
