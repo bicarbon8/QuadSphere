@@ -74,7 +74,7 @@ export function InCanvas() {
             quadSphereMesh.current.quaternion.z = quat.z;
         }
         if (quadMesh.current) {
-            quadMesh.current.position.y = 0.25 * Math.sin(el);
+            quadMesh.current.position.y = -0.25 * Math.sin(el);
         }
     });
     return (
@@ -85,11 +85,9 @@ export function InCanvas() {
             <OrbitControls />
             <axesHelper args={[0.5]} />
             <CameraFacingText position={[0, 2, 0]}>
-                left-click objects to subdivide; right-click to unify
+                distance based subdivision
             </CameraFacingText>
             <QuadMesh ref={quadMesh} 
-                onClick={(e: ThreeEvent<MouseEvent>) => subdivide(e, quadMesh.current)} 
-                onContextMenu={(e) => unify(e, quadMesh.current)}
                 position={[-1.2, 0, 0]} 
                 radius={1}>
                 <meshStandardMaterial 
@@ -100,40 +98,16 @@ export function InCanvas() {
                 />
             </QuadMesh>
             <QuadSphereMesh ref={quadSphereMesh}
-                onClick={(e: ThreeEvent<MouseEvent>) => subdivide(e, quadSphereMesh.current)} 
-                onContextMenu={(e) => unify(e, quadSphereMesh.current)}
                 position={[1.2, 0, 0]} 
                 radius={1}>
                 <meshStandardMaterial 
                     map={tessellation}
                     displacementMap={tessellation}
-                    displacementScale={0.2} 
+                    displacementScale={0.1} 
                     flatShading
                 />
             </QuadSphereMesh>
             <Stats />
         </>
     )
-}
-
-function subdivide(event: ThreeEvent<MouseEvent>, mesh: THREE.Mesh) {
-    const point = event.point;
-    const target = event.object as THREE.Mesh;
-    const offsetPoint = point.clone()
-        .sub(target.position)
-        .applyQuaternion(target.quaternion.invert());
-    console.info('left-clicked object at', point);
-    const geom = (mesh.geometry.type === 'QuadGeometry') ? mesh.geometry as QuadGeometry : mesh.geometry as QuadSphereGeometry;
-    geom.subdivide(offsetPoint);
-}
-
-function unify(event: ThreeEvent<MouseEvent>, mesh: THREE.Mesh) {
-    const point = event.point;
-    const target = event.object as THREE.Mesh;
-    const offsetPoint = point.clone()
-        .sub(target.position)
-        .applyQuaternion(target.quaternion.invert());
-    console.info('right-clicked object at', point);
-    const geom = (mesh.geometry.type === 'QuadGeometry') ? mesh.geometry as QuadGeometry : mesh.geometry as QuadSphereGeometry;
-    geom.unify(offsetPoint);
 }
