@@ -1,10 +1,9 @@
 import { RootState, ThreeEvent, useFrame, useLoader, useThree } from '@react-three/fiber'
-import { Edges, OrbitControls, Stats } from '@react-three/drei'
+import { OrbitControls, Stats } from '@react-three/drei'
 import { CameraFacingText } from "./camera-facing-text";
 import * as THREE from 'three';
 import { QuadMesh } from './quad-mesh';
-import { useRef, useState } from 'react';
-import { Mesh, Quaternion } from 'three';
+import { useRef } from 'react';
 import { QuadSphereMesh } from './quad-sphere-mesh';
 import { QuadGeometry } from '../geometries/quad-geometry';
 import { QuadSphereGeometry } from '../geometries/quad-sphere-geometry';
@@ -21,8 +20,8 @@ export function InCanvas() {
     const uvtest = useLoader(THREE.TextureLoader, `${assetPath}/uvCubeMapTexture.png`);
     const tessellation = useLoader(THREE.TextureLoader, `${assetPath}/cube.png`);
     const bump = useLoader(THREE.TextureLoader, `${assetPath}/bump.jpg`);
-    const quadMesh = useRef<Mesh>(null);
-    const quadSphereMesh = useRef<Mesh>(null);
+    const quadMesh = useRef<THREE.Mesh>(null);
+    const quadSphereMesh = useRef<THREE.Mesh>(null);
     useFrame((state: RootState, delta: number) => {
         elapsed += delta;
         const el = state.clock.getElapsedTime();
@@ -97,8 +96,8 @@ export function InCanvas() {
                     map={bump} 
                     displacementMap={bump}
                     displacementScale={0.2}
-                    flatShading />
-                {/* <Edges threshold={0} /> */}
+                    flatShading 
+                />
             </QuadMesh>
             <QuadSphereMesh ref={quadSphereMesh}
                 onClick={(e: ThreeEvent<MouseEvent>) => subdivide(e, quadSphereMesh.current)} 
@@ -110,19 +109,16 @@ export function InCanvas() {
                     displacementMap={tessellation}
                     displacementScale={0.2} 
                     flatShading
-                    // transparent
-                    // opacity={0.5} 
-                    />
-                {/* <Edges threshold={0} /> */}
+                />
             </QuadSphereMesh>
             <Stats />
         </>
     )
 }
 
-function subdivide(event: ThreeEvent<MouseEvent>, mesh: Mesh) {
+function subdivide(event: ThreeEvent<MouseEvent>, mesh: THREE.Mesh) {
     const point = event.point;
-    const target = event.object as Mesh;
+    const target = event.object as THREE.Mesh;
     const offsetPoint = point.clone()
         .sub(target.position)
         .applyQuaternion(target.quaternion.invert());
@@ -131,9 +127,9 @@ function subdivide(event: ThreeEvent<MouseEvent>, mesh: Mesh) {
     geom.subdivide(offsetPoint);
 }
 
-function unify(event: ThreeEvent<MouseEvent>, mesh: Mesh) {
+function unify(event: ThreeEvent<MouseEvent>, mesh: THREE.Mesh) {
     const point = event.point;
-    const target = event.object as Mesh;
+    const target = event.object as THREE.Mesh;
     const offsetPoint = point.clone()
         .sub(target.position)
         .applyQuaternion(target.quaternion.invert());
