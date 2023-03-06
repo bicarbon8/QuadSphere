@@ -10,6 +10,7 @@ import { V3 } from "./v3"
 export type QuadSphereOptions = {
     centre?: V3,
     radius?: number,
+    segments?: number,
     loglevel?: QuadLoggerLevel,
     maxlevel?: number;
     utils?: QuadUtils;
@@ -21,16 +22,17 @@ export class QuadSphere {
     readonly radius: number;
     readonly registry: QuadRegistry;
     readonly maxlevel: number;
+    readonly segments: number;
     
     private readonly _faces = new Map<QuadSphereFace, Quad>();
     private readonly _loglevel: QuadLoggerLevel;
     private readonly _logger: QuadLogger;
     private readonly _utils: QuadUtils;
-    private readonly _addSkirts: boolean;
     
     constructor(options: QuadSphereOptions) {
         this.centre = options.centre ?? {x: 0, y: 0, z: 0};
         this.radius = options.radius ?? 1;
+        this.segments = options.segments; // default set in Quad if unset
         this.registry = new QuadRegistry();
         this.maxlevel = options.maxlevel ?? 100;
         this._loglevel = options.loglevel ?? 'warn';
@@ -38,7 +40,6 @@ export class QuadSphere {
             level: this._loglevel
         });
         this._utils = options.utils ?? new QuadUtils({loglevel: this._logger.level});
-        this._addSkirts = options.addSkirts ?? false;
         this._createFaces();
     }
 
@@ -285,7 +286,10 @@ export class QuadSphere {
                 rotationAxis: axis,
                 utils: this._utils,
                 uvStart: startUv,
-                uvEnd: endUv
+                uvEnd: endUv,
+                applyCurve: false,
+                curveOrigin: this.centre,
+                segments: this.segments
             }
         ))});
     }

@@ -109,7 +109,7 @@ export class Quad {
         this.parent = options.parent;
         this.centre = Object.freeze(options.centre ?? V3.zero());
         this.radius = options.radius ?? 1;
-        if (options.segments) {
+        if (options.segments && options.segments > 1) {
             if (options.segments % 2 === 0) {
                 // is even so make odd
                 this.segments = options.segments + 1;
@@ -389,12 +389,12 @@ export class Quad {
      * mismatch between the values
      */
     get meshData(): QuadMeshData {
-        return this._utils.mergeVertices({
+        return { // this._utils.mergeVertices({
             indices: this.indices,
             vertices: this.vertices,
             normals: this.normals,
             uvs: this.uvs
-        }, 4);
+        }; // , 4);
     }
 
     /**
@@ -577,7 +577,7 @@ export class Quad {
      * 10--11--12--13--14
      * | \ | / | / | / |
      * 5   6---7---8   9
-     * | /   \ |  /  \ |
+     * | /   \ | /   \ |
      * 0---1---2---3---4
      * ```
      * would return [6, 7, 12, 12, 11, 6, 7, 8, 13, 13, 12, 7, 11, 12, 17, 17, 16, 11, 12, 13, 18, 18, 17, 12]
@@ -611,46 +611,46 @@ export class Quad {
      * 10--11--12--13--14   10--11--12--13--14
      * | \ | / | / | / |    | \ | / | / | / |
      * 5   6---7---8   9    5---6---7---8   9
-     * | /   \ |  /  \ |    | /   \ |  /  \ |
+     * | /   \ |  /  \ |    | /   \ | /   \ |
      * 0---1---2---3---4 or 0---1---2---3---4
      * ```
      * would return: 
      * ```
-     * [0, 6, ........ 10, 10, 6, 11, 11, 16, 10, 10, 16, ........... 20] (deactivated) or
-     * [0, 6, 5, 5, 6, 10, 10, 6, 11, 11, 16, 10, 10, 16, 15, 15, 16, 20] (activated)
+     * [6, ........ 10, 0, 6, 11, 10, 16, 10, 11, 16, ........... 20, 10] (deactivated) or
+     * [6, 5, 0, 6, 10, 5, 6, 11, 10, 16, 10, 11, 16, 15, 10, 16, 20, 15] (activated)
      * ```
      */
     getLeftTriangleIndices(): Array<number> {
         const indices = new Array<number>();
-        const x = 0;
-        for (let y=0; y<this.segments-2; y+=2) {
+        const x = 1;
+        for (let y=1; y<this.segments; y+=2) {
             const index = this._utils.xyToI(x, y, this.segments);
-            if (y > 0) {
+            if (y > 1) {
                 const a = index;
-                const b = index+1;
-                const c = this._utils.xyToI(x+1, y+1, this.segments);
+                const b = this._utils.xyToI(x-1, y-1, this.segments);
+                const c = this._utils.xyToI(x, y-1, this.segments);
                 indices.push(a, b, c);
             }
 
             if (this.activeSides.includes('left')) {
                 const a1 = index;
-                const b1 = this._utils.xyToI(x+1, y+1, this.segments);
-                const c1 = this._utils.xyToI(x, y+1, this.segments);
-                const a2 = c1;
-                const b2 = b1;
-                const c2 = this._utils.xyToI(x, y+2, this.segments);
+                const b1 = index-1;
+                const c1 = this._utils.xyToI(x-1, y-1, this.segments);
+                const a2 = index;
+                const b2 = this._utils.xyToI(x-1, y+1, this.segments);
+                const c2 = b1;
                 indices.push(a1, b1, c1, a2, b2, c2);
             } else {
                 const a = index;
-                const b = this._utils.xyToI(x+1, y+1, this.segments);
-                const c = this._utils.xyToI(x, y+2, this.segments);
+                const b = this._utils.xyToI(x-1, y+1, this.segments);
+                const c = this._utils.xyToI(x-1, y-1, this.segments);
                 indices.push(a, b, c);
             }
 
-            if (y < this.segments-3) {
-                const a = this._utils.xyToI(x, y+2, this.segments);
-                const b = this._utils.xyToI(x+1, y+1, this.segments);
-                const c = this._utils.xyToI(x+1, y+2, this.segments);
+            if (y < this.segments-2) {
+                const a = index;
+                const b = this._utils.xyToI(x, y+1, this.segments);
+                const c = b-1;
                 indices.push(a, b, c);
             }
         }
@@ -658,22 +658,60 @@ export class Quad {
     }
 
     /**
+     * assuming a `Quad` like below
      * ```
-     *   4        4
-     *  / \      /|\
-     * 0---2 or 0-1-2
+     * deactivated          activated
+     * 20--21--22--23--24   20--21--22--23--24
+     * | \   / | \   / |    | \   / | \   / |
+     * 15  16--17--18  19   15  16--17--18  19
+     * | / | / | / | \ |    | / | / | / | \ |
+     * 10--11--12--13--14   10--11--12--13--14
+     * | \ | / | / | / |    | \ | / | / | / |
+     * 5   6---7---8   9    5   6---7---8   9
+     * | /   \ | /   \ |    | / | \ | / | \ |
+     * 0---1---2---3---4 or 0---1---2---3---4
+     * ```
+     * would return: 
+     * ```
+     * [6, 0, ........ 2, 6, 2, 7, 8, 7, 2, 8, 2, ........ 4] (deactivated) or
+     * [6, 0, 1, 6, 1, 2, 6, 2, 7, 8, 7, 2, 8, 2, 3, 8, 3, 4] (activated)
      * ```
      */
     getBottomTriangleIndices(): Array<number> {
-        if (this.activeSides.includes('bottom')) {
-            return [
-                4, 0, 1, // centre, bottomleft, bottommiddle
-                4, 1, 2  // centre, bottommiddle, bottomright
-            ];
+        const indices = new Array<number>();
+        const y = 1;
+        for (let x=1; x<this.segments; x+=2) {
+            const index = this._utils.xyToI(x, y, this.segments);
+            if (x > 1) {
+                const a = index;
+                const b = index-1;
+                const c = this._utils.xyToI(x-1, y-1, this.segments);
+                indices.push(a, b, c);
+            }
+
+            if (this.activeSides.includes('bottom')) {
+                const a1 = index;
+                const b1 = this._utils.xyToI(x-1, y-1, this.segments);
+                const c1 = this._utils.xyToI(x, y-1, this.segments);
+                const a2 = index;
+                const b2 = c1;
+                const c2 = this._utils.xyToI(x+1, y-1, this.segments);
+                indices.push(a1, b1, c1, a2, b2, c2);
+            } else {
+                const a = index;
+                const b = this._utils.xyToI(x-1, y-1, this.segments);
+                const c = this._utils.xyToI(x+1, y-1, this.segments);
+                indices.push(a, b, c);
+            }
+
+            if (x < this.segments-2) {
+                const a = index;
+                const b = this._utils.xyToI(x+1, y-1, this.segments);
+                const c = this._utils.xyToI(x+1, y, this.segments);
+                indices.push(a, b, c);
+            }
         }
-        return [
-            4, 0, 2 // centre, bottomleft, bottomright
-        ];
+        return indices;
     }
 
     /**
@@ -687,7 +725,7 @@ export class Quad {
      * 10--11--12--13--14   10--11--12--13--14
      * | \ | / | / | / |    | \ | / | / | / |
      * 5   6---7---8   9    5   6---7---8---9
-     * | /   \ |  /  \ |    | /   \ |  /  \ |
+     * | /   \ |  /  \ |    | /   \ | /   \ |
      * 0---1---2---3---4 or 0---1---2---3---4
      * ```
      * would return: 
@@ -723,7 +761,7 @@ export class Quad {
                 indices.push(a, b, c);
             }
 
-            if (y < this.segments-3) {
+            if (y < this.segments-2) {
                 const a = index;
                 const b = this._utils.xyToI(x+1, y+1, this.segments);
                 const c = this._utils.xyToI(x, y+1, this.segments);
@@ -734,22 +772,60 @@ export class Quad {
     }
 
     /**
+     * assuming a `Quad` like below
      * ```
-     * 6---8 or 6-7-8
-     *  \ /      \|/
-     *   4        4
+     * deactivated          activated
+     * 20--21--22--23--24   20--21--22--23--24
+     * | \   / | \   / |    | \ | / | \ | / |
+     * 15  16--17--18  19   15  16--17--18  19
+     * | / | / | / | \ |    | / | / | / | \ |
+     * 10--11--12--13--14   10--11--12--13--14
+     * | \ | / | / | / |    | \ | / | / | / |
+     * 5   6---7---8   9    5   6---7---8   9
+     * | /   \ | /   \ |    | /   \ | /   \ |
+     * 0---1---2---3---4 or 0---1---2---3---4
+     * ```
+     * would return: 
+     * ```
+     * [16, ........... 22, 20, 16, 17, 22, 18, 22, 17, 18, ........... 24, 22] (deactivated) or
+     * [16, 21, 20, 16, 22, 21, 16, 17, 22, 18, 22, 17, 18, 23, 22, 18, 24, 23] (activated)
      * ```
      */
     getTopTriangleIndices(): Array<number> {
-        if (this.activeSides.includes('top')) {
-            return [
-                4, 7, 6, // centre, topmiddle, topleft
-                4, 8, 7  // centre, topright, topmiddle
-            ];
+        const indices = new Array<number>();
+        const y = this.segments-2;
+        for (let x=1; x<this.segments; x+=2) {
+            const index = this._utils.xyToI(x, y, this.segments);
+            if (x > 1) {
+                const a = index;
+                const b = this._utils.xyToI(x-1, y+1, this.segments);
+                const c = index-1;
+                indices.push(a, b, c);
+            }
+
+            if (this.activeSides.includes('top')) {
+                const a1 = index;
+                const b1 = this._utils.xyToI(x, y+1, this.segments);
+                const c1 = b1-1;
+                const a2 = index;
+                const b2 = this._utils.xyToI(x+1, y+1, this.segments);
+                const c2 = b2-1;
+                indices.push(a1, b1, c1, a2, b2, c2);
+            } else {
+                const a = index;
+                const b = this._utils.xyToI(x+1, y+1, this.segments);
+                const c = this._utils.xyToI(x-1, y+1, this.segments);
+                indices.push(a, b, c);
+            }
+
+            if (x < this.segments-2) {
+                const a = index;
+                const b = index+1;
+                const c = this._utils.xyToI(x+1, y+1, this.segments);
+                indices.push(a, b, c);
+            }
         }
-        return [
-            4, 8, 6 // centre, topright, topleft
-        ];
+        return indices;
     }
 
     dispose(): void {

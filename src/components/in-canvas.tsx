@@ -67,11 +67,11 @@ export function InCanvas() {
             }
         }
         if (quadSphereMesh.current) {
-            quadSphereMesh.current.position.y = 0.25 * Math.sin(el);
-            quadSphereMesh.current.quaternion.w = quat.w;
-            quadSphereMesh.current.quaternion.x = quat.x;
-            quadSphereMesh.current.quaternion.y = quat.y;
-            quadSphereMesh.current.quaternion.z = quat.z;
+            // quadSphereMesh.current.position.y = 0.25 * Math.sin(el);
+            // quadSphereMesh.current.quaternion.w = quat.w;
+            // quadSphereMesh.current.quaternion.x = quat.x;
+            // quadSphereMesh.current.quaternion.y = quat.y;
+            // quadSphereMesh.current.quaternion.z = quat.z;
         }
         if (quadMesh.current) {
             // quadMesh.current.position.y = -0.25 * Math.sin(el);
@@ -91,7 +91,7 @@ export function InCanvas() {
             <QuadMesh ref={quadMesh} 
                 position={[-1.2, 0, 0]} 
                 radius={1}
-                segments={3}
+                segments={1}
                 // onClick={(e) => {subdivide(e, quadMesh.current); setClicks(clicks + 1);}}
                 // onContextMenu={(e) => {unify(e, quadMesh.current); setClicks(clicks - 1);}}
             >
@@ -101,17 +101,21 @@ export function InCanvas() {
                     displacementScale={0.2}
                     flatShading
                 />
+                <Edges threshold={0} />
             </QuadMesh>
-            {/* <QuadSphereMesh ref={quadSphereMesh}
+            <QuadSphereMesh ref={quadSphereMesh}
                 position={[1.2, 0, 0]} 
-                radius={1}>
+                radius={1}
+                segments={5}
+            >
                 <meshStandardMaterial 
                     map={tessellation}
                     displacementMap={tessellation}
                     displacementScale={0.1} 
                     flatShading
+                    wireframe
                 />
-            </QuadSphereMesh> */}
+            </QuadSphereMesh>
             <Stats />
         </>
     )
