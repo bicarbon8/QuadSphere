@@ -109,7 +109,16 @@ export class Quad {
         this.parent = options.parent;
         this.centre = Object.freeze(options.centre ?? V3.zero());
         this.radius = options.radius ?? 1;
-        this.segments = options.segments ?? 3;
+        if (options.segments) {
+            if (options.segments % 2 === 0) {
+                // is even so make odd
+                this.segments = options.segments + 1;
+            } else {
+                this.segments = options.segments;
+            }
+        } else {
+            this.segments = 3;
+        }
         this.level = options.level ?? 0;
         this.registry = options.registry ?? new QuadRegistry();
         this.id = this.registry.getId();
@@ -594,15 +603,16 @@ export class Quad {
     /**
      * assuming a `Quad` like below
      * ```
-     * 20--21--22--23--24
-     * | \   / | \   / |
-     * 15  16--17--18  19
-     * | / | / | / | \ |
-     * 10--11--12--13--14
-     * | \ | / | / | / |
-     * 5   6---7---8   9
-     * | /   \ |  /  \ |
-     * 0---1---2---3---4
+     * deactivated          activated
+     * 20--21--22--23--24   20--21--22--23--24
+     * | \   / | \   / |    | \   / | \   / |
+     * 15  16--17--18  19   15--16--17--18  19
+     * | / | / | / | \ |    | / | / | / | \ |
+     * 10--11--12--13--14   10--11--12--13--14
+     * | \ | / | / | / |    | \ | / | / | / |
+     * 5   6---7---8   9    5---6---7---8   9
+     * | /   \ |  /  \ |    | /   \ |  /  \ |
+     * 0---1---2---3---4 or 0---1---2---3---4
      * ```
      * would return: 
      * ```
@@ -612,15 +622,37 @@ export class Quad {
      */
     getLeftTriangleIndices(): Array<number> {
         const indices = new Array<number>();
-        if (this.activeSides.includes('left')) {
-            indices.push(
-                4, 6, 3, // centre, topleft, middleleft
-                4, 3, 0  // centre, middleleft, bottomleft
-            );
-        } else {
-            indices.push(
-                4, 6, 0 // centre, topleft, bottomleft
-            );
+        const x = 0;
+        for (let y=0; y<this.segments-2; y+=2) {
+            const index = this._utils.xyToI(x, y, this.segments);
+            if (y > 0) {
+                const a = index;
+                const b = index+1;
+                const c = this._utils.xyToI(x+1, y+1, this.segments);
+                indices.push(a, b, c);
+            }
+
+            if (this.activeSides.includes('left')) {
+                const a1 = index;
+                const b1 = this._utils.xyToI(x+1, y+1, this.segments);
+                const c1 = this._utils.xyToI(x, y+1, this.segments);
+                const a2 = c1;
+                const b2 = b1;
+                const c2 = this._utils.xyToI(x, y+2, this.segments);
+                indices.push(a1, b1, c1, a2, b2, c2);
+            } else {
+                const a = index;
+                const b = this._utils.xyToI(x+1, y+1, this.segments);
+                const c = this._utils.xyToI(x, y+2, this.segments);
+                indices.push(a, b, c);
+            }
+
+            if (y < this.segments-3) {
+                const a = this._utils.xyToI(x, y+2, this.segments);
+                const b = this._utils.xyToI(x+1, y+1, this.segments);
+                const c = this._utils.xyToI(x+1, y+2, this.segments);
+                indices.push(a, b, c);
+            }
         }
         return indices;
     }
@@ -645,24 +677,60 @@ export class Quad {
     }
 
     /**
+     * assuming a `Quad` like below
      * ```
-     *   8      8
-     *  /|     /|
-     * 4 | or 4-5
-     *  \|     \|
-     *   2      2
+     * deactivated          activated
+     * 20--21--22--23--24   20--21--22--23--24
+     * | \   / | \   / |    | \   / | \   / |
+     * 15  16--17--18  19   15  16--17--18--19
+     * | / | / | / | \ |    | / | / | / | \ |
+     * 10--11--12--13--14   10--11--12--13--14
+     * | \ | / | / | / |    | \ | / | / | / |
+     * 5   6---7---8   9    5   6---7---8---9
+     * | /   \ |  /  \ |    | /   \ |  /  \ |
+     * 0---1---2---3---4 or 0---1---2---3---4
+     * ```
+     * would return: 
+     * ```
+     * [8, 4, ........ 14, 8, 14, 13, 18, 13, 14, 18, 14, ........... 24] (deactivated) or
+     * [8, 4, 9, 8, 9, 14, 8, 14, 13, 18, 13, 14, 18, 14, 19, 18, 19, 24] (activated)
      * ```
      */
     getRightTriangleIndices(): Array<number> {
-        if (this.activeSides.includes('right')) {
-            return [
-                4, 2, 5, // centre, bottomright, middleright
-                4, 5, 8  // centre, middleright, topright
-            ];
+        const indices = new Array<number>();
+        const x = this.segments-2;
+        for (let y=1; y<this.segments-1; y+=2) {
+            const index = this._utils.xyToI(x, y, this.segments);
+            if (y > 2) {
+                const a = index;
+                const b = this._utils.xyToI(x, y-1, this.segments);
+                const c = this._utils.xyToI(x+1, y-1, this.segments);
+                indices.push(a, b, c);
+            }
+
+            if (this.activeSides.includes('right')) {
+                const a1 = index;
+                const b1 = this._utils.xyToI(x+1, y-1, this.segments);
+                const c1 = this._utils.xyToI(x+1, y, this.segments);
+                const a2 = index;
+                const b2 = c1;
+                const c2 = this._utils.xyToI(x+1, y+1, this.segments);
+                indices.push(a1, b1, c1, a2, b2, c2);
+            } else {
+                const a = index;
+                const b = this._utils.xyToI(x+1, y-1, this.segments);
+                const c = this._utils.xyToI(x+1, y+1, this.segments);
+                indices.push(a, b, c);
+            }
+
+            if (y < this.segments-3) {
+                const a = index;
+                const b = this._utils.xyToI(x+1, y+1, this.segments);
+                const c = this._utils.xyToI(x, y+1, this.segments);
+                indices.push(a, b, c);
+            }
         }
-        return [
-            4, 2, 8 // centre, bottomright, topright
-        ];
+        return indices;
     }
 
     /**
@@ -697,6 +765,7 @@ export class Quad {
         point.z = this.centre.z;
         let x = this.centre.x - this.radius;
         let y = this.centre.y - this.radius;
+        const offset = (this.radius*2) / (segments-1);
         for (let iy = 0; iy < segments; iy++) {
             point.y = y;
             for (let ix = 0; ix < segments; ix++) {
@@ -711,12 +780,12 @@ export class Quad {
                     this._curvedVertices.push(...V3.toArray(curved));
                 }
 
-                x += this.radius;
+                x += offset;
                 if (x > this.centre.x + this.radius) {
                     x = this.centre.x - this.radius;
                 }
             }
-            y += this.radius;
+            y += offset;
         }
     }
 
@@ -763,6 +832,7 @@ export class Quad {
             new Quad({
                 parent: this,
                 centre: V3.midpoint(this.bottomleft, this.centre),
+                segments: this.segments,
                 radius: this.radius / 2,
                 level: this.level + 1,
                 registry: this.registry,
@@ -779,6 +849,7 @@ export class Quad {
             new Quad({
                 parent: this,
                 centre: V3.midpoint(this.bottomright, this.centre),
+                segments: this.segments,
                 radius: this.radius / 2,
                 level: this.level + 1,
                 registry: this.registry,
@@ -795,6 +866,7 @@ export class Quad {
             new Quad({
                 parent: this,
                 centre: V3.midpoint(this.topleft, this.centre),
+                segments: this.segments,
                 radius: this.radius / 2,
                 level: this.level + 1,
                 registry: this.registry,
@@ -811,6 +883,7 @@ export class Quad {
             new Quad({
                 parent: this,
                 centre: V3.midpoint(this.topright, this.centre),
+                segments: this.segments,
                 radius: this.radius / 2,
                 level: this.level + 1,
                 registry: this.registry,

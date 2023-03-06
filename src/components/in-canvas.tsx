@@ -91,6 +91,7 @@ export function InCanvas() {
             <QuadMesh ref={quadMesh} 
                 position={[-1.2, 0, 0]} 
                 radius={1}
+                segments={3}
                 // onClick={(e) => {subdivide(e, quadMesh.current); setClicks(clicks + 1);}}
                 // onContextMenu={(e) => {unify(e, quadMesh.current); setClicks(clicks - 1);}}
             >
