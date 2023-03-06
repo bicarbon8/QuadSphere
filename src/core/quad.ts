@@ -308,7 +308,11 @@ export class Quad {
             verts.push(...this.topleftChild.vertices);
             verts.push(...this.toprightChild.vertices);
         } else {
-            verts.push(...this._vertices);
+            if (this._applyCurve) {
+                verts.push(...this._curvedVertices);
+            } else {
+                verts.push(...this._vertices);
+            }
         }
         return verts;
     }
@@ -325,7 +329,11 @@ export class Quad {
             norms.push(...this.topleftChild.normals);
             norms.push(...this.toprightChild.normals);
         } else {
-            norms.push(...this._normals);
+            if (this._applyCurve) {
+                norms.push(...this._curvedNormals);
+            } else {
+                norms.push(...this._normals);
+            }
         }
         return norms;
     }
@@ -389,12 +397,12 @@ export class Quad {
      * mismatch between the values
      */
     get meshData(): QuadMeshData {
-        return { // this._utils.mergeVertices({
+        return this._utils.mergeVertices({
             indices: this.indices,
             vertices: this.vertices,
             normals: this.normals,
             uvs: this.uvs
-        }; // , 4);
+        }, 4);
     }
 
     /**

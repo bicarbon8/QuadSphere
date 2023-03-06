@@ -126,7 +126,7 @@ export class QuadSphere {
 
         // "inflate" our cube vertices into a sphere
         const sphericalVerts = V3.toArray(...V3.fromArray(cubeData.vertices).map(v => this._utils.applyCurve(v, this.centre)));
-        const sphericalNorms = V3.toArray(...V3.fromArray(sphericalVerts).map(v => new THREE.Vector3(v.x, v.y, v.z).normalize()));
+        const sphericalNorms = V3.toArray(...V3.fromArray(sphericalVerts).map(v => V3.normalise(v)));
         
         return {
             indices: cubeData.indices,

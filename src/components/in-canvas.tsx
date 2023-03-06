@@ -101,6 +101,7 @@ export function InCanvas() {
                     displacementScale={0.2}
                     flatShading
                 />
+                <Edges threshold={0} />
             </QuadMesh>
             <QuadSphereMesh ref={quadSphereMesh}
                 position={[1.2, 0, 0]} 
