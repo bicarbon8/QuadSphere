@@ -136,9 +136,9 @@ export class Quad {
         this._utils = options.utils ?? new QuadUtils({loglevel: this._logger.level});
         this._applyCurve = options.applyCurve ?? false;
         this.curveOrigin = options.curveOrigin ?? V3.zero();
-        this._generatePoints(this.segments);
-        this._generateNormals(this.segments);
-        this._generateUVs(this.segments);
+        this._generatePoints();
+        this._generateNormals();
+        this._generateUVs();
         this.registry.register(this);
     }
 
@@ -836,15 +836,15 @@ export class Quad {
         this._vertices.splice(0, this._vertices.length);
     }
 
-    private _generatePoints(segments: number): void {
+    private _generatePoints(): void {
         const point = V3.zero();
         point.z = this.centre.z;
         let x = this.centre.x - this.radius;
         let y = this.centre.y - this.radius;
-        const offset = (this.radius*2) / (segments-1);
-        for (let iy = 0; iy < segments; iy++) {
+        const offset = (this.radius*2) / (this.segments-1);
+        for (let iy = 0; iy < this.segments; iy++) {
             point.y = y;
-            for (let ix = 0; ix < segments; ix++) {
+            for (let ix = 0; ix < this.segments; ix++) {
                 point.x = x;
                 
                 // rotate based on `this._angle`
@@ -865,11 +865,11 @@ export class Quad {
         }
     }
 
-    private _generateNormals(segments: number): void {
+    private _generateNormals(): void {
         const zero = V3.zero();
         const n = {x: 0, y: 0, z: 1};
-        for (let iy = 0; iy < segments; iy++) {
-            for (let ix = 0; ix < segments; ix++) {
+        for (let iy = 0; iy < this.segments; iy++) {
+            for (let ix = 0; ix < this.segments; ix++) {
                 this._normals.push(...V3.toArray(this._utils.rotatePoint(n, this._angle, this._axis, zero)));
             }
         }
@@ -879,13 +879,13 @@ export class Quad {
         }
     }
 
-    private _generateUVs(segments: number): void {
+    private _generateUVs(): void {
         let u = this.uvStart.u;
         let v = this.uvStart.v;
-        const uOffset = (this.uvEnd.u - this.uvStart.u) / (segments-1);
-        const vOffset = (this.uvEnd.v - this.uvStart.v) / (segments-1);
-        for (let iv = 0; iv < segments; iv++) {
-            for (let iu = 0; iu < segments; iu++) {
+        const uOffset = (this.uvEnd.u - this.uvStart.u) / (this.segments-1);
+        const vOffset = (this.uvEnd.v - this.uvStart.v) / (this.segments-1);
+        for (let iv = 0; iv < this.segments; iv++) {
+            for (let iu = 0; iu < this.segments; iu++) {
                 this._uvs.push(u, v);
 
                 u += uOffset;

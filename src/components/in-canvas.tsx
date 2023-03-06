@@ -91,7 +91,7 @@ export function InCanvas() {
             <QuadMesh ref={quadMesh} 
                 position={[-1.2, 0, 0]} 
                 radius={1}
-                segments={1}
+                segments={5}
                 // onClick={(e) => {subdivide(e, quadMesh.current); setClicks(clicks + 1);}}
                 // onContextMenu={(e) => {unify(e, quadMesh.current); setClicks(clicks - 1);}}
             >
@@ -101,7 +101,6 @@ export function InCanvas() {
                     displacementScale={0.2}
                     flatShading
                 />
-                <Edges threshold={0} />
             </QuadMesh>
             <QuadSphereMesh ref={quadSphereMesh}
                 position={[1.2, 0, 0]} 
@@ -113,7 +112,6 @@ export function InCanvas() {
                     displacementMap={tessellation}
                     displacementScale={0.1} 
                     flatShading
-                    wireframe
                 />
             </QuadSphereMesh>
             <Stats />
