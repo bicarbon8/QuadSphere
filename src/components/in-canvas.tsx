@@ -1,9 +1,9 @@
 import { RootState, ThreeEvent, useFrame, useLoader, useThree } from '@react-three/fiber'
-import { OrbitControls, Stats } from '@react-three/drei'
+import { Edges, OrbitControls, Stats } from '@react-three/drei'
 import { CameraFacingText } from "./camera-facing-text";
 import * as THREE from 'three';
 import { QuadMesh } from './quad-mesh';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { QuadSphereMesh } from './quad-sphere-mesh';
 import { QuadGeometry } from '../geometries/quad-geometry';
 import { QuadSphereGeometry } from '../geometries/quad-sphere-geometry';
@@ -15,7 +15,7 @@ const quat = new THREE.Quaternion();
 export function InCanvas() {
     const {camera} = useThree();
     camera.near = 0.0001;
-    const distances = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0.5];
+    const distances = [5, 4, 3, 2, 2.5, 1, 0.5];
     const grid = useLoader(THREE.TextureLoader, `${assetPath}/grid.png`);
     const uvtest = useLoader(THREE.TextureLoader, `${assetPath}/uvCubeMapTexture.png`);
     const tessellation = useLoader(THREE.TextureLoader, `${assetPath}/cube.png`);
@@ -74,9 +74,10 @@ export function InCanvas() {
             quadSphereMesh.current.quaternion.z = quat.z;
         }
         if (quadMesh.current) {
-            quadMesh.current.position.y = -0.25 * Math.sin(el);
+            // quadMesh.current.position.y = -0.25 * Math.sin(el);
         }
     });
+    const [clicks, setClicks] = useState<number>(0);
     return (
         <>
             <ambientLight intensity={0.4} />
@@ -89,15 +90,18 @@ export function InCanvas() {
             </CameraFacingText>
             <QuadMesh ref={quadMesh} 
                 position={[-1.2, 0, 0]} 
-                radius={1}>
+                radius={1}
+                // onClick={(e) => {subdivide(e, quadMesh.current); setClicks(clicks + 1);}}
+                // onContextMenu={(e) => {unify(e, quadMesh.current); setClicks(clicks - 1);}}
+            >
                 <meshStandardMaterial 
                     map={bump} 
                     displacementMap={bump}
                     displacementScale={0.2}
-                    flatShading 
+                    flatShading
                 />
             </QuadMesh>
-            <QuadSphereMesh ref={quadSphereMesh}
+            {/* <QuadSphereMesh ref={quadSphereMesh}
                 position={[1.2, 0, 0]} 
                 radius={1}>
                 <meshStandardMaterial 
@@ -106,8 +110,34 @@ export function InCanvas() {
                     displacementScale={0.1} 
                     flatShading
                 />
-            </QuadSphereMesh>
+            </QuadSphereMesh> */}
             <Stats />
         </>
     )
+}
+
+function subdivide(e: ThreeEvent<MouseEvent>, quadMesh: THREE.Mesh) {
+    const geom = quadMesh.geometry as QuadGeometry;
+    const offsetPoint = e.point.clone()
+        .sub(quadMesh.position)
+        .applyQuaternion(quadMesh.quaternion.invert());
+    const closest = geom.quad.getClosestQuad(offsetPoint);
+    console.info('left-click', e.point, 'closest is', closest.id);
+    if (!closest.hasChildren()) {
+        closest.subdivide();
+        geom.updateAttributes();
+    }
+}
+
+function unify(e: ThreeEvent<MouseEvent>, quadMesh: THREE.Mesh) {
+    const geom = quadMesh.geometry as QuadGeometry;
+    const offsetPoint = e.point.clone()
+        .sub(quadMesh.position)
+        .applyQuaternion(quadMesh.quaternion.invert());
+    const closest = geom.quad.getClosestQuad(offsetPoint);
+    console.info('right-click', e.point, 'closest is', closest.id);
+    if (closest.parent) {
+        closest.parent.unify();
+        geom.updateAttributes();
+    }
 }

@@ -9,6 +9,7 @@ export type QuadOptions = {
     parent?: Quad;
     centre?: V3;
     radius?: number;
+    segments?: number;
     level?: number;
     maxlevel?: number;
     registry?: QuadRegistry;
@@ -21,6 +22,8 @@ export type QuadOptions = {
     uvStart?: UV;
     uvEnd?: UV;
     utils?: QuadUtils;
+    applyCurve?: boolean;
+    curveOrigin?: V3;
 };
 
 /**
@@ -76,29 +79,37 @@ export type QuadOptions = {
 export class Quad {
     public readonly id: number;
     public readonly parent: Quad;
+    public readonly centre: V3;
     public readonly radius: number;
+    public readonly segments: number;
     public readonly level: number;
     public readonly registry: QuadRegistry;
     public readonly quadrant: Quadrant;
     public readonly maxlevel: number;
     public readonly uvStart: UV;
     public readonly uvEnd: UV;
+    public readonly curveOrigin: V3;
     
     private readonly _children = new Map<Quadrant, Quad>();
     private readonly _vertices = new Array<number>();
+    private readonly _curvedVertices = new Array<number>();
     private readonly _normals = new Array<number>();
+    private readonly _curvedNormals = new Array<number>();
     private readonly _uvs = new Array<number>();
     private readonly _active = new Set<QuadSide>();
     private readonly _loglevel: QuadLoggerLevel;
     private readonly _logger: QuadLogger;
     private readonly _utils: QuadUtils;
+    private readonly _applyCurve: boolean;
     
     private _axis: V3;
     private _angle: number;
     
     constructor(options: QuadOptions) {
         this.parent = options.parent;
+        this.centre = Object.freeze(options.centre ?? V3.zero());
         this.radius = options.radius ?? 1;
+        this.segments = options.segments ?? 3;
         this.level = options.level ?? 0;
         this.registry = options.registry ?? new QuadRegistry();
         this.id = this.registry.getId();
@@ -114,9 +125,11 @@ export class Quad {
         this._axis = options.rotationAxis ?? V3.zero();
         this._angle = options.angle ?? 0;
         this._utils = options.utils ?? new QuadUtils({loglevel: this._logger.level});
-        this._generatePoints(options.centre ?? V3.zero());
-        this._generateNormals();
-        this._generateUVs();
+        this._applyCurve = options.applyCurve ?? false;
+        this.curveOrigin = options.curveOrigin ?? V3.zero();
+        this._generatePoints(this.segments);
+        this._generateNormals(this.segments);
+        this._generateUVs(this.segments);
         this.registry.register(this);
     }
 
@@ -195,52 +208,48 @@ export class Quad {
         return this.getPoint(0);
     }
 
-    get bottommiddle(): V3 {
-        return this.getPoint(1);
-    }
-
     get bottomright(): V3 {
-        return this.getPoint(2);
-    }
-
-    get middleleft(): V3 {
-        return this.getPoint(3);
-    }
-
-    get centre(): V3 {
-        return this.getPoint(4);
-    }
-
-    get middleright(): V3 {
-        return this.getPoint(5);
+        return this.getPoint(this.segments-1);
     }
 
     get topleft(): V3 {
-        return this.getPoint(6);
-    }
-
-    get topmiddle(): V3 {
-        return this.getPoint(7);
+        return this.getPoint(this._utils.xyToI(0, this.segments-1, this.segments));
     }
 
     get topright(): V3 {
-        return this.getPoint(8);
+        return this.getPoint(this._utils.xyToI(this.segments-1, this.segments-1, this.segments));
     }
 
     get leftedge(): Array<V3> {
-        return new Array<V3>(this.bottomleft, this.middleleft, this.topleft);
+        const edgePoints = new Array<V3>();
+        for (let y=0; y<this.segments; y++) {
+            edgePoints.push(this.getPoint(this._utils.xyToI(0, y, this.segments)));
+        }
+        return edgePoints;
     }
 
     get bottomedge(): Array<V3> {
-        return new Array<V3>(this.bottomleft, this.bottommiddle, this.bottomright);
+        const edgePoints = new Array<V3>();
+        for (let x=0; x<this.segments; x++) {
+            edgePoints.push(this.getPoint(x));
+        }
+        return edgePoints;
     }
 
     get rightedge(): Array<V3> {
-        return new Array<V3>(this.bottomright, this.middleright, this.topright);
+        const edgePoints = new Array<V3>();
+        for (let y=0; y<this.segments; y++) {
+            edgePoints.push(this.getPoint(this._utils.xyToI(this.segments-1, y, this.segments)));
+        }
+        return edgePoints;
     }
 
     get topedge(): Array<V3> {
-        return new Array<V3>(this.topleft, this.topmiddle, this.topright);
+        const edgePoints = new Array<V3>();
+        for (let x=0; x<this.segments; x++) {
+            edgePoints.push(this.getPoint(this._utils.xyToI(x, this.segments-1, this.segments)));
+        }
+        return edgePoints;
     }
 
     get bottomleftChild(): Quad {
@@ -343,9 +352,10 @@ export class Quad {
             offset += this.topleftChild.vertices.length / 3; // offset by vertices of third child
             tris.push(...this.toprightChild.indices.map(i => i+offset));
         } else {
+            tris.push(...this.getCentreTriangleIndices())
             tris.push(...this.getLeftTriangleIndices());
             tris.push(...this.getBottomTriangleIndices());
-            tris.push(...this.getRightTriagnleIndices());
+            tris.push(...this.getRightTriangleIndices());
             tris.push(...this.getTopTriangleIndices());
         }
         return tris;
@@ -549,12 +559,55 @@ export class Quad {
     }
 
     /**
+     * assuming a `Quad` like below
      * ```
-     * 6      6
-     * |\     |\
-     * | 4 or 3-4
-     * |/     |/
-     * 0      0
+     * 20--21--22--23--24
+     * | \   / | \   / |
+     * 15  16--17--18  19
+     * | / | / | / | \ |
+     * 10--11--12--13--14
+     * | \ | / | / | / |
+     * 5   6---7---8   9
+     * | /   \ |  /  \ |
+     * 0---1---2---3---4
+     * ```
+     * would return [6, 7, 12, 12, 11, 6, 7, 8, 13, 13, 12, 7, 11, 12, 17, 17, 16, 11, 12, 13, 18, 18, 17, 12]
+     */
+    getCentreTriangleIndices(): Array<number> {
+        const indices = new Array<number>();
+        for (let y=1; y<this.segments-2; y++) {
+            for (let x=1; x<this.segments-2; x++) {
+                const a1 = this._utils.xyToI(x, y, this.segments);
+                const b1 = a1 + 1;
+                const c1 = this._utils.xyToI(x+1, y+1, this.segments);
+                
+                const a2 = c1;
+                const b2 = a2-1;
+                const c2 = a1;
+
+                indices.push(a1, b1, c1, a2, b2, c2);
+            }
+        }
+        return indices;
+    }
+
+    /**
+     * assuming a `Quad` like below
+     * ```
+     * 20--21--22--23--24
+     * | \   / | \   / |
+     * 15  16--17--18  19
+     * | / | / | / | \ |
+     * 10--11--12--13--14
+     * | \ | / | / | / |
+     * 5   6---7---8   9
+     * | /   \ |  /  \ |
+     * 0---1---2---3---4
+     * ```
+     * would return: 
+     * ```
+     * [0, 6, ........ 10, 10, 6, 11, 11, 16, 10, 10, 16, ........... 20] (deactivated) or
+     * [0, 6, 5, 5, 6, 10, 10, 6, 11, 11, 16, 10, 10, 16, 15, 15, 16, 20] (activated)
      * ```
      */
     getLeftTriangleIndices(): Array<number> {
@@ -600,7 +653,7 @@ export class Quad {
      *   2      2
      * ```
      */
-    getRightTriagnleIndices(): Array<number> {
+    getRightTriangleIndices(): Array<number> {
         if (this.activeSides.includes('right')) {
             return [
                 4, 2, 5, // centre, bottomright, middleright
@@ -639,40 +692,65 @@ export class Quad {
         this._vertices.splice(0, this._vertices.length);
     }
 
-    private _generatePoints(centre: V3): void {
-        const points = new Array<V3>();
-        for (let y = centre.y - this.radius; y <= centre.y + this.radius; y += this.radius) {
-            for (let x = centre.x - this.radius; x <= centre.x + this.radius; x += this.radius) {
-                const point: V3 = {x, y, z: centre.z};
+    private _generatePoints(segments: number): void {
+        const point = V3.zero();
+        point.z = this.centre.z;
+        let x = this.centre.x - this.radius;
+        let y = this.centre.y - this.radius;
+        for (let iy = 0; iy < segments; iy++) {
+            point.y = y;
+            for (let ix = 0; ix < segments; ix++) {
+                point.x = x;
+                
                 // rotate based on `this._angle`
-                const vert = this._utils.rotatePoint(point, this._angle, this._axis, centre);
-                points.push(vert);
+                const rotated = this._utils.rotatePoint(point, this._angle, this._axis, this.centre);
+                this._vertices.push(...V3.toArray(rotated));
+                
+                if (this._applyCurve) {
+                    const curved = this._utils.applyCurve(rotated, this.curveOrigin);
+                    this._curvedVertices.push(...V3.toArray(curved));
+                }
+
+                x += this.radius;
+                if (x > this.centre.x + this.radius) {
+                    x = this.centre.x - this.radius;
+                }
+            }
+            y += this.radius;
+        }
+    }
+
+    private _generateNormals(segments: number): void {
+        const zero = V3.zero();
+        const n = {x: 0, y: 0, z: 1};
+        for (let iy = 0; iy < segments; iy++) {
+            for (let ix = 0; ix < segments; ix++) {
+                this._normals.push(...V3.toArray(this._utils.rotatePoint(n, this._angle, this._axis, zero)));
             }
         }
-        this._vertices.push(...V3.toArray(...points));
-    }
 
-    private _generateNormals(): void {
-        const normals = new Array<number>(
-            0, 0, 1,   0, 0, 1,   0, 0, 1,
-            0, 0, 1,   0, 0, 1,   0, 0, 1,
-            0, 0, 1,   0, 0, 1,   0, 0, 1,
-        );
-        const normalPoints = V3.fromArray(normals);
-        const zero = V3.zero();
-        for (let i=0; i<normalPoints.length; i++) {
-            const normalPoint = normalPoints[i];
-            normalPoints[i] = this._utils.rotatePoint(normalPoint, this._angle, this._axis, zero);
+        if (this._applyCurve) {
+            this._curvedNormals.push(...V3.toArray(...V3.fromArray(this._curvedVertices).map(v => V3.normalise(v))));
         }
-        this._normals.push(...V3.toArray(...normalPoints));
     }
 
-    private _generateUVs(): void {
-        this._uvs.push(...UV.toArray(
-            this.uvStart, {u: (this.uvStart.u+this.uvEnd.u)/2, v: this.uvStart.v}, {u: this.uvEnd.u, v: this.uvStart.v},
-            {u: this.uvStart.u, v: (this.uvStart.v+this.uvEnd.v)/2}, UV.midpoint(this.uvStart, this.uvEnd), {u: this.uvEnd.u, v: (this.uvStart.v+this.uvEnd.v)/2},
-            {u: this.uvStart.u, v: this.uvEnd.v}, {u: (this.uvStart.u+this.uvEnd.u)/2, v: this.uvEnd.v}, this.uvEnd
-        ));
+    private _generateUVs(segments: number): void {
+        let u = this.uvStart.u;
+        let v = this.uvStart.v;
+        const uOffset = (this.uvEnd.u - this.uvStart.u) / (segments-1);
+        const vOffset = (this.uvEnd.v - this.uvStart.v) / (segments-1);
+        for (let iv = 0; iv < segments; iv++) {
+            for (let iu = 0; iu < segments; iu++) {
+                this._uvs.push(u, v);
+
+                u += uOffset;
+                if (u > this.uvEnd.u) {
+                    u = this.uvStart.u;
+                }
+            }
+
+            v += vOffset;
+        }
     }
 
     private _getPointIndices(index: number = 0): V3 {
@@ -694,7 +772,9 @@ export class Quad {
                 angle: this._angle,
                 rotationAxis: this._axis,
                 uvStart: {u: this.uvStart.u, v: this.uvStart.v},
-                uvEnd: {u: (this.uvStart.u+this.uvEnd.u)/2, v: (this.uvStart.v+this.uvEnd.v)/2}
+                uvEnd: {u: (this.uvStart.u+this.uvEnd.u)/2, v: (this.uvStart.v+this.uvEnd.v)/2},
+                applyCurve: this._applyCurve,
+                curveOrigin: this.curveOrigin
             }),
             new Quad({
                 parent: this,
@@ -708,7 +788,9 @@ export class Quad {
                 angle: this._angle,
                 rotationAxis: this._axis,
                 uvStart: {u: (this.uvStart.u+this.uvEnd.u)/2, v: this.uvStart.v},
-                uvEnd: {u: this.uvEnd.u, v: (this.uvStart.v+this.uvEnd.v)/2}
+                uvEnd: {u: this.uvEnd.u, v: (this.uvStart.v+this.uvEnd.v)/2},
+                applyCurve: this._applyCurve,
+                curveOrigin: this.curveOrigin
             }),
             new Quad({
                 parent: this,
@@ -722,7 +804,9 @@ export class Quad {
                 angle: this._angle,
                 rotationAxis: this._axis,
                 uvStart: {u: this.uvStart.u, v: (this.uvStart.v+this.uvEnd.v)/2},
-                uvEnd: {u: (this.uvStart.u+this.uvEnd.u)/2, v: this.uvEnd.v}
+                uvEnd: {u: (this.uvStart.u+this.uvEnd.u)/2, v: this.uvEnd.v},
+                applyCurve: this._applyCurve,
+                curveOrigin: this.curveOrigin
             }),
             new Quad({
                 parent: this,
@@ -736,7 +820,9 @@ export class Quad {
                 angle: this._angle,
                 rotationAxis: this._axis,
                 uvStart: {u: (this.uvStart.u+this.uvEnd.u)/2, v: (this.uvStart.v+this.uvEnd.v)/2},
-                uvEnd: {u: this.uvEnd.u, v: this.uvEnd.v}
+                uvEnd: {u: this.uvEnd.u, v: this.uvEnd.v},
+                applyCurve: this._applyCurve,
+                curveOrigin: this.curveOrigin
             })
         ];
         children.forEach(c => this._children.set(c.quadrant, c));

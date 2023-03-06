@@ -158,7 +158,7 @@ export class QuadUtils {
         if (angle === 0) {
             return point;
         }
-        around ??= point;
+        around ??= {x: point.x, y: point.y, z: point.z};
         const radians = angle * (Math.PI / 180);
         const p = new THREE.Vector3(point.x, point.y, point.z);
         const ar = new THREE.Vector3(around.x, around.y, around.z);
@@ -187,5 +187,18 @@ export class QuadUtils {
         curvedOffset.z = offset.z * Math.sqrt(1 - x2 / 2 - y2 / 2 + x2 * y2 / 3);
         const curved = V3.add(curvedOffset, curveOrigin.x, curveOrigin.y, curveOrigin.z);
         return curved;
+    }
+
+    /**
+     * converts a 2 dimensional array coordinate (x, y) into a 1 dimensional index
+     * @param x the horizontal coordinate of the grid (left-to-right)
+     * @param y the vertical coordinate of the grid (bottom-to-top)
+     * @param segments the number of horizontal and vertical coordinates
+     * per row / column
+     * @returns the index into a 1 dimensional array based on the coordinates
+     * of the grid (2 dimensional array)
+     */
+    xyToI(x: number, y: number, segments: number): number {
+        return (segments * y) + x;
     }
 }
