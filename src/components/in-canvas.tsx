@@ -16,7 +16,7 @@ const quat = new THREE.Quaternion();
 export function InCanvas() {
     const {camera} = useThree();
     camera.near = 0.0001;
-    const distances = [5, 4, 3, 2, 2.5, 1, 0.5];
+    const distances = [10, 9, 8, 7, 6, 5, 4, 3, 2, 2.5, 1, 0.5];
     const grid = useLoader(THREE.TextureLoader, `${assetPath}/grid.png`);
     const uvtest = useLoader(THREE.TextureLoader, `${assetPath}/uvCubeMapTexture.png`);
     const tessellation = useLoader(THREE.TextureLoader, `${assetPath}/cube.png`);
@@ -24,49 +24,50 @@ export function InCanvas() {
     const quadMesh = useRef<THREE.Mesh>(null);
     const quadSphereMesh = useRef<THREE.Mesh>(null);
     useFrame((state: RootState, delta: number) => {
-        elapsed += delta;
-        const el = state.clock.getElapsedTime();
-        quat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), 0.1 * el)
-        if (elapsed >= 1 / 5) {
-            elapsed = 0;
-            if (quadSphereMesh.current) {
-                const geom = quadSphereMesh.current.geometry as QuadSphereGeometry;
-                const offsetPoint = camera.position.clone()
-                    .sub(quadSphereMesh.current.position)
-                    .applyQuaternion(quadSphereMesh.current.quaternion.invert());
-                geom.sphere.unify();
-                for (let i=0; i<distances.length; i++) {
-                    const dist = distances[i];
-                    const quads = geom.sphere.getQuadsWithinDistance(offsetPoint, dist);
-                    if (quads.length > 0) {
-                        // console.debug('found', quads.length, 'quads at distance', dist);
-                        const closest = geom.sphere.getClosestQuad(offsetPoint, ...quads);
-                        if (closest.level <= i && !closest.hasChildren()) {
-                            closest.subdivide();
-                            geom.updateAttributes();
-                        }
-                    }
-                }
-            }
-            if (quadMesh.current) {
-                const geom = quadMesh.current.geometry as QuadGeometry;
-                const offsetPoint = camera.position.clone()
-                    .sub(quadMesh.current.position)
-                    .applyQuaternion(quadMesh.current.quaternion.invert());
-                geom.quad.unify();
-                for (let i=0; i<distances.length; i++) {
-                    const dist = distances[i];
-                    const quads = geom.quad.getQuadsWithinDistance(offsetPoint, dist);
-                    if (quads.length > 0) {
-                        const closest = geom.quad.getClosestQuad(offsetPoint, ...quads);
-                        if (closest.level <= i && !closest.hasChildren()) {
-                            closest.subdivide();
-                            geom.updateAttributes();
-                        }
-                    }
-                }
-            }
-        }
+        // elapsed += delta;
+        // const el = state.clock.getElapsedTime();
+        // quat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), 0.1 * el)
+        // if (elapsed >= 1 / 5) {
+        //     elapsed = 0;
+        //     if (quadSphereMesh.current) {
+        //         const geom = quadSphereMesh.current.geometry as QuadSphereGeometry;
+        //         const offsetPoint = camera.position.clone()
+        //             .sub(quadSphereMesh.current.position)
+        //             .applyQuaternion(quadSphereMesh.current.quaternion.invert());
+        //         geom.sphere.unify();
+        //         for (let i=0; i<distances.length; i++) {
+        //             const dist = distances[i];
+        //             const quads = geom.sphere.getQuadsWithinDistance(offsetPoint, dist);
+        //             if (quads.length > 0) {
+        //                 // console.debug('found', quads.length, 'quads at distance', dist);
+        //                 const closest = geom.sphere.getClosestQuad(offsetPoint, ...quads);
+        //                 if (closest.level <= i && !closest.hasChildren()) {
+        //                     closest.subdivide();
+        //                     geom.updateAttributes();
+        //                 }
+        //             }
+        //         }
+        //     }
+        //     if (quadMesh.current) {
+        //         const geom = quadMesh.current.geometry as QuadGeometry;
+        //         const offsetPoint = camera.position.clone()
+        //             .sub(quadMesh.current.position)
+        //             .applyQuaternion(quadMesh.current.quaternion.invert());
+        //         geom.quad.unify();
+        //         for (let i=0; i<distances.length; i++) {
+        //             const dist = distances[i];
+        //             const quads = geom.quad.getQuadsWithinDistance(offsetPoint, dist);
+        //             if (quads.length > 0) {
+        //                 const closest = geom.quad.getClosestQuad(offsetPoint, ...quads);
+        //                 if (closest.level <= i && !closest.hasChildren()) {
+        //                     closest.subdivide();
+        //                     geom.updateAttributes();
+        //                 }
+        //             }
+        //         }
+        //         setKey(geom.quad.key);
+        //     }
+        // }
         if (quadSphereMesh.current) {
             // quadSphereMesh.current.position.y = 0.25 * Math.sin(el);
             // quadSphereMesh.current.quaternion.w = quat.w;
@@ -78,7 +79,7 @@ export function InCanvas() {
             // quadMesh.current.position.y = -0.25 * Math.sin(el);
         }
     });
-    const [clicks, setClicks] = useState<number>(0);
+    const [key, setKey] = useState<string>(null);
     return (
         <>
             <ambientLight intensity={0.4} />
@@ -91,25 +92,25 @@ export function InCanvas() {
             </CameraFacingText>
             <QuadMesh ref={quadMesh} 
                 position={[-1.2, 0, 0]} 
-                centre={{x: 0, y: 0, z: 1}} // push forward so curve works
-                radius={1}
-                segments={5}
-                applyCurve={true}
-                // onClick={(e) => {subdivide(e, quadMesh.current); setClicks(clicks + 1);}}
-                // onContextMenu={(e) => {unify(e, quadMesh.current); setClicks(clicks - 1);}}
+                // centre={{x: 0, y: 0, z: 10}} // push forward so curve works
+                radius={10}
+                segments={7}
+                // applyCurve={true}
+                onClick={(e) => setKey(subdivide(e, quadMesh.current))}
+                onContextMenu={(e) => setKey(unify(e, quadMesh.current))}
             >
                 <meshStandardMaterial 
                     map={bump} 
                     displacementMap={bump}
-                    displacementScale={0.2}
+                    displacementScale={1}
                     flatShading
                 />
                 <Edges threshold={0} />
             </QuadMesh>
-            <QuadSphereMesh ref={quadSphereMesh}
+            {/* <QuadSphereMesh ref={quadSphereMesh}
                 position={[1.2, 0, 0]} 
                 radius={1}
-                segments={5}
+                segments={11}
             >
                 <meshStandardMaterial 
                     map={tessellation}
@@ -117,7 +118,7 @@ export function InCanvas() {
                     displacementScale={0.1} 
                     flatShading
                 />
-            </QuadSphereMesh>
+            </QuadSphereMesh> */}
             <Stats />
         </>
     )
@@ -134,6 +135,7 @@ function subdivide(e: ThreeEvent<MouseEvent>, quadMesh: THREE.Mesh) {
         closest.subdivide();
         geom.updateAttributes();
     }
+    return geom.quad.key;
 }
 
 function unify(e: ThreeEvent<MouseEvent>, quadMesh: THREE.Mesh) {
@@ -147,4 +149,5 @@ function unify(e: ThreeEvent<MouseEvent>, quadMesh: THREE.Mesh) {
         closest.parent.unify();
         geom.updateAttributes();
     }
+    return geom.quad.key;
 }

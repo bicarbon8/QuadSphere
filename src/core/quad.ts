@@ -850,6 +850,7 @@ export class Quad {
         let x = this.centre.x - this.radius;
         let y = this.centre.y - this.radius;
         const offset = (this.radius*2) / (this.segments-1);
+        const fuzzFactor = offset / 4;
         for (let iy = 0; iy < this.segments; iy++) {
             point.y = y;
             for (let ix = 0; ix < this.segments; ix++) {
@@ -865,7 +866,7 @@ export class Quad {
                 }
 
                 x += offset;
-                if (x > this.centre.x + this.radius) {
+                if (x > (this.centre.x + this.radius) + fuzzFactor) {
                     x = this.centre.x - this.radius;
                 }
             }
@@ -891,13 +892,14 @@ export class Quad {
         let u = this.uvStart.u;
         let v = this.uvStart.v;
         const uOffset = (this.uvEnd.u - this.uvStart.u) / (this.segments-1);
+        const fuzzFactor = uOffset / 4;
         const vOffset = (this.uvEnd.v - this.uvStart.v) / (this.segments-1);
         for (let iv = 0; iv < this.segments; iv++) {
             for (let iu = 0; iu < this.segments; iu++) {
                 this._uvs.push(u, v);
 
                 u += uOffset;
-                if (u > this.uvEnd.u) {
+                if (u > (this.uvEnd.u + fuzzFactor)) {
                     u = this.uvStart.u;
                 }
             }
