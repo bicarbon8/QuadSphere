@@ -12,7 +12,7 @@ export const QuadMesh = forwardRef((props: QuadMeshProps, ref: ForwardedRef<Mesh
         return new QuadGeometry({
             ...props
         });
-    }, [props.radius, props.maxlevel, props.loglevel]);
+    }, [props.radius, props.maxlevel, props.loglevel, props.segments]);
     const mesh = useRef<Mesh>(null);
     if (typeof ref === "function") {
         ref(mesh.current);

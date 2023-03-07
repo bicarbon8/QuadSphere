@@ -111,11 +111,12 @@ export class Quad {
         this.centre = Object.freeze(options.centre ?? V3.zero());
         this.radius = options.radius ?? 1;
         if (options.segments && options.segments > 1) {
-            if (options.segments % 2 === 0) {
+            const seg = Math.floor(options.segments);
+            if (seg % 2 === 0) {
                 // is even so make odd
-                this.segments = options.segments + 1;
+                this.segments = seg + 1;
             } else {
-                this.segments = options.segments;
+                this.segments = seg;
             }
         } else {
             this.segments = 3;

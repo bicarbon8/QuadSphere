@@ -10,7 +10,14 @@ export type textProps = {
 
 export function CameraFacingText(props: textProps) {
     const ref = useRef<Mesh>();
-    const fontProps = { fontSize: 0.25, letterSpacing: -0.05, lineHeight: 1, 'material-toneMapped': false };
+    const fontProps = { 
+        fontSize: 0.25, 
+        letterSpacing: -0.05, 
+        lineHeight: 1, 
+        'material-toneMapped': false,
+        outlineWidth: '5%',
+        outlineColor: 0x000000
+    };
     const fullProps = {
         ...fontProps,
         ...props
@@ -19,5 +26,5 @@ export function CameraFacingText(props: textProps) {
         // Make text face the camera
         ref.current.quaternion.copy(camera.quaternion)
     });
-    return <Text ref={ref} {...fullProps} children={props.children} />;
+    return <Text ref={ref} {...fullProps} children={props.children} renderOrder={999} depthOffset={-999} />;
 }

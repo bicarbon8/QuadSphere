@@ -8,6 +8,7 @@ import { QuadSphereMesh } from './quad-sphere-mesh';
 import { QuadGeometry } from '../geometries/quad-geometry';
 import { QuadSphereGeometry } from '../geometries/quad-sphere-geometry';
 import { V3 } from '../core/v3';
+import { useControls } from 'leva';
 
 const assetPath = import.meta.env.VITE_ASSET_PATH;
 
@@ -26,6 +27,7 @@ export function InCanvas() {
     const quadSphereMesh = useRef<THREE.Mesh>(null);
     const [quadTriangles, setQuadTriangles] = useState<number>(0);
     const [sphereTriangles, setSphereTriangles] = useState<number>(0);
+    const { segments } = useControls({ segments: { value: 5, min: 3, max: 21 } });
     useFrame((state: RootState, delta: number) => {
         setElapsed(state.clock.getElapsedTime());
         quat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), 0.1 * elapsed)
@@ -64,14 +66,14 @@ export function InCanvas() {
             <pointLight position={[-10, 10, -10]} color={0x6666ff} intensity={0.5} />
             <OrbitControls />
             <axesHelper args={[0.5]} />
-            <CameraFacingText position={[0, 2, 0.5]}>
+            <CameraFacingText position={[0, 0, 0]}>
                 Quad: {quadTriangles} triangles; Sphere: {sphereTriangles} triangles
             </CameraFacingText>
             <QuadMesh ref={quadMesh} 
                 position={[-1.2, 0, 0]} 
                 // centre={{x: 0, y: 0, z: 10}} // push forward so curve works
                 radius={1}
-                segments={5}
+                segments={segments}
                 // applyCurve={true}
                 // onClick={(e) => setQuadKey(subdivide(e, quadMesh.current))}
                 // onContextMenu={(e) => setQuadKey(unify(e, quadMesh.current))}
@@ -87,7 +89,7 @@ export function InCanvas() {
             <QuadSphereMesh ref={quadSphereMesh}
                 position={[1.2, 0, 0]} 
                 radius={1}
-                segments={5}
+                segments={segments}
             >
                 <meshStandardMaterial 
                     map={tessellation}
@@ -96,7 +98,7 @@ export function InCanvas() {
                     flatShading
                 />
             </QuadSphereMesh>
-            <Stats />
+            {/* <Stats /> */}
         </>
     )
 }
