@@ -7,6 +7,7 @@ import { useRef, useState } from 'react';
 import { QuadSphereMesh } from './quad-sphere-mesh';
 import { QuadGeometry } from '../geometries/quad-geometry';
 import { QuadSphereGeometry } from '../geometries/quad-sphere-geometry';
+import { V3 } from '../core/v3';
 
 const assetPath = import.meta.env.VITE_ASSET_PATH;
 let elapsed = 0;
@@ -90,8 +91,10 @@ export function InCanvas() {
             </CameraFacingText>
             <QuadMesh ref={quadMesh} 
                 position={[-1.2, 0, 0]} 
+                centre={{x: 0, y: 0, z: 1}} // push forward so curve works
                 radius={1}
                 segments={5}
+                applyCurve={true}
                 // onClick={(e) => {subdivide(e, quadMesh.current); setClicks(clicks + 1);}}
                 // onContextMenu={(e) => {unify(e, quadMesh.current); setClicks(clicks - 1);}}
             >

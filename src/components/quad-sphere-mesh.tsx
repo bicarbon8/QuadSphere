@@ -2,7 +2,6 @@ import { MeshProps } from "@react-three/fiber";
 import { ForwardedRef, forwardRef, useEffect, useMemo, useRef, useState } from "react";
 import { Mesh } from "three";
 import { QuadSphereOptions } from "../core/quad-sphere";
-import { V3 } from "../core/v3";
 import { QuadSphereGeometry } from "../geometries/quad-sphere-geometry";
 
 export type QuadSphereMeshProps = MeshProps & QuadSphereOptions;
@@ -11,8 +10,7 @@ export const QuadSphereMesh = forwardRef((props: QuadSphereMeshProps, ref: Forwa
     const geometry = useMemo<QuadSphereGeometry>(() => {
         console.info('creating new QuadSphere!', {props});
         return new QuadSphereGeometry({
-            ...props,
-            centre: V3.zero()
+            ...props
         });
     }, [props.radius, props.maxlevel, props.loglevel]);
     const mesh = useRef<Mesh>(null);
