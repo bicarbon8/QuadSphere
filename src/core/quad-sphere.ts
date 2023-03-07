@@ -1,5 +1,4 @@
-import * as THREE from "three";
-import { Quad, QuadOptions } from "./quad";
+import { Quad } from "./quad";
 import { QuadLogger, QuadLoggerLevel } from "./quad-logger";
 import { QuadRegistry } from "./quad-registry";
 import { QuadMeshData, QuadSphereFace } from "./quad-types";
