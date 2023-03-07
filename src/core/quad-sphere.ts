@@ -27,6 +27,8 @@ export class QuadSphere {
     private readonly _loglevel: QuadLoggerLevel;
     private readonly _logger: QuadLogger;
     private readonly _utils: QuadUtils;
+
+    private _triangleCount: number;
     
     constructor(options: QuadSphereOptions) {
         this.centre = options.centre ?? {x: 0, y: 0, z: 0};
@@ -39,6 +41,7 @@ export class QuadSphere {
             level: this._loglevel
         });
         this._utils = options.utils ?? new QuadUtils({loglevel: this._logger.level});
+        this._triangleCount = 0;
         this._createFaces();
     }
 
@@ -122,7 +125,12 @@ export class QuadSphere {
             normals: norms,
             uvs: uvs
         } // , 4);
+        this._triangleCount = tris.length / 3;
         return cubeData;
+    }
+
+    get triangleCount(): number {
+        return this._triangleCount;
     }
 
     unify(): this {

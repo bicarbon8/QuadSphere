@@ -3,7 +3,7 @@ import { Edges, OrbitControls, Stats } from '@react-three/drei'
 import { CameraFacingText } from "./camera-facing-text";
 import * as THREE from 'three';
 import { QuadMesh } from './quad-mesh';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { QuadSphereMesh } from './quad-sphere-mesh';
 import { QuadGeometry } from '../geometries/quad-geometry';
 import { QuadSphereGeometry } from '../geometries/quad-sphere-geometry';
@@ -15,6 +15,8 @@ export function InCanvas() {
     const {camera} = useThree();
     camera.near = 0.0001;
     const quat = useMemo<THREE.Quaternion>(() => new THREE.Quaternion(), []);
+    const [quadKey, setQuadKey] = useState<string>(null);
+    const [sphereKey, setSphereKey] = useState<string>(null);
     const [elapsed, setElapsed] = useState<number>(0);
     const grid = useLoader(THREE.TextureLoader, `${assetPath}/grid.png`);
     const uvtest = useLoader(THREE.TextureLoader, `${assetPath}/uvCubeMapTexture.png`);
@@ -22,16 +24,18 @@ export function InCanvas() {
     const bump = useLoader(THREE.TextureLoader, `${assetPath}/bump.jpg`);
     const quadMesh = useRef<THREE.Mesh>(null);
     const quadSphereMesh = useRef<THREE.Mesh>(null);
+    const [quadTriangles, setQuadTriangles] = useState<number>(0);
+    const [sphereTriangles, setSphereTriangles] = useState<number>(0);
     useFrame((state: RootState, delta: number) => {
         setElapsed(state.clock.getElapsedTime());
         quat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), 0.1 * elapsed)
         if (elapsed >= 1 / 5) {
             setElapsed(0);
             if (quadSphereMesh.current) {
-                updateSphereForDistances(quadSphereMesh.current, camera.position);
+                setSphereKey(updateSphereForDistances(quadSphereMesh.current, camera.position));
             }
             if (quadMesh.current) {
-                updateQuadForDistances(quadMesh.current, camera.position);
+                setQuadKey(updateQuadForDistances(quadMesh.current, camera.position));
             }
         }
         if (quadSphereMesh.current) {
@@ -45,7 +49,14 @@ export function InCanvas() {
             // quadMesh.current.position.y = -0.25 * Math.sin(el);
         }
     });
-    const [key, setKey] = useState<string>(null);
+    useEffect(() => {
+        if (quadSphereMesh.current) {
+            setSphereTriangles((quadSphereMesh.current.geometry as QuadSphereGeometry)?.sphere?.triangleCount);
+        }
+        if (quadMesh.current) {
+            setQuadTriangles((quadMesh.current.geometry as QuadGeometry)?.quad?.triangleCount);
+        }
+    }, [quadKey])
     return (
         <>
             <ambientLight intensity={0.4} />
@@ -53,8 +64,8 @@ export function InCanvas() {
             <pointLight position={[-10, 10, -10]} color={0x6666ff} intensity={0.5} />
             <OrbitControls />
             <axesHelper args={[0.5]} />
-            <CameraFacingText position={[0, 2, 0]}>
-                distance based subdivision
+            <CameraFacingText position={[0, 2, 0.5]}>
+                Quad: {quadTriangles} triangles; Sphere: {sphereTriangles} triangles
             </CameraFacingText>
             <QuadMesh ref={quadMesh} 
                 position={[-1.2, 0, 0]} 
@@ -62,8 +73,8 @@ export function InCanvas() {
                 radius={1}
                 segments={5}
                 // applyCurve={true}
-                onClick={(e) => setKey(subdivide(e, quadMesh.current))}
-                onContextMenu={(e) => setKey(unify(e, quadMesh.current))}
+                onClick={(e) => setQuadKey(subdivide(e, quadMesh.current))}
+                onContextMenu={(e) => setQuadKey(unify(e, quadMesh.current))}
             >
                 <meshStandardMaterial 
                     map={bump} 
@@ -73,10 +84,10 @@ export function InCanvas() {
                 />
                 <Edges threshold={0} />
             </QuadMesh>
-            {/* <QuadSphereMesh ref={quadSphereMesh}
+            <QuadSphereMesh ref={quadSphereMesh}
                 position={[1.2, 0, 0]} 
                 radius={1}
-                segments={11}
+                segments={5}
             >
                 <meshStandardMaterial 
                     map={tessellation}
@@ -84,7 +95,7 @@ export function InCanvas() {
                     displacementScale={0.1} 
                     flatShading
                 />
-            </QuadSphereMesh> */}
+            </QuadSphereMesh>
             <Stats />
         </>
     )
@@ -120,7 +131,7 @@ function unify(e: ThreeEvent<MouseEvent>, quadMesh: THREE.Mesh) {
 
 const distances = [5, 4, 3, 2, 2.5, 1, 0.5];
 
-function updateSphereForDistances(sphereMeshRef: THREE.Mesh, trigger: V3) {
+function updateSphereForDistances(sphereMeshRef: THREE.Mesh, trigger: V3): string {
     const geom = sphereMeshRef.geometry as QuadSphereGeometry;
     const offsetPoint = new THREE.Vector3(trigger.x, trigger.y, trigger.z)
         .sub(sphereMeshRef.position)
@@ -138,9 +149,10 @@ function updateSphereForDistances(sphereMeshRef: THREE.Mesh, trigger: V3) {
             }
         }
     }
+    return geom.sphere.key;
 }
 
-function updateQuadForDistances(quadMeshRef: THREE.Mesh, trigger: V3) {
+function updateQuadForDistances(quadMeshRef: THREE.Mesh, trigger: V3): string {
     const geom = quadMeshRef.geometry as QuadGeometry;
     const offsetPoint = new THREE.Vector3(trigger.x, trigger.y, trigger.z)
         .sub(quadMeshRef.position)
@@ -157,4 +169,5 @@ function updateQuadForDistances(quadMeshRef: THREE.Mesh, trigger: V3) {
             }
         }
     }
+    return geom.quad.key;
 }

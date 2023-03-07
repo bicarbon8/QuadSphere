@@ -104,6 +104,7 @@ export class Quad {
     
     private _axis: V3;
     private _angle: number;
+    private _triangleCount: number;
     
     constructor(options: QuadOptions) {
         this.parent = options.parent;
@@ -136,6 +137,7 @@ export class Quad {
         this._utils = options.utils ?? new QuadUtils({loglevel: this._logger.level});
         this._applyCurve = options.applyCurve ?? false;
         this.curveOrigin = options.curveOrigin ?? V3.zero();
+        this._triangleCount = 0;
         this._generatePoints();
         this._generateNormals();
         this._generateUVs();
@@ -375,7 +377,12 @@ export class Quad {
             tris.push(...this.getRightTriangleIndices());
             tris.push(...this.getTopTriangleIndices());
         }
+        this._triangleCount = tris.length / 3;
         return tris;
+    }
+
+    get triangleCount(): number {
+        return this._triangleCount;
     }
 
     get uvs(): Array<number> {
