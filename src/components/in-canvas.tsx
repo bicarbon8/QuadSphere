@@ -73,8 +73,8 @@ export function InCanvas() {
                 radius={1}
                 segments={5}
                 // applyCurve={true}
-                onClick={(e) => setQuadKey(subdivide(e, quadMesh.current))}
-                onContextMenu={(e) => setQuadKey(unify(e, quadMesh.current))}
+                // onClick={(e) => setQuadKey(subdivide(e, quadMesh.current))}
+                // onContextMenu={(e) => setQuadKey(unify(e, quadMesh.current))}
             >
                 <meshStandardMaterial 
                     map={bump} 
