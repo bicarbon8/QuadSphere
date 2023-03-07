@@ -123,17 +123,7 @@ export class QuadSphere {
             normals: norms,
             uvs: uvs
         } // , 4);
-
-        // "inflate" our cube vertices into a sphere
-        const sphericalVerts = V3.toArray(...V3.fromArray(cubeData.vertices).map(v => this._utils.applyCurve(v, this.centre)));
-        const sphericalNorms = V3.toArray(...V3.fromArray(sphericalVerts).map(v => V3.normalise(v)));
-        
-        return {
-            indices: cubeData.indices,
-            vertices: sphericalVerts,
-            normals: sphericalNorms,
-            uvs: cubeData.uvs
-        };
+        return cubeData;
     }
 
     unify(): this {
@@ -287,7 +277,7 @@ export class QuadSphere {
                 utils: this._utils,
                 uvStart: startUv,
                 uvEnd: endUv,
-                applyCurve: false,
+                applyCurve: true,
                 curveOrigin: this.centre,
                 segments: this.segments
             }
