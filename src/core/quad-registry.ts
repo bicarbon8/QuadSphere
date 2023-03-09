@@ -11,7 +11,7 @@ export class QuadRegistry {
     private _id: number;
 
     constructor(maxDifference?: number) {
-        this._maxDifference = maxDifference ?? 0.001;
+        this._maxDifference = maxDifference ?? 0.00001;
         this._id = 0;
     }
 
