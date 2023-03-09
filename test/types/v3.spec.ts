@@ -1,5 +1,5 @@
 import { expect, describe, test } from "vitest";
-import { V3 } from "../../src/types/v3";
+import { V3 } from "../../src/core/v3";
 
 describe.concurrent('V3', () => {
     test.each([
