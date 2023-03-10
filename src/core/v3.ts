@@ -7,11 +7,19 @@ export type V3 = V2 & {
 
 export module V3 {
     export const zero = () => {return {x: 0, y: 0, z: 0}};
+    export const zeroArray = () => {return [0, 0, 0]};
     export const right = () => {return {x: 1, y: 0, z: 0}};
+    export const rightArray = () => {return [1, 0, 0]};
     export const up = () => {return {x: 0, y: 1, z: 0}};
+    export const upArray = () => {return [0, 1, 0]};
     export const forward = () => {return {x: 0, y: 0, z: 1}};
-    export function toVector3(input: V3): THREE.Vector3 {
-        return new THREE.Vector3(input.x, input.y, input.z);
+    export const forwardArray = () => {return [0, 0, 1]};
+    export function toVector3(input: V3 | Array<number>): THREE.Vector3 {
+        if (Array.isArray(input)) {
+            return new THREE.Vector3(input[0], input[1], input[2]);
+        } else {
+            return new THREE.Vector3(input.x, input.y, input.z);
+        }
     }
     export function midpoint(p1: V3, p2: V3): V3 {
         return {x: (p1.x+p2.x)/2, y: (p1.y+p2.y)/2, z: (p1.z+p2.z)/2};
