@@ -16,3 +16,5 @@ export type QuadMeshData = {
     normals: Array<number>;
     uvs: Array<number>;
 }
+
+export type QuadSphereMeshData = Record<QuadSphereFace, QuadMeshData>;

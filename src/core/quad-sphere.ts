@@ -1,10 +1,12 @@
 import { Quad } from "./quad";
 import { QuadLogger, QuadLoggerLevel } from "./quad-logger";
 import { QuadRegistry } from "./quad-registry";
-import { QuadMeshData, QuadSphereFace } from "./quad-types";
+import { QuadSphereFace, QuadSphereMeshData } from "./quad-types";
 import { QuadUtils } from "./quad-utils";
 import { UV } from "./v2";
 import { V3 } from "./v3"
+
+export type QuadSphereTextureMapping = 'cube' | 'unwrapped';
 
 export type QuadSphereOptions = {
     centre?: V3,
@@ -14,6 +16,7 @@ export type QuadSphereOptions = {
     maxlevel?: number;
     utils?: QuadUtils;
     addSkirts?: boolean;
+    textureMapping?: QuadSphereTextureMapping;
 }
 
 export class QuadSphere {
@@ -22,6 +25,7 @@ export class QuadSphere {
     readonly registry: QuadRegistry;
     readonly maxlevel: number;
     readonly segments: number;
+    readonly textureMapping: QuadSphereTextureMapping;
     
     private readonly _faces = new Map<QuadSphereFace, Quad>();
     private readonly _loglevel: QuadLoggerLevel;
@@ -36,6 +40,7 @@ export class QuadSphere {
         this.segments = options.segments; // default set in Quad if unset
         this.registry = new QuadRegistry();
         this.maxlevel = options.maxlevel ?? 100;
+        this.textureMapping = options.textureMapping ?? 'unwrapped';
         this._loglevel = options.loglevel ?? 'warn';
         this._logger = new QuadLogger({
             level: this._loglevel
@@ -102,31 +107,25 @@ export class QuadSphere {
         return this._faces.get('bottom');
     }
 
-    get meshData(): QuadMeshData {
-        const tris = new Array<number>();
-        const verts = new Array<number>();
-        const norms = new Array<number>();
-        const uvs = new Array<number>();
-
+    get meshData(): QuadSphereMeshData {
+        // below array order is important so we match Box in Threejs
+        const faces = new Array<QuadSphereFace>('right', 'left', 'top', 'bottom', 'front', 'back');
+        const sphereData = {} as QuadSphereMeshData;
+        let tris = 0;
         let offset = 0;
-        this._faces.forEach((quad: Quad, face: QuadSphereFace) => {
+        faces.forEach((face: QuadSphereFace) => {
+            const quad = this._faces.get(face);
             const data = quad.meshData;
-            tris.push(...data.indices.map(i => i+offset));
+            const indices = data.indices.map(i => i+offset);
             offset += data.vertices.length / 3;
-            verts.push(...data.vertices);
-            norms.push(...data.normals);
-            uvs.push(...data.uvs);
+            const vertices = data.vertices;
+            const normals = data.normals;
+            const uvs = data.uvs;
+            tris += data.indices.length;
+            sphereData[face] = { indices, vertices, normals, uvs };
         });
-
-        // merge any duplicate vertices
-        const cubeData = { // this.utils.mergeVertices({
-            indices: tris,
-            vertices: verts,
-            normals: norms,
-            uvs: uvs
-        } // , 4);
-        this._triangleCount = tris.length / 3;
-        return cubeData;
+        this._triangleCount = tris / 3;
+        return sphereData;
     }
 
     get triangleCount(): number {
@@ -223,54 +222,66 @@ export class QuadSphere {
                     offset.y=-this.radius;
                     angle=90;
                     axis.x=1;
-                    startUv.u = 1/4;
-                    startUv.v = 0;
-                    endUv.u = 1/2;
-                    endUv.v = 1/3;
+                    if (this.textureMapping === 'unwrapped') {
+                        startUv.u = 1/4;
+                        startUv.v = 0;
+                        endUv.u = 1/2;
+                        endUv.v = 1/3;
+                    }
                     break;
                 case 'top': // +Y
                     offset.y=this.radius;
                     angle=-90;
                     axis.x=1;
-                    startUv.u = 1/4;
-                    startUv.v = 2/3;
-                    endUv.u = 1/2;
-                    endUv.v = 1;
+                    if (this.textureMapping === 'unwrapped') {
+                        startUv.u = 1/4;
+                        startUv.v = 2/3;
+                        endUv.u = 1/2;
+                        endUv.v = 1;
+                    }
                     break;
                 case 'right': // +X
                     offset.x=this.radius;
                     angle=90;
                     axis.y=1;
-                    startUv.u = 1/2;
-                    startUv.v = 1/3;
-                    endUv.u = 3/4;
-                    endUv.v = 2/3;
+                    if (this.textureMapping === 'unwrapped') {
+                        startUv.u = 1/2;
+                        startUv.v = 1/3;
+                        endUv.u = 3/4;
+                        endUv.v = 2/3;
+                    }
                     break;
                 case 'left': // -X
                     offset.x=-this.radius;
                     angle=-90;
                     axis.y=1;
-                    startUv.u = 0;
-                    startUv.v = 1/3;
-                    endUv.u = 1/4;
-                    endUv.v = 2/3;
+                    if (this.textureMapping === 'unwrapped') {
+                        startUv.u = 0;
+                        startUv.v = 1/3;
+                        endUv.u = 1/4;
+                        endUv.v = 2/3;
+                    }
                     break;
                 case 'back': // -Z
                     offset.z=-this.radius;
                     angle=180;
                     axis.y=1;
-                    startUv.u = 3/4;
-                    startUv.v = 1/3;
-                    endUv.u = 1;
-                    endUv.v = 2/3;
+                    if (this.textureMapping === 'unwrapped') {
+                        startUv.u = 3/4;
+                        startUv.v = 1/3;
+                        endUv.u = 1;
+                        endUv.v = 2/3;
+                    }
                     break;
                 case 'front': // +Z
                 default:
                     offset.z=this.radius;
-                    startUv.u = 1/4;
-                    startUv.v = 1/3;
-                    endUv.u = 1/2;
-                    endUv.v = 2/3;
+                    if (this.textureMapping === 'unwrapped') {
+                        startUv.u = 1/4;
+                        startUv.v = 1/3;
+                        endUv.u = 1/2;
+                        endUv.v = 2/3;
+                    }
                     break;
             }
             this._faces.set(f, new Quad({
