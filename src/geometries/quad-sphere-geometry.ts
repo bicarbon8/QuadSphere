@@ -24,6 +24,7 @@ export class QuadSphereGeometry extends BufferGeometry {
         return this;
     }
     updateAttributes(): void {
+        this.clearGroups();
         let materialGroupStart = 0;
         let materialGroupCount = 0;
         let materialIndex = 0;
@@ -35,14 +36,15 @@ export class QuadSphereGeometry extends BufferGeometry {
         // below array order is important so we match Box in Threejs
         const faces = new Array<QuadSphereFace>('right', 'left', 'top', 'bottom', 'front', 'back');
         faces.forEach((face: QuadSphereFace) => {
-            materialGroupCount += data[face].indices.length;
+            const faceData = data[face];
+            materialGroupCount += faceData.indices.length;
             this.addGroup(materialGroupStart, materialGroupCount, materialIndex);
             materialGroupStart += materialGroupCount;
             materialIndex++;
-            indices.push(...data[face].indices);
-            vertices.push(...data[face].vertices);
-            normals.push(...data[face].normals);
-            uvs.push(...data[face].uvs);
+            indices.push(...faceData.indices);
+            vertices.push(...faceData.vertices);
+            normals.push(...faceData.normals);
+            uvs.push(...faceData.uvs);
         });
         this.setIndex(indices);
         this.setAttribute('position', new Float32BufferAttribute(vertices, 3));

@@ -5,7 +5,7 @@
   "main": "index.js",
   "types": "index.d.ts",
   "scripts": {
-    "dev": "vite --port 8080",
+    "dev": "vite --port 8081",
     "build": "tsc && vite build",
     "build:dev": "NODE_ENV=development npm run build",
     "build:lib": "tsc && vite build -c vite.lib.config.ts",

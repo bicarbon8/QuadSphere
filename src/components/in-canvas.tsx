@@ -1,5 +1,5 @@
 import { RootState, ThreeEvent, useFrame, useLoader, useThree } from '@react-three/fiber'
-import { Edges, OrbitControls, Stats } from '@react-three/drei'
+import { Edges, OrbitControls, useCubeTexture } from '@react-three/drei'
 import { CameraFacingText } from "./camera-facing-text";
 import * as THREE from 'three';
 import { QuadMesh } from './quad-mesh';
@@ -23,6 +23,16 @@ export function InCanvas() {
     const uvtest = useLoader(THREE.TextureLoader, `${assetPath}/uvCubeMapTexture.png`);
     const tessellation = useLoader(THREE.TextureLoader, `${assetPath}/cube.png`);
     const bump = useLoader(THREE.TextureLoader, `${assetPath}/bump.jpg`);
+    // bump.wrapS = bump.wrapT = THREE.RepeatWrapping;
+    // bump.repeat.set(3, 3);
+    const cube = useCubeTexture([
+        'grid.png',
+        'bump.jpg',
+        'grid.png',
+        'bump.jpg',
+        'grid.png',
+        'bump.jpg'
+    ], {path: `${assetPath}/`});
     const quadMesh = useRef<THREE.Mesh>(null);
     const quadSphereMesh = useRef<THREE.Mesh>(null);
     const [quadTriangles, setQuadTriangles] = useState<number>(0);
@@ -58,7 +68,7 @@ export function InCanvas() {
         if (quadMesh.current) {
             setQuadTriangles((quadMesh.current.geometry as QuadGeometry)?.quad?.triangleCount);
         }
-    }, [quadKey])
+    }, [quadKey, sphereKey]);
     return (
         <>
             <ambientLight intensity={0.4} />
@@ -71,9 +81,9 @@ export function InCanvas() {
             </CameraFacingText>
             <QuadMesh ref={quadMesh} 
                 position={[-1.2, 0, 0]} 
-                // centre={{x: 0, y: 0, z: 10}} // push forward so curve works
                 radius={1}
                 segments={segments}
+                // centre={{x: 0, y: 0, z: 1}} // push forward so curve works
                 // applyCurve={true}
                 // onClick={(e) => setQuadKey(subdivide(e, quadMesh.current))}
                 // onContextMenu={(e) => setQuadKey(unify(e, quadMesh.current))}
@@ -90,13 +100,14 @@ export function InCanvas() {
                 position={[1.2, 0, 0]} 
                 radius={1}
                 segments={segments}
+                textureMapping={'cube'}
             >
-                <meshStandardMaterial 
-                    map={tessellation}
-                    displacementMap={tessellation}
-                    displacementScale={0.1} 
-                    flatShading
-                />
+                <meshBasicMaterial attach="material-0" color="red" />
+                <meshBasicMaterial attach="material-1" color="blue" />
+                <meshBasicMaterial attach="material-2" color="green" />
+                <meshBasicMaterial attach="material-3" color="yellow" />
+                <meshBasicMaterial attach="material-4" color="purple" />
+                <meshBasicMaterial attach="material-5" color="white" />
             </QuadSphereMesh>
             {/* <Stats /> */}
         </>
