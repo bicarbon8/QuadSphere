@@ -3,7 +3,7 @@ import { Edges, OrbitControls, useCubeTexture } from '@react-three/drei'
 import { CameraFacingText } from "./camera-facing-text";
 import * as THREE from 'three';
 import { QuadMesh } from './quad-mesh';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { QuadSphereMesh } from './quad-sphere-mesh';
 import { QuadGeometry } from '../geometries/quad-geometry';
 import { QuadSphereGeometry } from '../geometries/quad-sphere-geometry';
@@ -12,6 +12,7 @@ import { useControls } from 'leva';
 
 const assetPath = import.meta.env.VITE_ASSET_PATH;
 const distanceValues = new Array<number>();
+let elapsed: number = 0;
 
 export function InCanvas() {
     const {camera} = useThree();
@@ -20,7 +21,6 @@ export function InCanvas() {
     const quatAxis = useMemo<THREE.Vector3>(() => new THREE.Vector3(0, 1, 0), []);
     const [quadKey, setQuadKey] = useState<string>(null);
     const [sphereKey, setSphereKey] = useState<string>(null);
-    const [elapsed, setElapsed] = useState<number>(0);
     const grid = useLoader(THREE.TextureLoader, `${assetPath}/grid.png`);
     const uvtest = useLoader(THREE.TextureLoader, `${assetPath}/uvCubeMapTexture.png`);
     const tessellation = useLoader(THREE.TextureLoader, `${assetPath}/cube.png`);
@@ -37,24 +37,27 @@ export function InCanvas() {
     ], {path: `${assetPath}/`});
     const quadMesh = useRef<THREE.Mesh>(null);
     const quadSphereMesh = useRef<THREE.Mesh>(null);
-    const [quadTriangles, setQuadTriangles] = useState<number>(0);
-    const [sphereTriangles, setSphereTriangles] = useState<number>(0);
+    const quadTriangles = useMemo<number>(() => (quadMesh.current?.geometry as QuadGeometry)?.quad?.triangleCount ?? 0, [quadKey]);
+    const sphereTriangles = useMemo<number>(() => (quadSphereMesh.current?.geometry as QuadSphereGeometry)?.sphere?.triangleCount ?? 0, [sphereKey]);
     const { segments, distances, maxLevels, freqency } = useControls({ 
         segments: { value: 5, min: 3, max: 21, step: 2 },
         distances: { min: 0, max: 10, value: [0, 5] },
         maxLevels: { value: 5, min: 0, max: 20, step: 1},
         freqency: { value: 1 / 5, min: 0, max: 2, step: 0.001 }
     });
-    const offset = Math.abs(distances[1] - distances[0]) / maxLevels;
-    const distVals = new Array<number>();
-    for (let i=distances[0]; i<distances[1]; i+=offset) {
-        distVals.push(i);
-    }
+    const distVals = useMemo<Array<number>>(() => {
+        const offset = Math.abs(distances[1] - distances[0]) / maxLevels;
+        const vals = new Array<number>();
+        for (let i=distances[0]; i<distances[1]; i+=offset) {
+            vals.push(i);
+        }
+        return vals;
+    }, [distances[0], distances[1], maxLevels]);
     distanceValues.splice(0, distanceValues.length, ...distVals);
     useFrame((state: RootState, delta: number) => {
-        setElapsed(elapsed + delta);
+        elapsed += delta;
         if (elapsed >= freqency) {
-            setElapsed(0);
+            elapsed = 0;
             if (quadSphereMesh.current) {
                 setSphereKey(updateSphereForDistances(quadSphereMesh.current, camera.position));
             }
@@ -63,8 +66,8 @@ export function InCanvas() {
             }
         }
         if (quadSphereMesh.current) {
-            // quat.setFromAxisAngle(quatAxis, 0.1 * elapsed);
             // quadSphereMesh.current.position.y = 0.25 * Math.sin(state.clock.getElapsedTime());
+            // quat.setFromAxisAngle(quatAxis, 0.1 * state.clock.getElapsedTime());
             // quadSphereMesh.current.quaternion.w = quat.w;
             // quadSphereMesh.current.quaternion.x = quat.x;
             // quadSphereMesh.current.quaternion.y = quat.y;
@@ -74,14 +77,6 @@ export function InCanvas() {
             // quadMesh.current.position.y = -0.25 * Math.sin(state.clock.getElapsedTime());
         }
     });
-    useEffect(() => {
-        if (quadSphereMesh.current) {
-            setSphereTriangles((quadSphereMesh.current.geometry as QuadSphereGeometry)?.sphere?.triangleCount);
-        }
-        if (quadMesh.current) {
-            setQuadTriangles((quadMesh.current.geometry as QuadGeometry)?.quad?.triangleCount);
-        }
-    }, [quadKey, sphereKey]);
     return (
         <>
             <ambientLight intensity={0.4} />
