@@ -11,7 +11,7 @@ import { V3 } from '../core/v3';
 import { useControls } from 'leva';
 
 const assetPath = import.meta.env.VITE_ASSET_PATH;
-const distances = new Array<number>();
+const distanceValues = new Array<number>();
 
 export function InCanvas() {
     const {camera} = useThree();
@@ -39,24 +39,21 @@ export function InCanvas() {
     const quadSphereMesh = useRef<THREE.Mesh>(null);
     const [quadTriangles, setQuadTriangles] = useState<number>(0);
     const [sphereTriangles, setSphereTriangles] = useState<number>(0);
-    const { segments } = useControls({ segments: { value: 5, min: 3, max: 21, step: 2 } });
-    const { range } = useControls({
-        range: {
-            min: 0,
-            max: 10,
-            value: [0, 10],
-        },
+    const { segments, distances, maxLevels, freqency } = useControls({ 
+        segments: { value: 5, min: 3, max: 21, step: 2 },
+        distances: { min: 0, max: 10, value: [0, 5] },
+        maxLevels: { value: 5, min: 0, max: 20, step: 1},
+        freqency: { value: 1 / 5, min: 0, max: 2, step: 0.001 }
     });
-    const { levels } = useControls({ levels: { value: 5, min: 0, max: 20, step: 1}});
-    const offset = Math.abs(range[1] - range[0]) / levels;
+    const offset = Math.abs(distances[1] - distances[0]) / maxLevels;
     const distVals = new Array<number>();
-    for (let i=range[0]; i<range[1]; i+=offset) {
+    for (let i=distances[0]; i<distances[1]; i+=offset) {
         distVals.push(i);
     }
-    distances.splice(0, distances.length, ...distVals);
+    distanceValues.splice(0, distanceValues.length, ...distVals);
     useFrame((state: RootState, delta: number) => {
-        setElapsed(state.clock.getElapsedTime());
-        if (elapsed >= 1 / 5) {
+        setElapsed(elapsed + delta);
+        if (elapsed >= freqency) {
             setElapsed(0);
             if (quadSphereMesh.current) {
                 setSphereKey(updateSphereForDistances(quadSphereMesh.current, camera.position));
@@ -170,8 +167,8 @@ function updateSphereForDistances(sphereMeshRef: THREE.Mesh, trigger: V3): strin
         .sub(sphereMeshRef.position)
         .applyQuaternion(sphereMeshRef.quaternion.invert());
     geom.unify();
-    for (let i=0; i<distances.length; i++) {
-        const dist = distances[i];
+    for (let i=0; i<distanceValues.length; i++) {
+        const dist = distanceValues[i];
         const quads = geom.sphere.getQuadsWithinDistance(offsetPoint, dist);
         if (quads.length > 0) {
             // console.debug('found', quads.length, 'quads at distance', dist);
@@ -191,8 +188,8 @@ function updateQuadForDistances(quadMeshRef: THREE.Mesh, trigger: V3): string {
         .sub(quadMeshRef.position)
         .applyQuaternion(quadMeshRef.quaternion.invert());
     geom.unify();
-    for (let i=0; i<distances.length; i++) {
-        const dist = distances[i];
+    for (let i=0; i<distanceValues.length; i++) {
+        const dist = distanceValues[i];
         const quads = geom.quad.getQuadsWithinDistance(offsetPoint, dist);
         if (quads.length > 0) {
             const closest = geom.quad.getClosestQuad(offsetPoint, ...quads);
