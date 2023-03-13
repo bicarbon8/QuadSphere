@@ -1,6 +1,5 @@
 import { BufferGeometry, Float32BufferAttribute } from "three";
 import { QuadSphere, QuadSphereOptions } from "../core/quad-sphere";
-import { QuadMeshData, QuadSphereFace } from "../core/quad-types";
 import { V3 } from "../core/v3";
 
 export class QuadSphereGeometry extends BufferGeometry {
@@ -33,9 +32,9 @@ export class QuadSphereGeometry extends BufferGeometry {
         const normals = new Array<number>();
         const uvs = new Array<number>();
         const data = this.sphere.meshData;
-        // below array order is important so we match Box in Threejs
-        const faces = new Array<QuadSphereFace>('right', 'left', 'top', 'bottom', 'front', 'back');
-        faces.forEach((face: QuadSphereFace) => {
+        let index = 0;
+        while (index<6) {
+            const face = this.sphere.utils.faceByIndex(index);
             const faceData = data[face];
             materialGroupCount += faceData.indices.length;
             this.addGroup(materialGroupStart, materialGroupCount, materialIndex);
@@ -45,7 +44,8 @@ export class QuadSphereGeometry extends BufferGeometry {
             vertices.push(...faceData.vertices);
             normals.push(...faceData.normals);
             uvs.push(...faceData.uvs);
-        });
+            index++;
+        };
         this.setIndex(indices);
         this.setAttribute('position', new Float32BufferAttribute(vertices, 3));
         this.setAttribute('normal', new Float32BufferAttribute(normals, 3));

@@ -26,12 +26,12 @@ export class QuadSphere {
     readonly maxlevel: number;
     readonly segments: number;
     readonly textureMapping: QuadSphereTextureMapping;
+    readonly utils: QuadUtils;
     
     private readonly _faces = new Map<QuadSphereFace, Quad>();
     private readonly _loglevel: QuadLoggerLevel;
     private readonly _logger: QuadLogger;
-    private readonly _utils: QuadUtils;
-
+    
     private _triangleCount: number;
     
     constructor(options: QuadSphereOptions) {
@@ -45,7 +45,7 @@ export class QuadSphere {
         this._logger = new QuadLogger({
             level: this._loglevel
         });
-        this._utils = options.utils ?? new QuadUtils({loglevel: this._logger.level});
+        this.utils = options.utils ?? new QuadUtils({loglevel: this._logger.level});
         this._triangleCount = 0;
         this._createFaces();
     }
@@ -109,11 +109,12 @@ export class QuadSphere {
 
     get meshData(): QuadSphereMeshData {
         // below array order is important so we match Box in Threejs
-        const faces = new Array<QuadSphereFace>('right', 'left', 'top', 'bottom', 'front', 'back');
         const sphereData = {} as QuadSphereMeshData;
         let tris = 0;
         let offset = 0;
-        faces.forEach((face: QuadSphereFace) => {
+        let index = 0;
+        while (index<6) {
+            const face = this.utils.faceByIndex(index);
             const quad = this._faces.get(face);
             const data = quad.meshData;
             const indices = data.indices.map(i => i+offset);
@@ -123,7 +124,8 @@ export class QuadSphere {
             const uvs = data.uvs;
             tris += data.indices.length;
             sphereData[face] = { indices, vertices, normals, uvs };
-        });
+            index++;
+        };
         this._triangleCount = tris / 3;
         return sphereData;
     }
@@ -157,7 +159,7 @@ export class QuadSphere {
             );
         }
         // sort quads in ascending order by distance to point
-        const sortedQuads = from.sort((a, b) => V3.length(this._utils.applyCurve(a.centre, this.centre), point) - V3.length(this._utils.applyCurve(b.centre, this.centre), point));
+        const sortedQuads = from.sort((a, b) => V3.length(this.utils.applyCurve(a.centre, this.centre), point) - V3.length(this.utils.applyCurve(b.centre, this.centre), point));
         this._logger.log('debug', 'quads sorted by distance to', point, sortedQuads.map(q => q.centre));
         let closest = sortedQuads
             .find(q => q != null);
@@ -292,7 +294,7 @@ export class QuadSphere {
                 maxlevel: this.maxlevel,
                 angle: angle,
                 rotationAxis: axis,
-                utils: this._utils,
+                utils: this.utils,
                 uvStart: startUv,
                 uvEnd: endUv,
                 applyCurve: true,

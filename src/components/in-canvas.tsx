@@ -105,9 +105,9 @@ export function InCanvas() {
                 <meshBasicMaterial attach="material-0" color="red" />
                 <meshBasicMaterial attach="material-1" color="blue" />
                 <meshBasicMaterial attach="material-2" color="green" />
-                <meshBasicMaterial attach="material-3" color="yellow" />
-                <meshBasicMaterial attach="material-4" color="purple" />
-                <meshBasicMaterial attach="material-5" color="white" />
+                <meshBasicMaterial attach="material-3" color={0xc3208a} />
+                <meshBasicMaterial attach="material-4" color={0x51e784} />
+                <meshBasicMaterial attach="material-5" color={0x6077e7} />
             </QuadSphereMesh>
             {/* <Stats /> */}
         </>
@@ -142,7 +142,7 @@ function unify(e: ThreeEvent<MouseEvent>, quadMesh: THREE.Mesh) {
     return geom.quad.key;
 }
 
-const distances = [5, 4, 3, 2, 2.5, 1, 0.5];
+const distances = [2, 1.5, 1, 0.75, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.05];
 
 function updateSphereForDistances(sphereMeshRef: THREE.Mesh, trigger: V3): string {
     const geom = sphereMeshRef.geometry as QuadSphereGeometry;

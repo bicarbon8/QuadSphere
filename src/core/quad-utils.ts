@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { Quad } from "./quad";
 import { QuadLogger, QuadLoggerLevel } from "./quad-logger";
-import { QuadMeshData } from "./quad-types";
+import { QuadMeshData, QuadSphereFace } from "./quad-types";
 import { V3 } from "./v3";
 
 export type QuadUtilsOptions = {
@@ -200,5 +200,48 @@ export class QuadUtils {
      */
     xyToI(x: number, y: number, segments: number): number {
         return (segments * y) + x;
+    }
+
+    /**
+     * returns the `QuadSphereFace` values as an array ordered to match the material groups
+     * used by `THREE.BoxGeometry`
+     * @returns `QuadSphereFace` strings ordered in `[+x, -x, +y, -y, +z, -z]`
+     */
+    orderedFaces(): Array<QuadSphereFace> {
+        const faces = new Array<QuadSphereFace>(
+            this.faceByIndex(0),
+            this.faceByIndex(1),
+            this.faceByIndex(2),
+            this.faceByIndex(3),
+            this.faceByIndex(4),
+            this.faceByIndex(5)
+        );
+        return faces;
+    }
+
+    /**
+     * returns the `QuadSphereFace` at the specified index matching the material groups
+     * used by `THREE.BoxGeometry`, specifically `+x=0, -x=1, +y=2, -y=3, +z=4, -z=5`
+     * @param index a number from 0 to 5, inclusive
+     * @returns the `QuadSphereFace` at the specified index
+     */
+    faceByIndex(index: number): QuadSphereFace {
+        switch (index) {
+            case 0:
+                return 'right';
+            case 1:
+                return 'left';
+            case 2:
+                return 'top';
+            case 3:
+                return 'bottom';
+            case 4:
+                return 'front';
+            case 5:
+                return 'back';
+            default:
+                this._logger.log('warn', 'invalid face index provided', index);
+                return 'front';
+        }
     }
 }
