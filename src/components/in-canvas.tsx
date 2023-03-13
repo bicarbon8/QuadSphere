@@ -37,7 +37,7 @@ export function InCanvas() {
     const quadSphereMesh = useRef<THREE.Mesh>(null);
     const [quadTriangles, setQuadTriangles] = useState<number>(0);
     const [sphereTriangles, setSphereTriangles] = useState<number>(0);
-    const { segments } = useControls({ segments: { value: 5, min: 3, max: 21 } });
+    const { segments } = useControls({ segments: { value: 5, min: 3, max: 21, step: 2 } });
     useFrame((state: RootState, delta: number) => {
         setElapsed(state.clock.getElapsedTime());
         quat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), 0.1 * elapsed)
