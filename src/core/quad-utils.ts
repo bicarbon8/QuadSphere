@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { Quad } from "./quad";
 import { QuadLogger, QuadLoggerLevel } from "./quad-logger";
-import { QuadMeshData, QuadSphereFace } from "./quad-types";
+import { QuadMeshData, QuadSide, QuadSphereFace } from "./quad-types";
 import { V3 } from "./v3";
 
 export type QuadUtilsOptions = {
@@ -13,6 +13,267 @@ export class QuadUtils {
 
     constructor(options?: QuadUtilsOptions) {
         this._logger = new QuadLogger({level: options?.loglevel ?? 'warn'});
+    }
+
+    /**
+     * assuming a `Quad` like below
+     * ```
+     * 20--21--22--23--24
+     * | \   / | \   / |
+     * 15  16--17--18  19
+     * | / | / | / | \ |
+     * 10--11--12--13--14
+     * | \ | / | / | / |
+     * 5   6---7---8   9
+     * | /   \ | /   \ |
+     * 0---1---2---3---4
+     * ```
+     * would return [6, 7, 12, 12, 11, 6, 7, 8, 13, 13, 12, 7, 11, 12, 17, 17, 16, 11, 12, 13, 18, 18, 17, 12]
+     */
+    getCentreTriangleIndices(segments: number): Array<number> {
+        const indices = new Array<number>();
+        for (let y=1; y<segments-2; y++) {
+            for (let x=1; x<segments-2; x++) {
+                const a1 = this.xyToI(x, y, segments);
+                const b1 = a1 + 1;
+                const c1 = this.xyToI(x+1, y+1, segments);
+                
+                const a2 = c1;
+                const b2 = a2-1;
+                const c2 = a1;
+
+                indices.push(a1, b1, c1, a2, b2, c2);
+            }
+        }
+        return indices;
+    }
+
+    /**
+     * assuming a `Quad` like below
+     * ```
+     * deactivated          activated
+     * 20--21--22--23--24   20--21--22--23--24
+     * | \   / | \   / |    | \   / | \   / |
+     * 15  16--17--18  19   15--16--17--18  19
+     * | / | / | / | \ |    | / | / | / | \ |
+     * 10--11--12--13--14   10--11--12--13--14
+     * | \ | / | / | / |    | \ | / | / | / |
+     * 5   6---7---8   9    5---6---7---8   9
+     * | /   \ |  /  \ |    | /   \ | /   \ |
+     * 0---1---2---3---4 or 0---1---2---3---4
+     * ```
+     * would return: 
+     * ```
+     * [6, ........ 10, 0, 6, 11, 10, 16, 10, 11, 16, ........... 20, 10] (deactivated) or
+     * [6, 5, 0, 6, 10, 5, 6, 11, 10, 16, 10, 11, 16, 15, 10, 16, 20, 15] (activated)
+     * ```
+     */
+    getLeftTriangleIndices(segments: number, activeSides: Array<QuadSide>): Array<number> {
+        const indices = new Array<number>();
+        const x = 1;
+        for (let y=1; y<segments; y+=2) {
+            const index = this.xyToI(x, y, segments);
+            if (y > 1) {
+                const a = index;
+                const b = this.xyToI(x-1, y-1, segments);
+                const c = this.xyToI(x, y-1, segments);
+                indices.push(a, b, c);
+            }
+
+            if (activeSides.includes('left')) {
+                const a1 = index;
+                const b1 = index-1;
+                const c1 = this.xyToI(x-1, y-1, segments);
+                const a2 = index;
+                const b2 = this.xyToI(x-1, y+1, segments);
+                const c2 = b1;
+                indices.push(a1, b1, c1, a2, b2, c2);
+            } else {
+                const a = index;
+                const b = this.xyToI(x-1, y+1, segments);
+                const c = this.xyToI(x-1, y-1, segments);
+                indices.push(a, b, c);
+            }
+
+            if (y < segments-2) {
+                const a = index;
+                const b = this.xyToI(x, y+1, segments);
+                const c = b-1;
+                indices.push(a, b, c);
+            }
+        }
+        return indices;
+    }
+
+    /**
+     * assuming a `Quad` like below
+     * ```
+     * deactivated          activated
+     * 20--21--22--23--24   20--21--22--23--24
+     * | \   / | \   / |    | \   / | \   / |
+     * 15  16--17--18  19   15  16--17--18  19
+     * | / | / | / | \ |    | / | / | / | \ |
+     * 10--11--12--13--14   10--11--12--13--14
+     * | \ | / | / | / |    | \ | / | / | / |
+     * 5   6---7---8   9    5   6---7---8   9
+     * | /   \ | /   \ |    | / | \ | / | \ |
+     * 0---1---2---3---4 or 0---1---2---3---4
+     * ```
+     * would return: 
+     * ```
+     * [6, 0, ........ 2, 6, 2, 7, 8, 7, 2, 8, 2, ........ 4] (deactivated) or
+     * [6, 0, 1, 6, 1, 2, 6, 2, 7, 8, 7, 2, 8, 2, 3, 8, 3, 4] (activated)
+     * ```
+     */
+    getBottomTriangleIndices(segments: number, activeSides: Array<QuadSide>): Array<number> {
+        const indices = new Array<number>();
+        const y = 1;
+        for (let x=1; x<segments; x+=2) {
+            const index = this.xyToI(x, y, segments);
+            if (x > 1) {
+                const a = index;
+                const b = index-1;
+                const c = this.xyToI(x-1, y-1, segments);
+                indices.push(a, b, c);
+            }
+
+            if (activeSides.includes('bottom')) {
+                const a1 = index;
+                const b1 = this.xyToI(x-1, y-1, segments);
+                const c1 = this.xyToI(x, y-1, segments);
+                const a2 = index;
+                const b2 = c1;
+                const c2 = this.xyToI(x+1, y-1, segments);
+                indices.push(a1, b1, c1, a2, b2, c2);
+            } else {
+                const a = index;
+                const b = this.xyToI(x-1, y-1, segments);
+                const c = this.xyToI(x+1, y-1, segments);
+                indices.push(a, b, c);
+            }
+
+            if (x < segments-2) {
+                const a = index;
+                const b = this.xyToI(x+1, y-1, segments);
+                const c = this.xyToI(x+1, y, segments);
+                indices.push(a, b, c);
+            }
+        }
+        return indices;
+    }
+
+    /**
+     * assuming a `Quad` like below
+     * ```
+     * deactivated          activated
+     * 20--21--22--23--24   20--21--22--23--24
+     * | \   / | \   / |    | \   / | \   / |
+     * 15  16--17--18  19   15  16--17--18--19
+     * | / | / | / | \ |    | / | / | / | \ |
+     * 10--11--12--13--14   10--11--12--13--14
+     * | \ | / | / | / |    | \ | / | / | / |
+     * 5   6---7---8   9    5   6---7---8---9
+     * | /   \ |  /  \ |    | /   \ | /   \ |
+     * 0---1---2---3---4 or 0---1---2---3---4
+     * ```
+     * would return: 
+     * ```
+     * [8, 4, ........ 14, 8, 14, 13, 18, 13, 14, 18, 14, ........... 24] (deactivated) or
+     * [8, 4, 9, 8, 9, 14, 8, 14, 13, 18, 13, 14, 18, 14, 19, 18, 19, 24] (activated)
+     * ```
+     */
+    getRightTriangleIndices(segments: number, activeSides: Array<QuadSide>): Array<number> {
+        const indices = new Array<number>();
+        const x = segments-2;
+        for (let y=1; y<segments-1; y+=2) {
+            const index = this.xyToI(x, y, segments);
+            if (y > 2) {
+                const a = index;
+                const b = this.xyToI(x, y-1, segments);
+                const c = this.xyToI(x+1, y-1, segments);
+                indices.push(a, b, c);
+            }
+
+            if (activeSides.includes('right')) {
+                const a1 = index;
+                const b1 = this.xyToI(x+1, y-1, segments);
+                const c1 = this.xyToI(x+1, y, segments);
+                const a2 = index;
+                const b2 = c1;
+                const c2 = this.xyToI(x+1, y+1, segments);
+                indices.push(a1, b1, c1, a2, b2, c2);
+            } else {
+                const a = index;
+                const b = this.xyToI(x+1, y-1, segments);
+                const c = this.xyToI(x+1, y+1, segments);
+                indices.push(a, b, c);
+            }
+
+            if (y < segments-2) {
+                const a = index;
+                const b = this.xyToI(x+1, y+1, segments);
+                const c = this.xyToI(x, y+1, segments);
+                indices.push(a, b, c);
+            }
+        }
+        return indices;
+    }
+
+    /**
+     * assuming a `Quad` like below
+     * ```
+     * deactivated          activated
+     * 20--21--22--23--24   20--21--22--23--24
+     * | \   / | \   / |    | \ | / | \ | / |
+     * 15  16--17--18  19   15  16--17--18  19
+     * | / | / | / | \ |    | / | / | / | \ |
+     * 10--11--12--13--14   10--11--12--13--14
+     * | \ | / | / | / |    | \ | / | / | / |
+     * 5   6---7---8   9    5   6---7---8   9
+     * | /   \ | /   \ |    | /   \ | /   \ |
+     * 0---1---2---3---4 or 0---1---2---3---4
+     * ```
+     * would return: 
+     * ```
+     * [16, ........... 22, 20, 16, 17, 22, 18, 22, 17, 18, ........... 24, 22] (deactivated) or
+     * [16, 21, 20, 16, 22, 21, 16, 17, 22, 18, 22, 17, 18, 23, 22, 18, 24, 23] (activated)
+     * ```
+     */
+    getTopTriangleIndices(segments: number, activeSides: Array<QuadSide>): Array<number> {
+        const indices = new Array<number>();
+        const y = segments-2;
+        for (let x=1; x<segments; x+=2) {
+            const index = this.xyToI(x, y, segments);
+            if (x > 1) {
+                const a = index;
+                const b = this.xyToI(x-1, y+1, segments);
+                const c = index-1;
+                indices.push(a, b, c);
+            }
+
+            if (activeSides.includes('top')) {
+                const a1 = index;
+                const b1 = this.xyToI(x, y+1, segments);
+                const c1 = b1-1;
+                const a2 = index;
+                const b2 = this.xyToI(x+1, y+1, segments);
+                const c2 = b2-1;
+                indices.push(a1, b1, c1, a2, b2, c2);
+            } else {
+                const a = index;
+                const b = this.xyToI(x+1, y+1, segments);
+                const c = this.xyToI(x-1, y+1, segments);
+                indices.push(a, b, c);
+            }
+
+            if (x < segments-2) {
+                const a = index;
+                const b = index+1;
+                const c = this.xyToI(x+1, y+1, segments);
+                indices.push(a, b, c);
+            }
+        }
+        return indices;
     }
 
     /**

@@ -212,7 +212,7 @@ export class QuadSphere {
     }
 
     private _createFaces(): void {
-        const faces = new Array<QuadSphereFace>('front', 'back', 'left', 'right', 'top', 'bottom');
+        const faces = this.utils.orderedFaces();
         faces.forEach(f => {
             const offset = V3.zero();
             let angle = 0;
@@ -300,7 +300,7 @@ export class QuadSphere {
                 applyCurve: true,
                 curveOrigin: this.centre,
                 segments: this.segments
-            }
-        ))});
+            }))
+        });
     }
 }
