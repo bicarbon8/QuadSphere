@@ -11,6 +11,7 @@ import { V3 } from '../core/v3';
 import { useControls } from 'leva';
 
 const assetPath = import.meta.env.VITE_ASSET_PATH;
+const distances = new Array<number>();
 
 export function InCanvas() {
     const {camera} = useThree();
@@ -39,6 +40,20 @@ export function InCanvas() {
     const [quadTriangles, setQuadTriangles] = useState<number>(0);
     const [sphereTriangles, setSphereTriangles] = useState<number>(0);
     const { segments } = useControls({ segments: { value: 5, min: 3, max: 21, step: 2 } });
+    const { range } = useControls({
+        range: {
+            min: 0,
+            max: 10,
+            value: [0, 10],
+        },
+    });
+    const { levels } = useControls({ levels: { value: 5, min: 0, max: 20, step: 1}});
+    const offset = Math.abs(range[1] - range[0]) / levels;
+    const distVals = new Array<number>();
+    for (let i=range[0]; i<range[1]; i+=offset) {
+        distVals.push(i);
+    }
+    distances.splice(0, distances.length, ...distVals);
     useFrame((state: RootState, delta: number) => {
         setElapsed(state.clock.getElapsedTime());
         if (elapsed >= 1 / 5) {
@@ -148,8 +163,6 @@ function unify(e: ThreeEvent<MouseEvent>, quadMesh: THREE.Mesh) {
     }
     return geom.quad.key;
 }
-
-const distances = [10, 5, 4, 3, 2, 1, 0.5];
 
 function updateSphereForDistances(sphereMeshRef: THREE.Mesh, trigger: V3): string {
     const geom = sphereMeshRef.geometry as QuadSphereGeometry;
