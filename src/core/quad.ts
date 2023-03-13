@@ -881,7 +881,7 @@ export class Quad {
                     const curved = this._utils.applyCurve(rotated, this.curveOrigin);
                     this._curvedVertices.push(...V3.toArray(curved));
                     // add curved normal
-                    this._curvedNormals.push(...V3.toArray(...V3.fromArray(this._curvedVertices).map(v => V3.normalise(v))));
+                    this._curvedNormals.push(...V3.toArray(V3.normalise(curved)));
                 }
 
                 x += offset;
