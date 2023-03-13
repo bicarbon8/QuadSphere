@@ -10,18 +10,38 @@ export class QuadSphereGeometry extends BufferGeometry {
         this.sphere = new QuadSphere(options);
         this.updateAttributes();
     }
+    /**
+     * will find the closest, max-depth, `Quad` to the passed in `location` and call
+     * the subdivide function on it
+     * @param location a `V3` used to locate the closest `Quad` to subdivide
+     * @returns `this`
+     */
     subdivide(location: V3): this {
-        const sphere = this.sphere.getClosestQuad(location);
-        sphere?.subdivide();
+        const closest = this.sphere.getClosestQuad(location);
+        closest?.subdivide();
         this.updateAttributes();
         return this;
     }
-    unify(location: V3): this {
-        const sphere = this.sphere.getClosestQuad(location);
-        sphere?.parent?.unify();
+    /**
+     * will find the closest, max-depth, `Quad` to the passed in `location` and call
+     * the unify function on its parent or will unify the top-level `Quad`
+     * if no `location` is passed in
+     * @param location optional `V3` used to locate closest `Quad` to unify
+     * @returns `this`
+     */
+    unify(location?: V3): this {
+        if (location) {
+            const closest = this.sphere.getClosestQuad(location);
+            closest?.parent?.unify();
+        } else {
+            this.sphere.unify();
+        }
         this.updateAttributes();
         return this;
     }
+    /**
+     * sets all vertices, indices, normals and uv attributes for this `BufferGeometry`
+     */
     updateAttributes(): void {
         this.clearGroups();
         let materialGroupStart = 0;

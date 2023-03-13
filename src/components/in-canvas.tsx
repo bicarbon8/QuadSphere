@@ -16,6 +16,7 @@ export function InCanvas() {
     const {camera} = useThree();
     camera.near = 0.0001;
     const quat = useMemo<THREE.Quaternion>(() => new THREE.Quaternion(), []);
+    const quatAxis = useMemo<THREE.Vector3>(() => new THREE.Vector3(0, 1, 0), []);
     const [quadKey, setQuadKey] = useState<string>(null);
     const [sphereKey, setSphereKey] = useState<string>(null);
     const [elapsed, setElapsed] = useState<number>(0);
@@ -40,7 +41,6 @@ export function InCanvas() {
     const { segments } = useControls({ segments: { value: 5, min: 3, max: 21, step: 2 } });
     useFrame((state: RootState, delta: number) => {
         setElapsed(state.clock.getElapsedTime());
-        quat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), 0.1 * elapsed)
         if (elapsed >= 1 / 5) {
             setElapsed(0);
             if (quadSphereMesh.current) {
@@ -51,14 +51,15 @@ export function InCanvas() {
             }
         }
         if (quadSphereMesh.current) {
-            // quadSphereMesh.current.position.y = 0.25 * Math.sin(el);
+            // quat.setFromAxisAngle(quatAxis, 0.1 * elapsed);
+            // quadSphereMesh.current.position.y = 0.25 * Math.sin(state.clock.getElapsedTime());
             // quadSphereMesh.current.quaternion.w = quat.w;
             // quadSphereMesh.current.quaternion.x = quat.x;
             // quadSphereMesh.current.quaternion.y = quat.y;
             // quadSphereMesh.current.quaternion.z = quat.z;
         }
         if (quadMesh.current) {
-            // quadMesh.current.position.y = -0.25 * Math.sin(el);
+            // quadMesh.current.position.y = -0.25 * Math.sin(state.clock.getElapsedTime());
         }
     });
     useEffect(() => {
@@ -155,7 +156,7 @@ function updateSphereForDistances(sphereMeshRef: THREE.Mesh, trigger: V3): strin
     const offsetPoint = new THREE.Vector3(trigger.x, trigger.y, trigger.z)
         .sub(sphereMeshRef.position)
         .applyQuaternion(sphereMeshRef.quaternion.invert());
-    geom.sphere.unify();
+    geom.unify();
     for (let i=0; i<distances.length; i++) {
         const dist = distances[i];
         const quads = geom.sphere.getQuadsWithinDistance(offsetPoint, dist);
@@ -176,7 +177,7 @@ function updateQuadForDistances(quadMeshRef: THREE.Mesh, trigger: V3): string {
     const offsetPoint = new THREE.Vector3(trigger.x, trigger.y, trigger.z)
         .sub(quadMeshRef.position)
         .applyQuaternion(quadMeshRef.quaternion.invert());
-    geom.quad.unify();
+    geom.unify();
     for (let i=0; i<distances.length; i++) {
         const dist = distances[i];
         const quads = geom.quad.getQuadsWithinDistance(offsetPoint, dist);
