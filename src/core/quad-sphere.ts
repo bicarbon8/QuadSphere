@@ -142,7 +142,7 @@ export class QuadSphere {
      * @returns the deepest quad that is closest to the specified `point`
      */
     getClosestQuad(point: V3): Quad {
-        return this.utils.getClosestQuad(point, this.front, this.back, this.left, this.right, this.top, this.bottom);
+        return this.utils.getClosestQuad(point, true, this.front, this.back, this.left, this.right, this.top, this.bottom);
     }
 
     /**
@@ -153,7 +153,7 @@ export class QuadSphere {
      * @returns an array of the deepest quads that are within the specified `distance` from the `point`
      */
     getQuadsWithinDistance(point: V3, distance: number): Array<Quad> {
-        return this.utils.getQuadsWithinDistance(point, distance, this.front, this.back, this.left, this.right, this.top, this.bottom);
+        return this.utils.getQuadsWithinDistance(point, distance, true, this.front, this.back, this.left, this.right, this.top, this.bottom);
     }
 
     private _createFaces(): void {

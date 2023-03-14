@@ -8,7 +8,7 @@ export type QuadSphereMeshProps = MeshProps & QuadSphereOptions;
 
 export const QuadSphereMesh = forwardRef((props: QuadSphereMeshProps, ref: ForwardedRef<Mesh>) => {
     const geometry = useMemo<QuadSphereGeometry>(() => {
-        console.info('creating new QuadSphere!', {props});
+        console.debug('creating new QuadSphere!', {props});
         return new QuadSphereGeometry({
             ...props
         });
@@ -21,7 +21,7 @@ export const QuadSphereMesh = forwardRef((props: QuadSphereMeshProps, ref: Forwa
     }
     const [key, setKey] = useState<string>(geometry.sphere.key);
     useEffect(() => {
-        console.info('creating new QuadSphere Mesh!');
+        console.debug('creating new QuadSphere Mesh!');
         setKey(geometry.sphere.key);
     }, [geometry.sphere.key]);
     return (

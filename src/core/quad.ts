@@ -613,7 +613,7 @@ export class Quad {
      * @returns the deepest quad that is closest to the specified `point`
      */
     getClosestQuad(point: V3): Quad {
-        return this.utils.getClosestQuad(point, this);
+        return this.utils.getClosestQuad(point, true, this);
     }
 
     /**
@@ -624,7 +624,7 @@ export class Quad {
      * @returns an array of the deepest quads that are within the specified `distance` from the `point`
      */
     getQuadsWithinDistance(point: V3, distance: number): Array<Quad> {
-        return this.utils.getQuadsWithinDistance(point, distance, this);
+        return this.utils.getQuadsWithinDistance(point, distance, true, this);
     }
 
     dispose(): void {

@@ -51,7 +51,7 @@ export function InCanvas() {
         for (let i=distances[0]; i<distances[1]; i+=offset) {
             vals.push(i);
         }
-        return vals;
+        return vals.reverse();
     }, [distances[0], distances[1], maxLevels]);
     distanceValues.splice(0, distanceValues.length, ...distVals);
     useFrame((state: RootState, delta: number) => {
@@ -161,18 +161,21 @@ function updateSphereForDistances(sphereMeshRef: THREE.Mesh, trigger: V3): strin
     const offsetPoint = new THREE.Vector3(trigger.x, trigger.y, trigger.z)
         .sub(sphereMeshRef.position)
         .applyQuaternion(sphereMeshRef.quaternion.invert());
-    geom.unify();
     let updated = false;
     for (let i=0; i<distanceValues.length; i++) {
         const dist = distanceValues[i];
-        const quads = geom.sphere.getQuadsWithinDistance(offsetPoint, dist);
-        if (quads.length > 0) {
-            // console.debug('found', quads.length, 'quads at distance', dist);
-            const closest = geom.sphere.utils.getClosestQuad(offsetPoint, ...quads);
-            if (closest.level <= i && !closest.hasChildren()) {
-                closest.subdivide();
-                updated = true;
+        const levelQuads = geom.sphere.registry.getQuadsAtLevel(i);
+        if (levelQuads.length > 0) {
+            const inRange = levelQuads.filter(q => geom.sphere.utils.isWithinDistance(q, dist, offsetPoint));
+            if (inRange.length > 0) {
+                const closest = geom.sphere.utils.getClosestQuad(offsetPoint, false, ...inRange);
+                if (!closest.hasChildren()) {
+                    closest.subdivide();
+                }
+            } else {
+                levelQuads.forEach(q => q.unify());
             }
+            updated = true;
         }
     }
     if (updated) {
@@ -187,17 +190,21 @@ function updateQuadForDistances(quadMeshRef: THREE.Mesh, trigger: V3): string {
     const offsetPoint = new THREE.Vector3(trigger.x, trigger.y, trigger.z)
         .sub(quadMeshRef.position)
         .applyQuaternion(quadMeshRef.quaternion.invert());
-    geom.unify();
     let updated = false;
     for (let i=0; i<distanceValues.length; i++) {
         const dist = distanceValues[i];
-        const quads = geom.quad.getQuadsWithinDistance(offsetPoint, dist);
-        if (quads.length > 0) {
-            const closest = geom.quad.utils.getClosestQuad(offsetPoint, ...quads);
-            if (closest.level <= i && !closest.hasChildren()) {
-                closest.subdivide();
-                updated = true;
+        const levelQuads = geom.quad.registry.getQuadsAtLevel(i);
+        if (levelQuads.length > 0) {
+            const inRange = levelQuads.filter(q => geom.quad.utils.isWithinDistance(q, dist, offsetPoint));
+            if (inRange.length > 0) {
+                const closest = geom.quad.utils.getClosestQuad(offsetPoint, false, ...inRange);
+                if (!closest.hasChildren()) {
+                    closest.subdivide();
+                }
+            } else {
+                levelQuads.forEach(q => q.unify());
             }
+            updated = true;
         }
     }
     if (updated) {

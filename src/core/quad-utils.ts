@@ -408,10 +408,11 @@ export class QuadUtils {
      * recursively searches the passed in `from` array for the `Quad`
      * whose `centre` point is closest to the specified `point`
      * @param point the `V3` in local space against which to compare
+     * @param recurse if `true` the function will recursively check for child quads within distance @default true
      * @param from an array of `Quad` objects to recursively iterate over
      * @returns the deepest quad that is closest to the specified `point`
      */
-    getClosestQuad(point: V3, ...from: Array<Quad>): Quad {
+    getClosestQuad(point: V3, recurse: boolean = true, ...from: Array<Quad>): Quad {
         if (from.length === 0) {
             return null;
         }
@@ -420,8 +421,8 @@ export class QuadUtils {
         this._logger.log('debug', 'quads sorted by distance to', point, sortedQuads.map(q => q.centre));
         let closest = sortedQuads
             .find(q => q != null);
-        if (closest.hasChildren()) {
-            closest = this.getClosestQuad(point, 
+        if (recurse && closest.hasChildren()) {
+            closest = this.getClosestQuad(point, recurse,
                 closest.bottomleftChild,
                 closest.bottomrightChild,
                 closest.topleftChild,
@@ -437,15 +438,16 @@ export class QuadUtils {
      * and whose `centre` is within the specified `distance` from the specified `point`
      * @param point the `V3` in local space against which to compare
      * @param distance the distance within which the length from `point` to `quad.centre` must be
+     * @param recurse if `true` the function will recursively check for child quads within distance @default true
      * @param from an array of `Quad` objects to recursively interate over
      * @returns an array of the deepest quads that are within the specified `distance` from the `point`
      */
-    getQuadsWithinDistance(point: V3, distance: number, ...from: Array<Quad>): Array<Quad> {
+    getQuadsWithinDistance(point: V3, distance: number, recurse: boolean = true, ...from: Array<Quad>): Array<Quad> {
         const within = new Array<Quad>();
         from.forEach(q => {
             if (this.isWithinDistance(q, distance, point)) {
-                if (q.hasChildren()) {
-                    within.push(...this.getQuadsWithinDistance(point, distance,
+                if (recurse && q.hasChildren()) {
+                    within.push(...this.getQuadsWithinDistance(point, distance, recurse,
                         q.bottomleftChild,
                         q.bottomrightChild,
                         q.topleftChild,
