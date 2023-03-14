@@ -110,23 +110,17 @@ export class QuadSphere {
     get meshData(): QuadSphereMeshData {
         // below array order is important so we match Box in Threejs
         const sphereData = {} as QuadSphereMeshData;
-        let tris = 0;
-        let offset = 0;
+        let indicesCount = 0;
         let index = 0;
         while (index<6) {
             const face = this.utils.faceByIndex(index);
             const quad = this._faces.get(face);
             const data = quad.meshData;
-            const indices = data.indices.map(i => i+offset);
-            offset += data.vertices.length / 3;
-            const vertices = data.vertices;
-            const normals = data.normals;
-            const uvs = data.uvs;
-            tris += data.indices.length;
-            sphereData[face] = { indices, vertices, normals, uvs };
+            indicesCount += data.indices.length;
+            sphereData[face] = data;
             index++;
-        };
-        this._triangleCount = tris / 3;
+        }
+        this._triangleCount = indicesCount / 3; // three per triangle
         return sphereData;
     }
 

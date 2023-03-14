@@ -108,20 +108,20 @@ export function InCanvas() {
                 position={[1.2, 0, 0]} 
                 radius={1}
                 segments={segments}
-                // textureMapping={'cube'}
+                textureMapping={'cube'}
             >
-                {/* <meshBasicMaterial attach="material-0" color="red" />
+                <meshBasicMaterial attach="material-0" color="red" />
                 <meshBasicMaterial attach="material-1" color="blue" />
                 <meshBasicMaterial attach="material-2" color="green" />
                 <meshBasicMaterial attach="material-3" color={0xc3208a} />
                 <meshBasicMaterial attach="material-4" color={0x51e784} />
-                <meshBasicMaterial attach="material-5" color={0x6077e7} /> */}
-                <meshStandardMaterial 
+                <meshBasicMaterial attach="material-5" color={0x6077e7} />
+                {/* <meshStandardMaterial 
                     map={tessellation} 
                     displacementMap={tessellation}
                     displacementScale={0.1}
                     flatShading
-                />
+                /> */}
             </QuadSphereMesh>
             {/* <Stats /> */}
         </>
@@ -161,20 +161,23 @@ function updateSphereForDistances(sphereMeshRef: THREE.Mesh, trigger: V3): strin
     const offsetPoint = new THREE.Vector3(trigger.x, trigger.y, trigger.z)
         .sub(sphereMeshRef.position)
         .applyQuaternion(sphereMeshRef.quaternion.invert());
+    geom.unify();
+    let updated = false;
     for (let i=0; i<distanceValues.length; i++) {
         const dist = distanceValues[i];
         const quads = geom.sphere.getQuadsWithinDistance(offsetPoint, dist);
         if (quads.length > 0) {
-            if (i === 0) {
-                geom.unify();
-            }
             // console.debug('found', quads.length, 'quads at distance', dist);
             const closest = geom.sphere.getClosestQuad(offsetPoint, ...quads);
             if (closest.level <= i && !closest.hasChildren()) {
                 closest.subdivide();
-                geom.updateAttributes();
+                updated = true;
             }
         }
+    }
+    if (updated) {
+        geom.updateAttributes();
+        sphereMeshRef.matrixWorldNeedsUpdate = true;
     }
     return geom.sphere.key;
 }
@@ -184,19 +187,22 @@ function updateQuadForDistances(quadMeshRef: THREE.Mesh, trigger: V3): string {
     const offsetPoint = new THREE.Vector3(trigger.x, trigger.y, trigger.z)
         .sub(quadMeshRef.position)
         .applyQuaternion(quadMeshRef.quaternion.invert());
+    geom.unify();
+    let updated = false;
     for (let i=0; i<distanceValues.length; i++) {
         const dist = distanceValues[i];
         const quads = geom.quad.getQuadsWithinDistance(offsetPoint, dist);
         if (quads.length > 0) {
-            if (i === 0) {
-                geom.unify();
-            }
             const closest = geom.quad.getClosestQuad(offsetPoint, ...quads);
             if (closest.level <= i && !closest.hasChildren()) {
                 closest.subdivide();
-                geom.updateAttributes();
+                updated = true;
             }
         }
+    }
+    if (updated) {
+        geom.updateAttributes();
+        quadMeshRef.matrixWorldNeedsUpdate = true;
     }
     return geom.quad.key;
 }

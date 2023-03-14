@@ -43,7 +43,7 @@ export class QuadGeometry extends BufferGeometry {
      * sets all vertices, indices, normals and uv attributes for this `BufferGeometry`
      */
     updateAttributes(): void {
-        const data = this.quad.meshData;
+        const data = this.quad.utils.removeUnusedVertices(this.quad.meshData);
         this.setIndex(data.indices);
         this.setAttribute('position', new Float32BufferAttribute(data.vertices, 3));
         this.setAttribute('normal', new Float32BufferAttribute(data.normals, 3));

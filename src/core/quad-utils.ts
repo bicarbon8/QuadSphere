@@ -359,6 +359,51 @@ export class QuadUtils {
 		return updated;
 	}
 
+    removeUnusedVertices(data: QuadMeshData): QuadMeshData {
+        let removedVertexCount = 0;
+        const updatedVerts = new Array<number>();
+        const updatedTris = new Array<number>();
+        const updatedUvs = new Array<number>();
+        const updatedNorms = new Array<number>();
+        const referencedVertices = new Set<number>(); // key = index of referenced vertices (x value)
+		const remappedIndices = new Map<number, number>(); // key = old index, value = new index
+
+        // loop through indices creating map of used vertices indexes
+        // index points to the x value of a given vertices
+        for (let i=0; i<data.indices.length; i++) {
+            referencedVertices.add(data.indices[i]);
+        }
+
+        // loop through vertices removing any not referenced
+        for (let x=0, u=0; x<data.vertices.length; x+=3, u+=2) {
+            const index = x / 3;
+            if (referencedVertices.has(index)) {
+                remappedIndices.set(index, updatedVerts.length / 3);
+                updatedVerts.push(data.vertices[x], data.vertices[x+1], data.vertices[x+2]);
+                updatedNorms.push(data.normals[x], data.normals[x+1], data.normals[x+2]);
+                updatedUvs.push(data.uvs[u], data.uvs[u+1]);
+            } else {
+                removedVertexCount++;
+            }
+        }
+
+        // loop through indices updating referenced index
+        for (let i=0; i<data.indices.length; i++) {
+            const oldIndex = data.indices[i];
+            const newIndex = remappedIndices.get(oldIndex);
+            updatedTris.push(newIndex);
+        }
+
+        const updated: QuadMeshData = {
+            indices: updatedTris,
+            vertices: updatedVerts,
+            normals: updatedNorms,
+            uvs: updatedUvs
+        };
+        this._logger.log('info', 'removed', removedVertexCount, 'unused vertices');
+		return updated;
+    }
+
     /**
      * recursively searches the passed in `from` array for the `Quad`
      * whose `centre` point is closest to the specified `point`
