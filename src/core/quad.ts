@@ -232,6 +232,10 @@ export class Quad {
         return Array.from(this._active.values());
     }
 
+    get curvedCentre(): V3 {
+        return this.getCurvedPoint(this._utils.xyToI((this.segments-1)/2, (this.segments-1)/2, this.segments));
+    }
+
     get bottomleft(): V3 {
         return this.getPoint(0);
     }
@@ -446,7 +450,7 @@ export class Quad {
      * 0-1-2
      * ```
      * @param index a value between 0 and 8 (inclusive) @default 0
-     * @returns a `THREE.Vector3` containing the x, y, and z values 
+     * @returns a `V3` containing the x, y, and z values 
      * for the point at the specified index
      */
     getPoint(index: number = 0): V3 {
@@ -454,6 +458,28 @@ export class Quad {
         const x = this._vertices[i.x];
         const y = this._vertices[i.y];
         const z = this._vertices[i.z];
+        return {x, y, z};
+    }
+
+    /**
+     * gets the x, y, and z values for the curved point based on the following
+     * indices:
+     * ```
+     * 6-7-8
+     * |\|/|
+     * 3-4-5
+     * |/|\|
+     * 0-1-2
+     * ```
+     * @param index a value between 0 and 8 (inclusive) @default 0
+     * @returns a `V3` containing the x, y, and z values 
+     * for the point at the specified index
+     */
+    getCurvedPoint(index: number = 0): V3 {
+        const i = this._getPointIndices(index);
+        const x = this._curvedVertices[i.x];
+        const y = this._curvedVertices[i.y];
+        const z = this._curvedVertices[i.z];
         return {x, y, z};
     }
 
@@ -617,7 +643,7 @@ export class Quad {
 
     private _generatePoints(): void {
         const zero = V3.zero();
-        const n = {x: 0, y: 0, z: 1};
+        const n = V3.forward();
         const point = V3.zero();
         point.z = this.centre.z;
         let x = this.centre.x - this.radius;
@@ -634,16 +660,16 @@ export class Quad {
                 point.x = x;
                 
                 // rotate based on `this._angle`
-                const rotated = this._utils.rotatePoint(point, this._angle, this._axis, this.centre);
+                const rotated = V3.rotatePoint(point, this._angle, this._axis, this.centre);
                 this._vertices.push(...V3.toArray(rotated));
                 // add normal
-                this._normals.push(...V3.toArray(this._utils.rotatePoint(n, this._angle, this._axis, zero)));
+                this._normals.push(...V3.toArray(V3.rotatePoint(n, this._angle, this._axis, zero)));
                 // add uv
                 this._uvs.push(u, v);
                 
                 if (this._applyCurve) {
                     // add curved vertices
-                    const curved = this._utils.applyCurve(rotated, this.curveOrigin);
+                    const curved = V3.applyCurve(rotated, this.curveOrigin);
                     this._curvedVertices.push(...V3.toArray(curved));
                     // add curved normal
                     this._curvedNormals.push(...V3.toArray(V3.normalise(curved)));

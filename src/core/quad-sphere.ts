@@ -159,7 +159,7 @@ export class QuadSphere {
             );
         }
         // sort quads in ascending order by distance to point
-        const sortedQuads = from.sort((a, b) => V3.length(this.utils.applyCurve(a.centre, this.centre), point) - V3.length(this.utils.applyCurve(b.centre, this.centre), point));
+        const sortedQuads = from.sort((a, b) => V3.length(a.curvedCentre, point) - V3.length(b.curvedCentre, point));
         this._logger.log('debug', 'quads sorted by distance to', point, sortedQuads.map(q => q.centre));
         let closest = sortedQuads
             .find(q => q != null);
