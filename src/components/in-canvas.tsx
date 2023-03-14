@@ -169,9 +169,8 @@ function updateSphereForDistances(sphereMeshRef: THREE.Mesh, trigger: V3): strin
             const inRange = levelQuads.filter(q => geom.sphere.utils.isWithinDistance(q, dist, offsetPoint));
             if (inRange.length > 0) {
                 const closest = geom.sphere.utils.getClosestQuad(offsetPoint, false, ...inRange);
-                if (!closest.hasChildren()) {
-                    closest.subdivide();
-                }
+                closest.subdivide();
+                levelQuads.filter(q => q.id !== closest.id).forEach(q => q.unify());
             } else {
                 levelQuads.forEach(q => q.unify());
             }
@@ -198,9 +197,8 @@ function updateQuadForDistances(quadMeshRef: THREE.Mesh, trigger: V3): string {
             const inRange = levelQuads.filter(q => geom.quad.utils.isWithinDistance(q, dist, offsetPoint));
             if (inRange.length > 0) {
                 const closest = geom.quad.utils.getClosestQuad(offsetPoint, false, ...inRange);
-                if (!closest.hasChildren()) {
-                    closest.subdivide();
-                }
+                closest.subdivide();
+                levelQuads.filter(q => q.id !== closest.id).forEach(q => q.unify());
             } else {
                 levelQuads.forEach(q => q.unify());
             }
