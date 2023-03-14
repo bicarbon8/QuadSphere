@@ -12,7 +12,16 @@ export const QuadSphereMesh = forwardRef((props: QuadSphereMeshProps, ref: Forwa
         return new QuadSphereGeometry({
             ...props
         });
-    }, [props.radius, props.maxlevel, props.loglevel, props.segments]);
+    }, [
+        props.radius,
+        props.maxlevel,
+        props.loglevel,
+        props.segments,
+        props.centre?.x,
+        props.centre?.y,
+        props.centre?.z,
+        props.textureMapping
+    ]);
     const mesh = useRef<Mesh>(null);
     if (typeof ref === "function") {
         ref(mesh.current);

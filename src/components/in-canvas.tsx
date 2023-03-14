@@ -39,11 +39,12 @@ export function InCanvas() {
     const quadSphereMesh = useRef<THREE.Mesh>(null);
     const quadTriangles = useMemo<number>(() => (quadMesh.current?.geometry as QuadGeometry)?.quad?.triangleCount ?? 0, [quadKey]);
     const sphereTriangles = useMemo<number>(() => (quadSphereMesh.current?.geometry as QuadSphereGeometry)?.sphere?.triangleCount ?? 0, [sphereKey]);
-    const { segments, distances, maxLevels, freqency } = useControls({ 
+    const { segments, distances, maxLevels, freqency, applyCurve } = useControls({ 
         segments: { value: 5, min: 3, max: 21, step: 2 },
         distances: { min: 0, max: 10, value: [0, 5] },
         maxLevels: { value: 5, min: 0, max: 20, step: 1},
-        freqency: { value: 1 / 5, min: 0, max: 2, step: 0.001 }
+        freqency: { value: 1 / 5, min: 0, max: 2, step: 0.001 },
+        applyCurve: { value: false }
     });
     const distVals = useMemo<Array<number>>(() => {
         const offset = Math.abs(distances[1] - distances[0]) / maxLevels;
@@ -91,8 +92,8 @@ export function InCanvas() {
                 position={[-1.2, 0, 0]} 
                 radius={1}
                 segments={segments}
-                // centre={{x: 0, y: 0, z: 1}} // push forward so curve works
-                // applyCurve={true}
+                centre={{x: 0, y: 0, z: (applyCurve) ? 1 : 0}} // push forward so curve works
+                applyCurve={applyCurve}
                 // onClick={(e) => setQuadKey(subdivide(e, quadMesh.current))}
                 // onContextMenu={(e) => setQuadKey(unify(e, quadMesh.current))}
             >
