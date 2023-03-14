@@ -1,7 +1,6 @@
 import './App.css'
 import { Canvas } from '@react-three/fiber'
 import { InCanvas } from './components/in-canvas';
-import { Fragment } from 'react';
 
 function setSize(parentId?: string): void {
     const parent = document.getElementById(parentId || 'quad-sphere');
@@ -20,11 +19,11 @@ function setSize(parentId?: string): void {
 function App() {
     setSize();
     return (
-        <Fragment>
+        <>
             <Canvas>
                 <InCanvas />
             </Canvas>
-        </Fragment>
+        </>
     );
 }
 

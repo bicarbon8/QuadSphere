@@ -108,20 +108,20 @@ export function InCanvas() {
                 position={[1.2, 0, 0]} 
                 radius={1}
                 segments={segments}
-                textureMapping={'cube'}
+                // textureMapping={'cube'}
             >
-                <meshBasicMaterial attach="material-0" color="red" />
+                {/* <meshBasicMaterial attach="material-0" color="red" />
                 <meshBasicMaterial attach="material-1" color="blue" />
                 <meshBasicMaterial attach="material-2" color="green" />
                 <meshBasicMaterial attach="material-3" color={0xc3208a} />
                 <meshBasicMaterial attach="material-4" color={0x51e784} />
-                <meshBasicMaterial attach="material-5" color={0x6077e7} />
-                {/* <meshStandardMaterial 
+                <meshBasicMaterial attach="material-5" color={0x6077e7} /> */}
+                <meshStandardMaterial 
                     map={tessellation} 
                     displacementMap={tessellation}
                     displacementScale={0.1}
                     flatShading
-                /> */}
+                />
             </QuadSphereMesh>
             {/* <Stats /> */}
         </>
@@ -168,7 +168,7 @@ function updateSphereForDistances(sphereMeshRef: THREE.Mesh, trigger: V3): strin
         const quads = geom.sphere.getQuadsWithinDistance(offsetPoint, dist);
         if (quads.length > 0) {
             // console.debug('found', quads.length, 'quads at distance', dist);
-            const closest = geom.sphere.getClosestQuad(offsetPoint, ...quads);
+            const closest = geom.sphere.utils.getClosestQuad(offsetPoint, ...quads);
             if (closest.level <= i && !closest.hasChildren()) {
                 closest.subdivide();
                 updated = true;
@@ -193,7 +193,7 @@ function updateQuadForDistances(quadMeshRef: THREE.Mesh, trigger: V3): string {
         const dist = distanceValues[i];
         const quads = geom.quad.getQuadsWithinDistance(offsetPoint, dist);
         if (quads.length > 0) {
-            const closest = geom.quad.getClosestQuad(offsetPoint, ...quads);
+            const closest = geom.quad.utils.getClosestQuad(offsetPoint, ...quads);
             if (closest.level <= i && !closest.hasChildren()) {
                 closest.subdivide();
                 updated = true;

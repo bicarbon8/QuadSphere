@@ -21,6 +21,7 @@ export const QuadSphereMesh = forwardRef((props: QuadSphereMeshProps, ref: Forwa
     }
     const [key, setKey] = useState<string>(geometry.sphere.key);
     useEffect(() => {
+        console.info('creating new QuadSphere Mesh!');
         setKey(geometry.sphere.key);
     }, [geometry.sphere.key]);
     return (

@@ -141,32 +141,8 @@ export class QuadSphere {
      * @param point the `V3` in local space against which to compare
      * @returns the deepest quad that is closest to the specified `point`
      */
-    getClosestQuad(point: V3, ...from: Array<Quad>): Quad {
-        if (from.length === 0) {
-            from = new Array<Quad>(
-                this.front,
-                this.back,
-                this.left,
-                this.right,
-                this.top,
-                this.bottom
-            );
-        }
-        // sort quads in ascending order by distance to point
-        const sortedQuads = from.sort((a, b) => V3.length(a.curvedCentre, point) - V3.length(b.curvedCentre, point));
-        this._logger.log('debug', 'quads sorted by distance to', point, sortedQuads.map(q => q.centre));
-        let closest = sortedQuads
-            .find(q => q != null);
-        if (closest.hasChildren()) {
-            closest = this.getClosestQuad(point, 
-                closest.bottomleftChild,
-                closest.bottomrightChild,
-                closest.topleftChild,
-                closest.toprightChild
-            );
-        }
-        this._logger.log('debug', 'closest quad is', closest.fingerprint);
-        return closest;
+    getClosestQuad(point: V3): Quad {
+        return this.utils.getClosestQuad(point, this.front, this.back, this.left, this.right, this.top, this.bottom);
     }
 
     /**
@@ -176,33 +152,8 @@ export class QuadSphere {
      * @param distance the distance within which the length from `point` to `quad.centre` must be
      * @returns an array of the deepest quads that are within the specified `distance` from the `point`
      */
-    getQuadsWithinDistance(point: V3, distance: number, ...from: Array<Quad>): Array<Quad> {
-        if (from.length === 0) {
-            from = new Array<Quad>(
-                this.front,
-                this.back,
-                this.left,
-                this.right,
-                this.top,
-                this.bottom
-            );
-        }
-        const within = new Array<Quad>();
-        from.forEach(q => {
-            if (V3.length(point, q.centre) <= distance) {
-                if (q.hasChildren()) {
-                    within.push(
-                        ...q.bottomleftChild.getQuadsWithinDistance(point, distance),
-                        ...q.bottomrightChild.getQuadsWithinDistance(point, distance),
-                        ...q.topleftChild.getQuadsWithinDistance(point, distance),
-                        ...q.toprightChild.getQuadsWithinDistance(point, distance)
-                    );
-                } else {
-                    within.push(q);
-                }
-            }
-        });
-        return within;
+    getQuadsWithinDistance(point: V3, distance: number): Array<Quad> {
+        return this.utils.getQuadsWithinDistance(point, distance, this.front, this.back, this.left, this.right, this.top, this.bottom);
     }
 
     private _createFaces(): void {

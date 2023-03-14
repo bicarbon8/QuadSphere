@@ -76,4 +76,13 @@ describe.concurrent('V3', () => {
             expect(() => V3.fromArray(arr)).toThrow();
         })
     })
+
+    test.each([
+        {p1: V3.right(), angle: 90, axis: {x: 0, y: 0, z: 1}, around: V3.zero(), expected: V3.up()},
+        {p1: V3.right(), angle: 90, axis: {x: 0, y: 1, z: 0}, around: V3.zero(), expected: V3.multiply(V3.forward(), -1)},
+        {p1: V3.right(), angle: 90, axis: {x: 1, y: 0, z: 0}, around: V3.zero(), expected: V3.right()},
+        {p1: {x: -1, y: -1, z: 1}, angle: 90, axis: {x: 1, y: 0, z: 0}, around: V3.zero(), expected: {x: -1, y: 1, z: 1}}
+    ])('rotatePoint($p1, $angle, $axis, $around) -> $expected', ({p1, angle, axis, around, expected}) => {
+        expect(V3.fuzzyEquals(V3.rotatePoint(p1, angle, axis, around), expected, 0.0001));
+    })
 })

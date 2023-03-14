@@ -88,6 +88,7 @@ export class Quad {
     public readonly maxlevel: number;
     public readonly uvStart: UV;
     public readonly uvEnd: UV;
+    public readonly applyCurve: boolean;
     public readonly curveOrigin: V3;
     public readonly utils: QuadUtils;
     
@@ -101,7 +102,6 @@ export class Quad {
     private readonly _active = new Set<QuadSide>();
     private readonly _loglevel: QuadLoggerLevel;
     private readonly _logger: QuadLogger;
-    private readonly _applyCurve: boolean;
     
     private _axis: V3;
     private _angle: number;
@@ -140,7 +140,7 @@ export class Quad {
         this._axis = options.rotationAxis ?? V3.zero();
         this._angle = options.angle ?? 0;
         this.utils = options.utils ?? new QuadUtils({loglevel: this._logger.level});
-        this._applyCurve = options.applyCurve ?? false;
+        this.applyCurve = options.applyCurve ?? false;
         this.curveOrigin = options.curveOrigin ?? V3.zero();
         this._triangleCount = 0;
         this._generatePoints();
@@ -331,7 +331,7 @@ export class Quad {
             verts.push(...this.topleftChild.vertices);
             verts.push(...this.toprightChild.vertices);
         } else {
-            if (this._applyCurve) {
+            if (this.applyCurve) {
                 verts.push(...this._curvedVertices);
             } else {
                 verts.push(...this._vertices);
@@ -352,7 +352,7 @@ export class Quad {
             norms.push(...this.topleftChild.normals);
             norms.push(...this.toprightChild.normals);
         } else {
-            if (this._applyCurve) {
+            if (this.applyCurve) {
                 norms.push(...this._curvedNormals);
             } else {
                 norms.push(...this._normals);
@@ -612,11 +612,8 @@ export class Quad {
      * @param point the `V3` in local space against which to compare
      * @returns the deepest quad that is closest to the specified `point`
      */
-    getClosestQuad(point: V3, ...from: Array<Quad>): Quad {
-        if (from.length === 0) {
-            from = new Array<Quad>(this);
-        }
-        return this.utils.getClosestQuad(point, ...from);
+    getClosestQuad(point: V3): Quad {
+        return this.utils.getClosestQuad(point, this);
     }
 
     /**
@@ -626,11 +623,8 @@ export class Quad {
      * @param distance the distance within which the length from `point` to `quad.centre` must be
      * @returns an array of the deepest quads that are within the specified `distance` from the `point`
      */
-    getQuadsWithinDistance(point: V3, distance: number, ...from: Array<Quad>): Array<Quad> {
-        if (from.length === 0) {
-            from = new Array<Quad>(this);
-        }
-        return this.utils.getQuadsWithinDistance(point, distance, ...from);
+    getQuadsWithinDistance(point: V3, distance: number): Array<Quad> {
+        return this.utils.getQuadsWithinDistance(point, distance, this);
     }
 
     dispose(): void {
@@ -667,7 +661,7 @@ export class Quad {
                 // add uv
                 this._uvs.push(u, v);
                 
-                if (this._applyCurve) {
+                if (this.applyCurve) {
                     // add curved vertices
                     const curved = V3.applyCurve(rotated, this.curveOrigin);
                     this._curvedVertices.push(...V3.toArray(curved));
@@ -708,7 +702,7 @@ export class Quad {
                 rotationAxis: this._axis,
                 uvStart: {u: this.uvStart.u, v: this.uvStart.v},
                 uvEnd: {u: (this.uvStart.u+this.uvEnd.u)/2, v: (this.uvStart.v+this.uvEnd.v)/2},
-                applyCurve: this._applyCurve,
+                applyCurve: this.applyCurve,
                 curveOrigin: this.curveOrigin,
                 utils: this.utils
             }),
@@ -726,7 +720,7 @@ export class Quad {
                 rotationAxis: this._axis,
                 uvStart: {u: (this.uvStart.u+this.uvEnd.u)/2, v: this.uvStart.v},
                 uvEnd: {u: this.uvEnd.u, v: (this.uvStart.v+this.uvEnd.v)/2},
-                applyCurve: this._applyCurve,
+                applyCurve: this.applyCurve,
                 curveOrigin: this.curveOrigin,
                 utils: this.utils
             }),
@@ -744,7 +738,7 @@ export class Quad {
                 rotationAxis: this._axis,
                 uvStart: {u: this.uvStart.u, v: (this.uvStart.v+this.uvEnd.v)/2},
                 uvEnd: {u: (this.uvStart.u+this.uvEnd.u)/2, v: this.uvEnd.v},
-                applyCurve: this._applyCurve,
+                applyCurve: this.applyCurve,
                 curveOrigin: this.curveOrigin,
                 utils: this.utils
             }),
@@ -762,7 +756,7 @@ export class Quad {
                 rotationAxis: this._axis,
                 uvStart: {u: (this.uvStart.u+this.uvEnd.u)/2, v: (this.uvStart.v+this.uvEnd.v)/2},
                 uvEnd: {u: this.uvEnd.u, v: this.uvEnd.v},
-                applyCurve: this._applyCurve,
+                applyCurve: this.applyCurve,
                 curveOrigin: this.curveOrigin,
                 utils: this.utils
             })

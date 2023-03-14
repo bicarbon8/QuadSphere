@@ -416,7 +416,7 @@ export class QuadUtils {
             return null;
         }
         // sort quads in ascending order by distance to point
-        const sortedQuads = from.sort((a, b) => V3.length(a.centre, point) - V3.length(b.centre, point));
+        const sortedQuads = from.sort((a, b) => V3.length((a.applyCurve) ? a.curvedCentre : a.centre, point) - V3.length((b.applyCurve) ? b.curvedCentre : b.centre, point));
         this._logger.log('debug', 'quads sorted by distance to', point, sortedQuads.map(q => q.centre));
         let closest = sortedQuads
             .find(q => q != null);
@@ -443,7 +443,7 @@ export class QuadUtils {
     getQuadsWithinDistance(point: V3, distance: number, ...from: Array<Quad>): Array<Quad> {
         const within = new Array<Quad>();
         from.forEach(q => {
-            if (V3.length(point, q.centre) <= distance) {
+            if (this.isWithinDistance(q, distance, point)) {
                 if (q.hasChildren()) {
                     within.push(...this.getQuadsWithinDistance(point, distance,
                         q.bottomleftChild,
@@ -457,6 +457,10 @@ export class QuadUtils {
             }
         });
         return within;
+    }
+
+    isWithinDistance(quad: Quad, distance: number, point: V3): boolean {
+        return (V3.length(point, (quad.applyCurve) ? quad.curvedCentre : quad.centre) <= distance);
     }
 
     /**
