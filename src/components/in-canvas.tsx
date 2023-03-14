@@ -1,5 +1,5 @@
 import { RootState, ThreeEvent, useFrame, useLoader, useThree } from '@react-three/fiber'
-import { Edges, OrbitControls, useCubeTexture } from '@react-three/drei'
+import { Edges, OrbitControls, Stats, useCubeTexture } from '@react-three/drei'
 import { CameraFacingText } from "./camera-facing-text";
 import * as THREE from 'three';
 import { QuadMesh } from './quad-mesh';
@@ -161,11 +161,13 @@ function updateSphereForDistances(sphereMeshRef: THREE.Mesh, trigger: V3): strin
     const offsetPoint = new THREE.Vector3(trigger.x, trigger.y, trigger.z)
         .sub(sphereMeshRef.position)
         .applyQuaternion(sphereMeshRef.quaternion.invert());
-    geom.unify();
     for (let i=0; i<distanceValues.length; i++) {
         const dist = distanceValues[i];
         const quads = geom.sphere.getQuadsWithinDistance(offsetPoint, dist);
         if (quads.length > 0) {
+            if (i === 0) {
+                geom.unify();
+            }
             // console.debug('found', quads.length, 'quads at distance', dist);
             const closest = geom.sphere.getClosestQuad(offsetPoint, ...quads);
             if (closest.level <= i && !closest.hasChildren()) {
@@ -182,11 +184,13 @@ function updateQuadForDistances(quadMeshRef: THREE.Mesh, trigger: V3): string {
     const offsetPoint = new THREE.Vector3(trigger.x, trigger.y, trigger.z)
         .sub(quadMeshRef.position)
         .applyQuaternion(quadMeshRef.quaternion.invert());
-    geom.unify();
     for (let i=0; i<distanceValues.length; i++) {
         const dist = distanceValues[i];
         const quads = geom.quad.getQuadsWithinDistance(offsetPoint, dist);
         if (quads.length > 0) {
+            if (i === 0) {
+                geom.unify();
+            }
             const closest = geom.quad.getClosestQuad(offsetPoint, ...quads);
             if (closest.level <= i && !closest.hasChildren()) {
                 closest.subdivide();
