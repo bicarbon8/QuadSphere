@@ -8,7 +8,7 @@ export type QuadMeshProps = MeshProps & QuadOptions;
 
 export const QuadMesh = forwardRef((props: QuadMeshProps, ref: ForwardedRef<Mesh>) => {
     const geometry = useMemo<QuadGeometry>(() => {
-        console.info('creating new Quad!', {props});
+        console.debug('creating new Quad!', {props});
         return new QuadGeometry({
             ...props
         });
