@@ -17,6 +17,7 @@ let elapsed: number = 0;
 export function InCanvas() {
     const {camera} = useThree();
     camera.near = 0.0001;
+    camera.far = 10000;
     const quat = useMemo<THREE.Quaternion>(() => new THREE.Quaternion(), []);
     const quatAxis = useMemo<THREE.Vector3>(() => new THREE.Vector3(0, 1, 0), []);
     const [quadKey, setQuadKey] = useState<string>(null);
@@ -39,14 +40,15 @@ export function InCanvas() {
     const quadSphereMesh = useRef<THREE.Mesh>(null);
     const quadTriangles = useMemo<number>(() => (quadMesh.current?.geometry as QuadGeometry)?.quad?.triangleCount ?? 0, [quadKey]);
     const sphereTriangles = useMemo<number>(() => (quadSphereMesh.current?.geometry as QuadSphereGeometry)?.sphere?.triangleCount ?? 0, [sphereKey]);
-    const { segments, distances, maxLevels, freqency, applyCurve, radius, displacement } = useControls({ 
+    const { segments, distances, maxLevels, freqency, applyCurve, flatShading, radius, displacement } = useControls({ 
         segments: { value: 5, min: 3, max: 21, step: 2 },
         distances: { min: 0, max: 100, value: [0, 5], step: 1 },
         maxLevels: { value: 5, min: 0, max: 20, step: 1},
         freqency: { value: 1 / 5, min: 0, max: 2, step: 0.001 },
         applyCurve: { value: false },
+        flatShading: { value: true },
         radius: { value: 1, min: 1, max: 100, step: 1 },
-        displacement: { value: 0.1, min: 0, max: 1, step: 0.01 }
+        displacement: { value: 0.1, min: 0, max: 10, step: 0.01 }
     });
     const distVals = useMemo<Array<number>>(() => {
         const offset = Math.abs(distances[1] - distances[0]) / maxLevels;
@@ -83,8 +85,8 @@ export function InCanvas() {
     return (
         <>
             <ambientLight intensity={0.4} />
-            <pointLight position={[10, 10, 10]} color={0xffff66} />
-            <pointLight position={[-10, 10, -10]} color={0x6666ff} intensity={0.5} />
+            <pointLight position={[100, 100, 100]} color={0xffff66} />
+            <pointLight position={[-100, -100, -100]} color={0x6666ff} intensity={0.5} />
             <OrbitControls />
             <axesHelper args={[0.5]} />
             <CameraFacingText position={[0, 0, 0]}>
@@ -103,7 +105,7 @@ export function InCanvas() {
                     map={bump} 
                     displacementMap={bump}
                     displacementScale={displacement}
-                    flatShading
+                    flatShading={flatShading}
                 />
                 <Edges threshold={0} />
             </QuadMesh>
@@ -124,8 +126,9 @@ export function InCanvas() {
                     map={tessellation} 
                     displacementMap={tessellation}
                     displacementScale={displacement}
-                    flatShading
+                    flatShading={flatShading}
                 />
+                <Edges threshold={0} />
             </QuadSphereMesh>
             {/* <fog args={[0xcccccc, 0, 1]} /> */}
             {/* <Stats /> */}
