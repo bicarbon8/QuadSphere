@@ -39,12 +39,14 @@ export function InCanvas() {
     const quadSphereMesh = useRef<THREE.Mesh>(null);
     const quadTriangles = useMemo<number>(() => (quadMesh.current?.geometry as QuadGeometry)?.quad?.triangleCount ?? 0, [quadKey]);
     const sphereTriangles = useMemo<number>(() => (quadSphereMesh.current?.geometry as QuadSphereGeometry)?.sphere?.triangleCount ?? 0, [sphereKey]);
-    const { segments, distances, maxLevels, freqency, applyCurve } = useControls({ 
+    const { radius, segments, distances, maxLevels, freqency, applyCurve, displacement } = useControls({ 
+        radius: { value: 1, min: 1, max: 100, step: 1 },
         segments: { value: 5, min: 3, max: 21, step: 2 },
         distances: { min: 0, max: 10, value: [0, 5] },
         maxLevels: { value: 5, min: 0, max: 20, step: 1},
         freqency: { value: 1 / 5, min: 0, max: 2, step: 0.001 },
-        applyCurve: { value: false }
+        applyCurve: { value: false },
+        displacement: { value: 0.1, min: 0, max: 1, step: 0.01 }
     });
     const distVals = useMemo<Array<number>>(() => {
         const offset = Math.abs(distances[1] - distances[0]) / maxLevels;
@@ -89,10 +91,10 @@ export function InCanvas() {
                 Quad: {quadTriangles} triangles; Sphere: {sphereTriangles} triangles
             </CameraFacingText>
             <QuadMesh ref={quadMesh} 
-                position={[-1.2, 0, 0]} 
-                radius={1}
+                position={[-(radius+(radius/5)), 0, 0]} 
+                radius={radius}
                 segments={segments}
-                centre={{x: 0, y: 0, z: (applyCurve) ? 1 : 0}} // push forward so curve works
+                centre={{x: 0, y: 0, z: (applyCurve) ? radius : 0}} // push forward so curve works
                 applyCurve={applyCurve}
                 // onClick={(e) => setQuadKey(subdivide(e, quadMesh.current))}
                 // onContextMenu={(e) => setQuadKey(unify(e, quadMesh.current))}
@@ -100,14 +102,14 @@ export function InCanvas() {
                 <meshStandardMaterial 
                     map={bump} 
                     displacementMap={bump}
-                    displacementScale={0.1}
+                    displacementScale={displacement}
                     flatShading
                 />
                 <Edges threshold={0} />
             </QuadMesh>
             <QuadSphereMesh ref={quadSphereMesh}
-                position={[1.2, 0, 0]}
-                radius={1}
+                position={[(radius+(radius/5)), 0, 0]}
+                radius={radius}
                 segments={segments}
                 maxlevel={maxLevels}
                 // textureMapping={'cube'}
@@ -121,7 +123,7 @@ export function InCanvas() {
                 <meshStandardMaterial 
                     map={tessellation} 
                     displacementMap={tessellation}
-                    displacementScale={0.1}
+                    displacementScale={displacement}
                     flatShading
                 />
             </QuadSphereMesh>
