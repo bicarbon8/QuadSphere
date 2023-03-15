@@ -169,6 +169,10 @@ export class Quad {
         return k;
     }
 
+    get originalRadius(): number {
+        return (this.parent) ? this.parent.originalRadius : this.radius;
+    }
+
     /**
      * the maximum number of generations of quads inside (and including)
      * this one. an undivided quad would return a `depth` of `1` whereas
@@ -663,7 +667,7 @@ export class Quad {
                 
                 if (this.applyCurve) {
                     // add curved vertices
-                    const curved = V3.applyCurve(rotated, this.curveOrigin);
+                    const curved = V3.applyCurve(rotated, this.curveOrigin, this.originalRadius);
                     this._curvedVertices.push(...V3.toArray(curved));
                     // add curved normal
                     this._curvedNormals.push(...V3.toArray(V3.normalise(curved)));

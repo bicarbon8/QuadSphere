@@ -39,13 +39,13 @@ export function InCanvas() {
     const quadSphereMesh = useRef<THREE.Mesh>(null);
     const quadTriangles = useMemo<number>(() => (quadMesh.current?.geometry as QuadGeometry)?.quad?.triangleCount ?? 0, [quadKey]);
     const sphereTriangles = useMemo<number>(() => (quadSphereMesh.current?.geometry as QuadSphereGeometry)?.sphere?.triangleCount ?? 0, [sphereKey]);
-    const { radius, segments, distances, maxLevels, freqency, applyCurve, displacement } = useControls({ 
-        radius: { value: 1, min: 1, max: 100, step: 1 },
+    const { segments, distances, maxLevels, freqency, applyCurve, radius, displacement } = useControls({ 
         segments: { value: 5, min: 3, max: 21, step: 2 },
-        distances: { min: 0, max: 10, value: [0, 5] },
+        distances: { min: 0, max: 100, value: [0, 5], step: 1 },
         maxLevels: { value: 5, min: 0, max: 20, step: 1},
         freqency: { value: 1 / 5, min: 0, max: 2, step: 0.001 },
         applyCurve: { value: false },
+        radius: { value: 1, min: 1, max: 100, step: 1 },
         displacement: { value: 0.1, min: 0, max: 1, step: 0.01 }
     });
     const distVals = useMemo<Array<number>>(() => {
