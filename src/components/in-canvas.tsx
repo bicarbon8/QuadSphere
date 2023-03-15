@@ -60,7 +60,7 @@ export function InCanvas() {
         if (elapsed >= freqency) {
             elapsed = 0;
             if (quadSphereMesh.current) {
-                setSphereKey(updateSphereForDistances(quadSphereMesh.current, camera.position));
+                setSphereKey(updateSphereForDistances(quadSphereMesh.current, state.camera.position));
             }
             if (quadMesh.current) {
                 setQuadKey(updateQuadForDistances(quadMesh.current, camera.position));
@@ -106,9 +106,10 @@ export function InCanvas() {
                 <Edges threshold={0} />
             </QuadMesh>
             <QuadSphereMesh ref={quadSphereMesh}
-                position={[1.2, 0, 0]} 
+                position={[1.2, 0, 0]}
                 radius={1}
                 segments={segments}
+                maxlevel={maxLevels}
                 // textureMapping={'cube'}
             >
                 {/* <meshBasicMaterial attach="material-0" color="red" />
@@ -124,6 +125,7 @@ export function InCanvas() {
                     flatShading
                 />
             </QuadSphereMesh>
+            {/* <fog args={[0xcccccc, 0, 1]} /> */}
             {/* <Stats /> */}
         </>
     )
@@ -180,7 +182,6 @@ function updateSphereForDistances(sphereMeshRef: THREE.Mesh, trigger: V3): strin
     }
     if (updated) {
         geom.updateAttributes();
-        sphereMeshRef.matrixWorldNeedsUpdate = true;
     }
     return geom.sphere.key;
 }
@@ -208,7 +209,6 @@ function updateQuadForDistances(quadMeshRef: THREE.Mesh, trigger: V3): string {
     }
     if (updated) {
         geom.updateAttributes();
-        quadMeshRef.matrixWorldNeedsUpdate = true;
     }
     return geom.quad.key;
 }
