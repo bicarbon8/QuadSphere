@@ -62,9 +62,9 @@ export class QuadRegistry {
         return this;
     }
 
-    getQuad(centre: V3, radius: number, level: number): Quad {
+    getQuad(centre: V3, radius: number, segments: number, level: number): Quad {
         const levelQuads = this.getQuadsAtLevel(level, true);
-        const id = this.getId(centre, radius, level);
+        const id = this.getId(centre, radius, segments, level);
         return levelQuads.find(q => q.id === id);
     }
 
@@ -184,7 +184,7 @@ export class QuadRegistry {
      * @param level the `level` of the `Quad`
      * @returns an id made up of the passed in values
      */
-    getId(centre: V3, radius: number, level: number): string {
+    getId(centre: V3, radius: number, segments: number, level: number): string {
         let precision = 5 + level;
         const id = V3.reducePrecision(centre, precision);
         return `x${id.x}:y${id.y}:z${id.z}:r${radius}:l${level}`;

@@ -129,7 +129,7 @@ export class Quad {
         }
         this.level = options.level ?? 0;
         this.registry = options.registry ?? new QuadRegistry(this.radius, this.segments);
-        this.id = this.registry.getId(this.centre, this.radius, this.level);
+        this.id = this.registry.getId(this.centre, this.radius, this.segments, this.level);
         this.quadrant = options.quadrant; // root is null
         this.maxlevel = options.maxlevel ?? 100;
         this._loglevel = options.loglevel ?? 'warn';
@@ -705,7 +705,7 @@ export class Quad {
         const childRadius = this.radius / 2;
         const childLevel = this.level + 1;
         const children = [
-            // this.registry.getQuad(bottomleftCentre, childRadius, childLevel) ?? 
+            this.registry.getQuad(bottomleftCentre, childRadius, this.segments, childLevel) ?? 
             new Quad({
                 parent: this,
                 centre: bottomleftCentre,
@@ -724,7 +724,7 @@ export class Quad {
                 curveOrigin: this.curveOrigin,
                 utils: this.utils
             }),
-            // this.registry.getQuad(bottomrightCentre, childRadius, childLevel) ?? 
+            this.registry.getQuad(bottomrightCentre, childRadius, this.segments, childLevel) ?? 
             new Quad({
                 parent: this,
                 centre: bottomrightCentre,
@@ -743,7 +743,7 @@ export class Quad {
                 curveOrigin: this.curveOrigin,
                 utils: this.utils
             }),
-            // this.registry.getQuad(topleftCentre, childRadius, childLevel) ?? 
+            this.registry.getQuad(topleftCentre, childRadius, this.segments, childLevel) ?? 
             new Quad({
                 parent: this,
                 centre: topleftCentre,
@@ -762,7 +762,7 @@ export class Quad {
                 curveOrigin: this.curveOrigin,
                 utils: this.utils
             }),
-            // this.registry.getQuad(toprightCentre, childRadius, childLevel) ?? 
+            this.registry.getQuad(toprightCentre, childRadius, this.segments, childLevel) ?? 
             new Quad({
                 parent: this,
                 centre: toprightCentre,
