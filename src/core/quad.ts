@@ -77,7 +77,7 @@ export type QuadOptions = {
  * ```
  */
 export class Quad {
-    public readonly id: number;
+    public readonly id: string;
     public readonly parent: Quad;
     public readonly centre: V3;
     public readonly radius: number;
@@ -127,7 +127,7 @@ export class Quad {
         }
         this.level = options.level ?? 0;
         this.registry = options.registry ?? new QuadRegistry();
-        this.id = this.registry.getId();
+        this.id = this.registry.getId(this.centre, this.radius, this.level);
         this.quadrant = options.quadrant; // root is null
         this.maxlevel = options.maxlevel ?? 100;
         this._loglevel = options.loglevel ?? 'warn';
@@ -150,8 +150,6 @@ export class Quad {
     get fingerprint(): string {
         return [
             `${this.id}`,
-            `${this.level}`,
-            `${this.depth}`,
             ...this.activeSides.map(s => s.charAt(0))
         ].join(':');
     }
@@ -162,13 +160,16 @@ export class Quad {
     get key(): string {
         let k = this.fingerprint;
         if (this.hasChildren()) {
-            k += '-' + Array.from(this._children.values())
+            k += '::' + Array.from(this._children.values())
                 .map(c => c.key)
-                .join('-');
+                .join('::');
         }
         return k;
     }
 
+    /**
+     * the `radius` value from this quad's top-level ancestor
+     */
     get originalRadius(): number {
         return (this.parent) ? this.parent.originalRadius : this.radius;
     }
@@ -691,13 +692,15 @@ export class Quad {
     }
 
     private _createChildren(): void {
+        const childRadius = this.radius / 2;
+        const childLevel = this.level + 1;
         const children = [
             new Quad({
                 parent: this,
                 centre: V3.midpoint(this.bottomleft, this.centre),
                 segments: this.segments,
-                radius: this.radius / 2,
-                level: this.level + 1,
+                radius: childRadius,
+                level: childLevel,
                 registry: this.registry,
                 quadrant: 'bottomleft',
                 loglevel: this._loglevel,
@@ -714,8 +717,8 @@ export class Quad {
                 parent: this,
                 centre: V3.midpoint(this.bottomright, this.centre),
                 segments: this.segments,
-                radius: this.radius / 2,
-                level: this.level + 1,
+                radius: childRadius,
+                level: childLevel,
                 registry: this.registry,
                 quadrant: 'bottomright',
                 loglevel: this._loglevel,
@@ -732,8 +735,8 @@ export class Quad {
                 parent: this,
                 centre: V3.midpoint(this.topleft, this.centre),
                 segments: this.segments,
-                radius: this.radius / 2,
-                level: this.level + 1,
+                radius: childRadius,
+                level: childLevel,
                 registry: this.registry,
                 quadrant: 'topleft',
                 loglevel: this._loglevel,
@@ -750,8 +753,8 @@ export class Quad {
                 parent: this,
                 centre: V3.midpoint(this.topright, this.centre),
                 segments: this.segments,
-                radius: this.radius / 2,
-                level: this.level + 1,
+                radius: childRadius,
+                level: childLevel,
                 registry: this.registry,
                 quadrant: 'topright',
                 loglevel: this._loglevel,
@@ -765,7 +768,9 @@ export class Quad {
                 utils: this.utils
             })
         ];
-        children.forEach(c => this._children.set(c.quadrant, c));
+        children.forEach(c => {
+            this._children.set(c.quadrant, c);
+        });
     }
 
     private _removeChildren(): void {
