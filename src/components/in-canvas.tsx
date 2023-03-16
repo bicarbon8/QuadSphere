@@ -47,7 +47,7 @@ export function InCanvas() {
         freqency: { value: 1 / 5, min: 0, max: 2, step: 0.001 },
         applyCurve: { value: false },
         flatShading: { value: true },
-        radius: { value: 1, min: 1, max: 100, step: 1 },
+        radius: { value: 1, min: 0.1, max: 100, step: 0.1 },
         displacement: { value: 0.1, min: 0, max: 10, step: 0.01 }
     });
     const distVals = useMemo<Array<number>>(() => {
