@@ -4,11 +4,14 @@ import { Mesh } from "three";
 import { QuadOptions } from "../core/quad";
 import { QuadGeometry } from "../geometries/quad-geometry";
 
-export type QuadMeshProps = MeshProps & QuadOptions;
+export type QuadMeshProps = MeshProps & QuadOptions & {
+    onCreateQuad?: () => void;
+    onCreateMesh?: () => void;
+};
 
 export const QuadMesh = forwardRef((props: QuadMeshProps, ref: ForwardedRef<Mesh>) => {
     const geometry = useMemo<QuadGeometry>(() => {
-        console.debug('creating new Quad!', {props});
+        props.onCreateQuad?.();
         return new QuadGeometry({
             ...props
         });
@@ -35,7 +38,7 @@ export const QuadMesh = forwardRef((props: QuadMeshProps, ref: ForwardedRef<Mesh
     }
     const [key, setKey] = useState<string>(geometry.quad.key);
     useEffect(() => {
-        console.debug('creating new Quad Mesh!');
+        props.onCreateMesh?.();
         setKey(geometry.quad.key);
     }, [geometry.quad.key]);
     return (

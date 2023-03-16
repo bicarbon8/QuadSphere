@@ -181,13 +181,14 @@ export class QuadRegistry {
      * it unique
      * @param centre the un-rounded centre of the `Quad`
      * @param radius the `radius` of the `Quad`
+     * @param segments the number of `segments` the `Quad` uses
      * @param level the `level` of the `Quad`
      * @returns an id made up of the passed in values
      */
     getId(centre: V3, radius: number, segments: number, level: number): string {
-        let precision = 5 + level;
+        const precision = 1 + level + (segments-3);
         const id = V3.reducePrecision(centre, precision);
-        return `x${id.x}:y${id.y}:z${id.z}:r${radius}:l${level}`;
+        return `x${id.x}:y${id.y}:z${id.z}:r${radius}:s${segments}:l${level}`;
     }
 
     private _edgeMatches(edge1: Array<V3>, edge2: Array<V3>, level: number): boolean {

@@ -4,11 +4,14 @@ import { Mesh } from "three";
 import { QuadSphereOptions } from "../core/quad-sphere";
 import { QuadSphereGeometry } from "../geometries/quad-sphere-geometry";
 
-export type QuadSphereMeshProps = MeshProps & QuadSphereOptions;
+export type QuadSphereMeshProps = MeshProps & QuadSphereOptions & {
+    onCreateSphere?: () => void;
+    onCreateMesh?: () => void;
+};
 
 export const QuadSphereMesh = forwardRef((props: QuadSphereMeshProps, ref: ForwardedRef<Mesh>) => {
     const geometry = useMemo<QuadSphereGeometry>(() => {
-        console.debug('creating new QuadSphere!', {props});
+        props.onCreateSphere?.();
         return new QuadSphereGeometry({
             ...props
         });
@@ -30,7 +33,7 @@ export const QuadSphereMesh = forwardRef((props: QuadSphereMeshProps, ref: Forwa
     }
     const [key, setKey] = useState<string>(geometry.sphere.key);
     useEffect(() => {
-        console.debug('creating new QuadSphere Mesh!');
+        props.onCreateMesh?.();
         setKey(geometry.sphere.key);
     }, [geometry.sphere.key]);
     return (

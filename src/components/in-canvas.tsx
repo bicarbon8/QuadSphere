@@ -98,6 +98,7 @@ export function InCanvas() {
                 segments={segments}
                 centre={{x: 0, y: 0, z: (applyCurve) ? radius : 0}} // push forward so curve works
                 applyCurve={applyCurve}
+                // onCreateMesh={() => console.debug('created new QuadMesh!')}
                 // onClick={(e) => setQuadKey(subdivide(e, quadMesh.current))}
                 // onContextMenu={(e) => setQuadKey(unify(e, quadMesh.current))}
             >
@@ -114,6 +115,7 @@ export function InCanvas() {
                 radius={radius}
                 segments={segments}
                 maxlevel={maxLevels}
+                // onCreateMesh={() => console.debug('created new QuadSphereMesh!')}
                 // textureMapping={'cube'}
             >
                 {/* <meshBasicMaterial attach="material-0" color="red" />
