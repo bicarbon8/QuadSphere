@@ -9,8 +9,8 @@ export class QuadRegistry {
     // key=level -> key=id -> Quad
     private readonly _levelQuadMap = new Map<number, Map<string, Quad>>();
 
-    constructor(maxDifference?: number) {
-        this._maxDifference = maxDifference ?? 0.00001;
+    constructor(startingRadius: number, segments: number) {
+        this._maxDifference = (startingRadius / (segments-2)) / 3;
     }
 
     /**
@@ -60,6 +60,12 @@ export class QuadRegistry {
             this._levelQuadMap.get(quad.level).delete(quad.id);
         }
         return this;
+    }
+
+    getQuad(centre: V3, radius: number, level: number): Quad {
+        const levelQuads = this.getQuadsAtLevel(level, true);
+        const id = this.getId(centre, radius, level);
+        return levelQuads.find(q => q.id === id);
     }
 
     /**
@@ -154,12 +160,18 @@ export class QuadRegistry {
     /**
      * returns any active `Quad` objects at the specified level
      * @param level the `level` to returns `Quad` objects at @default 0
+     * @param includeInactive if `true` include deactivated quads in the results @default false
      * @returns an array of active `Quad` objects at the specified level
      */
-    getQuadsAtLevel(level: number = 0): Array<Quad> {
+    getQuadsAtLevel(level: number = 0, includeInactive: boolean = false): Array<Quad> {
         const quads = new Array<Quad>();
         if (this._levelQuadMap.has(level)) {
-            quads.push(...Array.from(this._levelQuadMap.get(level).values()));
+            const allLevelQuads = Array.from(this._levelQuadMap.get(level).values());
+            if (includeInactive) {
+                quads.push(...allLevelQuads);
+            } else {
+                quads.push(...allLevelQuads.filter(q => q.active));
+            }
         }
         return quads;
     }
@@ -173,7 +185,8 @@ export class QuadRegistry {
      * @returns an id made up of the passed in values
      */
     getId(centre: V3, radius: number, level: number): string {
-        const id = V3.reducePrecision(centre, 5);
+        let precision = 5 + level;
+        const id = V3.reducePrecision(centre, precision);
         return `x${id.x}:y${id.y}:z${id.z}:r${radius}:l${level}`;
     }
 

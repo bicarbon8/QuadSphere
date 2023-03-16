@@ -38,7 +38,7 @@ export class QuadSphere {
         this.centre = options.centre ?? {x: 0, y: 0, z: 0};
         this.radius = options.radius ?? 1;
         this.segments = options.segments; // default set in Quad if unset
-        this.registry = new QuadRegistry();
+        this.registry = new QuadRegistry(this.radius, this.segments);
         this.maxlevel = options.maxlevel ?? 100;
         this.textureMapping = options.textureMapping ?? 'unwrapped';
         this._loglevel = options.loglevel ?? 'warn';

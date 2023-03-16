@@ -78,7 +78,6 @@ export type QuadOptions = {
  */
 export class Quad {
     public readonly id: string;
-    public readonly parent: Quad;
     public readonly centre: V3;
     public readonly radius: number;
     public readonly segments: number;
@@ -107,10 +106,13 @@ export class Quad {
     private _angle: number;
     private _triangleCount: number;
     
+    parent: Quad;
     needsUpdate: boolean;
+    active: boolean;
     
     constructor(options: QuadOptions) {
         this.needsUpdate = true;
+        this.active = true;
         this.parent = options.parent;
         this.centre = Object.freeze(options.centre ?? V3.zero());
         this.radius = options.radius ?? 1;
@@ -126,7 +128,7 @@ export class Quad {
             this.segments = 3;
         }
         this.level = options.level ?? 0;
-        this.registry = options.registry ?? new QuadRegistry();
+        this.registry = options.registry ?? new QuadRegistry(this.radius, this.segments);
         this.id = this.registry.getId(this.centre, this.radius, this.level);
         this.quadrant = options.quadrant; // root is null
         this.maxlevel = options.maxlevel ?? 100;
@@ -598,7 +600,6 @@ export class Quad {
                         neighbor.topleftChild?.unify(this)?.updateSides();
                         neighbor.toprightChild?.unify(this)?.updateSides();
                     } else if (this.depth - neighbor.depth < 0) { // -1
-                        this.activate(side);
                         neighbor.bottomleftChild?.updateSides();
                         neighbor.bottomrightChild?.updateSides();
                         neighbor.topleftChild?.updateSides();
@@ -632,12 +633,15 @@ export class Quad {
         return this.utils.getQuadsWithinDistance(point, distance, true, this);
     }
 
+    /**
+     * sets this `Quad` as inactive and removes any child quads
+     */
     dispose(): void {
-        this.registry.deregister(this);
+        this.active = false;
         if (this.hasChildren()) {
             this._removeChildren();
         }
-        this._vertices.splice(0, this._vertices.length);
+        this.deactivate('bottom', 'top', 'left', 'right');
     }
 
     private _generatePoints(): void {
@@ -692,12 +696,19 @@ export class Quad {
     }
 
     private _createChildren(): void {
+        const [bottomleftCentre, bottomrightCentre, topleftCentre, toprightCentre] = new Array<V3>(
+            V3.midpoint(this.bottomleft, this.centre),
+            V3.midpoint(this.bottomright, this.centre),
+            V3.midpoint(this.topleft, this.centre),
+            V3.midpoint(this.topright, this.centre)
+        );
         const childRadius = this.radius / 2;
         const childLevel = this.level + 1;
         const children = [
+            // this.registry.getQuad(bottomleftCentre, childRadius, childLevel) ?? 
             new Quad({
                 parent: this,
-                centre: V3.midpoint(this.bottomleft, this.centre),
+                centre: bottomleftCentre,
                 segments: this.segments,
                 radius: childRadius,
                 level: childLevel,
@@ -713,9 +724,10 @@ export class Quad {
                 curveOrigin: this.curveOrigin,
                 utils: this.utils
             }),
+            // this.registry.getQuad(bottomrightCentre, childRadius, childLevel) ?? 
             new Quad({
                 parent: this,
-                centre: V3.midpoint(this.bottomright, this.centre),
+                centre: bottomrightCentre,
                 segments: this.segments,
                 radius: childRadius,
                 level: childLevel,
@@ -731,9 +743,10 @@ export class Quad {
                 curveOrigin: this.curveOrigin,
                 utils: this.utils
             }),
+            // this.registry.getQuad(topleftCentre, childRadius, childLevel) ?? 
             new Quad({
                 parent: this,
-                centre: V3.midpoint(this.topleft, this.centre),
+                centre: topleftCentre,
                 segments: this.segments,
                 radius: childRadius,
                 level: childLevel,
@@ -749,9 +762,10 @@ export class Quad {
                 curveOrigin: this.curveOrigin,
                 utils: this.utils
             }),
+            // this.registry.getQuad(toprightCentre, childRadius, childLevel) ?? 
             new Quad({
                 parent: this,
-                centre: V3.midpoint(this.topright, this.centre),
+                centre: toprightCentre,
                 segments: this.segments,
                 radius: childRadius,
                 level: childLevel,
@@ -769,6 +783,8 @@ export class Quad {
             })
         ];
         children.forEach(c => {
+            c.active = true;
+            c.parent = this;
             this._children.set(c.quadrant, c);
         });
     }
