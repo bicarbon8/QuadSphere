@@ -23,7 +23,8 @@ export function InCanvas() {
     const [quadKey, setQuadKey] = useState<string>(null);
     const [sphereKey, setSphereKey] = useState<string>(null);
     const grid = useLoader(THREE.TextureLoader, `${assetPath}/grid.png`);
-    const uvtest = useLoader(THREE.TextureLoader, `${assetPath}/uvCubeMapTexture.png`);
+    const uvtest = useLoader(THREE.TextureLoader, `${assetPath}/uvunwrapped.png`);
+    const earth = useLoader(THREE.TextureLoader, `${assetPath}/EarthTexture.png`);
     const tessellation = useLoader(THREE.TextureLoader, `${assetPath}/cube.png`);
     const bump = useLoader(THREE.TextureLoader, `${assetPath}/bump.jpg`);
     // bump.wrapS = bump.wrapT = THREE.RepeatWrapping;
@@ -125,8 +126,8 @@ export function InCanvas() {
                 <meshBasicMaterial attach="material-4" color={0x51e784} />
                 <meshBasicMaterial attach="material-5" color={0x6077e7} /> */}
                 <meshStandardMaterial 
-                    map={tessellation} 
-                    displacementMap={tessellation}
+                    map={earth} 
+                    displacementMap={earth}
                     displacementScale={displacement}
                     flatShading={flatShading}
                 />

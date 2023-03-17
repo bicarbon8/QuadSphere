@@ -173,7 +173,7 @@ export class QuadSphere {
                         startUv.u = 1/4;
                         startUv.v = 0;
                         endUv.u = 1/2;
-                        endUv.v = 1/3;
+                        endUv.v = 1/4;
                     }
                     break;
                 case 'top': // +Y
@@ -182,9 +182,9 @@ export class QuadSphere {
                     axis.x=1;
                     if (this.textureMapping === 'unwrapped') {
                         startUv.u = 1/4;
-                        startUv.v = 2/3;
+                        startUv.v = 1/2;
                         endUv.u = 1/2;
-                        endUv.v = 1;
+                        endUv.v = 3/4;
                     }
                     break;
                 case 'right': // +X
@@ -193,9 +193,9 @@ export class QuadSphere {
                     axis.y=1;
                     if (this.textureMapping === 'unwrapped') {
                         startUv.u = 1/2;
-                        startUv.v = 1/3;
+                        startUv.v = 1/4;
                         endUv.u = 3/4;
-                        endUv.v = 2/3;
+                        endUv.v = 1/2;
                     }
                     break;
                 case 'left': // -X
@@ -204,9 +204,9 @@ export class QuadSphere {
                     axis.y=1;
                     if (this.textureMapping === 'unwrapped') {
                         startUv.u = 0;
-                        startUv.v = 1/3;
+                        startUv.v = 1/4;
                         endUv.u = 1/4;
-                        endUv.v = 2/3;
+                        endUv.v = 1/2;
                     }
                     break;
                 case 'back': // -Z
@@ -215,9 +215,9 @@ export class QuadSphere {
                     axis.y=1;
                     if (this.textureMapping === 'unwrapped') {
                         startUv.u = 3/4;
-                        startUv.v = 1/3;
+                        startUv.v = 1/4;
                         endUv.u = 1;
-                        endUv.v = 2/3;
+                        endUv.v = 1/2;
                     }
                     break;
                 case 'front': // +Z
@@ -225,9 +225,9 @@ export class QuadSphere {
                     offset.z=this.radius;
                     if (this.textureMapping === 'unwrapped') {
                         startUv.u = 1/4;
-                        startUv.v = 1/3;
+                        startUv.v = 1/4;
                         endUv.u = 1/2;
-                        endUv.v = 2/3;
+                        endUv.v = 1/2;
                     }
                     break;
             }
