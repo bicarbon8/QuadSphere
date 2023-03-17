@@ -41,13 +41,14 @@ export function InCanvas() {
     const quadSphereMesh = useRef<THREE.Mesh>(null);
     const quadTriangles = useMemo<number>(() => (quadMesh.current?.geometry as QuadGeometry)?.quad?.triangleCount ?? 0, [quadKey]);
     const sphereTriangles = useMemo<number>(() => (quadSphereMesh.current?.geometry as QuadSphereGeometry)?.sphere?.triangleCount ?? 0, [sphereKey]);
-    const { segments, distances, maxLevels, freqency, applyCurve, flatShading, radius, displacement } = useControls({ 
+    const { segments, distances, maxLevels, freqency, applyCurve, flatShading, showEdges, radius, displacement } = useControls({ 
         segments: { value: 5, min: 3, max: 21, step: 2 },
         distances: { min: 0, max: 100, value: [0, 5], step: 1 },
         maxLevels: { value: 5, min: 0, max: 20, step: 1},
         freqency: { value: 1 / 5, min: 0, max: 2, step: 0.001 },
         applyCurve: { value: false },
         flatShading: { value: true },
+        showEdges: { value: false },
         radius: { value: 1, min: 0.1, max: 100, step: 0.1 },
         displacement: { value: 0.1, min: 0, max: 10, step: 0.01 }
     });
@@ -109,7 +110,7 @@ export function InCanvas() {
                     displacementScale={displacement}
                     flatShading={flatShading}
                 />
-                <Edges threshold={0} />
+                {(showEdges) ? <Edges threshold={0} /> : <></>}
             </QuadMesh>
             <QuadSphereMesh ref={quadSphereMesh}
                 position={[(radius+(radius/5)), 0, 0]}
@@ -126,12 +127,12 @@ export function InCanvas() {
                 <meshBasicMaterial attach="material-4" color={0x51e784} />
                 <meshBasicMaterial attach="material-5" color={0x6077e7} /> */}
                 <meshStandardMaterial 
-                    map={earth} 
-                    displacementMap={earth}
+                    map={tessellation} 
+                    displacementMap={tessellation}
                     displacementScale={displacement}
                     flatShading={flatShading}
                 />
-                <Edges threshold={0} />
+                {(showEdges) ? <Edges threshold={0} /> : <></>}
             </QuadSphereMesh>
             {/* <fog args={[0xcccccc, 0, 1]} /> */}
             {/* <Stats /> */}
