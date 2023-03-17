@@ -7,11 +7,19 @@ export type V3 = V2 & {
 
 export module V3 {
     export const zero = () => {return {x: 0, y: 0, z: 0}};
+    export const zeroArray = () => {return [0, 0, 0]};
     export const right = () => {return {x: 1, y: 0, z: 0}};
+    export const rightArray = () => {return [1, 0, 0]};
     export const up = () => {return {x: 0, y: 1, z: 0}};
+    export const upArray = () => {return [0, 1, 0]};
     export const forward = () => {return {x: 0, y: 0, z: 1}};
-    export function toVector3(input: V3): THREE.Vector3 {
-        return new THREE.Vector3(input.x, input.y, input.z);
+    export const forwardArray = () => {return [0, 0, 1]};
+    export function toVector3(input: V3 | Array<number>): THREE.Vector3 {
+        if (Array.isArray(input)) {
+            return new THREE.Vector3(input[0], input[1], input[2]);
+        } else {
+            return new THREE.Vector3(input.x, input.y, input.z);
+        }
     }
     export function midpoint(p1: V3, p2: V3): V3 {
         return {x: (p1.x+p2.x)/2, y: (p1.y+p2.y)/2, z: (p1.z+p2.z)/2};
@@ -26,12 +34,17 @@ export module V3 {
         return output;
     }
     export function fuzzyEquals(point1: V3, point2: V3, maxDiff: number = 0.1): boolean {
+        if (isNaN(point1.x) || isNaN(point2.x)
+            || isNaN(point1.y) || isNaN(point2.y)
+            || isNaN(point1.z) || isNaN(point2.z)) {
+            return false;
+        }
         const xdiff = Math.abs(point1.x - point2.x);
         if (xdiff > maxDiff) { return false; }
         const ydiff = Math.abs(point1.y - point2.y);
         if (ydiff > maxDiff) { return false; }
         const zdiff = Math.abs(point1.z - point2.z);
-        if (zdiff > Math.abs(maxDiff)) { return false; }
+        if (zdiff > maxDiff) { return false; }
         return true;
     }
     export function toArray(...inputs: Array<V3>): Array<number> {
@@ -80,5 +93,61 @@ export module V3 {
     }
     export function normalise(point: V3): V3 {
         return divide(point, V3.length(point) || 1);
+    }
+
+    const _rotate = new THREE.Vector3();
+    const _around = new THREE.Vector3();
+    const _axis = new THREE.Vector3();
+    /**
+     * generates a rotated point either around an axis or around a location on an axis
+     * without affecting the original, passed in, point
+     * @param point the starting x, y, and z location
+     * @param angle the amount to rotate in degrees
+     * @param axis the axis of rotation around the x, y, and z axis'
+     * @param around an optional point to rotate around @default `point`
+     * @returns the x, y, z coordinates following rotation
+     */
+    export function rotatePoint(point: V3, angle: number, axis: V3, around?: V3): V3 {
+        if (angle === 0) {
+            return point;
+        }
+        const radians = angle * (Math.PI / 180);
+        _rotate.x = point.x;
+        _rotate.y = point.y;
+        _rotate.z = point.z;
+        _around.x = around?.x ?? point.x;
+        _around.y = around?.y ?? point.y;
+        _around.z =  around?.z ?? point.z;
+        _axis.x = axis.x;
+        _axis.y = axis.y;
+        _axis.z = axis.z
+        _axis.normalize();
+        
+        return _rotate.sub(_around)
+            .applyAxisAngle(_axis, radians)
+            .add(_around).clone();
+    }
+
+    const _curvedOffset = V3.zero();
+    /**
+     * applies a curvature around the `curveOrigin` for the passed in point
+     * @param point the point to be adjusted for curvature
+     * @param curveOrigin the point around which to curve
+     * @returns the curve-adjusted point
+     */
+    export function applyCurve(point: V3, curveOrigin: V3, radius: number): V3 {
+        const offset = V3.normalise(V3.subtract(point, curveOrigin.x, curveOrigin.y, curveOrigin.z));
+        // TODO:  get below working for radius !== 1
+        // for radius === 1, below code provides smoother curve mesh distribution
+        // NOTE: commented parts only work for radius === 1 and un-normalised offset
+        // ====================================================================================
+        // const x2 = offset.x * offset.x;
+        // const y2 = offset.y * offset.y;
+        // const z2 = offset.z * offset.z;
+        _curvedOffset.x = offset.x; // * Math.sqrt(1 - y2 / 2 - z2 / 2 + y2 * z2 / 3);
+        _curvedOffset.y = offset.y; // * Math.sqrt(1 - x2 / 2 - z2 / 2 + x2 * z2 / 3);
+        _curvedOffset.z = offset.z; // * Math.sqrt(1 - x2 / 2 - y2 / 2 + x2 * y2 / 3);
+        const curved = V3.add(V3.multiply(_curvedOffset, radius), curveOrigin.x, curveOrigin.y, curveOrigin.z);
+        return curved;
     }
 }

@@ -28,7 +28,8 @@ describe.concurrent('V3', () => {
         {p1: V3.zero(), p2: {x: 0.1, y: 0.1, z: 0.1}, diff: 0.1, expected: true},
         {p1: V3.zero(), p2: {x: -0.1, y: -0.1, z: -0.1}, diff: 0.1, expected: true},
         {p1: V3.zero(), p2: {x: 0.1, y: 0.1, z: 0.1}, diff: 0.01, expected: false},
-        {p1: V3.zero(), p2: {x: -0.1, y: -0.1, z: -0.1}, diff: 0.01, expected: false}
+        {p1: V3.zero(), p2: {x: -0.1, y: -0.1, z: -0.1}, diff: 0.01, expected: false},
+        {p1: {x: 1.234, y: NaN, z: -1.234}, p2: {x: 1.234, y: 0, z: -1.234, diff: 0.01}, expected: false }
     ])('fuzzyEquals($p1, $p2, $diff) -> $expected', ({p1, p2, diff, expected}) => {
         expect(V3.fuzzyEquals(p1, p2, diff)).toBe(expected);
     })
@@ -75,5 +76,20 @@ describe.concurrent('V3', () => {
             const arr = [1, 2];
             expect(() => V3.fromArray(arr)).toThrow();
         })
+    })
+
+    test.each([
+        {p1: V3.right(), angle: 90, axis: {x: 0, y: 0, z: 1}, around: V3.zero(), expected: V3.up()},
+        {p1: V3.right(), angle: 90, axis: {x: 0, y: 1, z: 0}, around: V3.zero(), expected: V3.multiply(V3.forward(), -1)},
+        {p1: V3.right(), angle: 90, axis: {x: 1, y: 0, z: 0}, around: V3.zero(), expected: V3.right()},
+        {p1: {x: -1, y: -1, z: 1}, angle: 90, axis: {x: 1, y: 0, z: 0}, around: V3.zero(), expected: {x: -1, y: 1, z: 1}}
+    ])('rotatePoint($p1, $angle, $axis, $around) -> $expected', ({p1, angle, axis, around, expected}) => {
+        expect(V3.fuzzyEquals(V3.rotatePoint(p1, angle, axis, around), expected, 0.0001)).is.true;
+    })
+
+    test.only.each([
+        {p1: {x: -1, y: 2, z: -2}, origin: {x: 0, y: 0, z: 0}, radius: 2, expected: {x: -0.6, y: 1.3, z: -1.3}}
+    ])('applyCurve($p1, $origin, $radius) -> $expected', ({p1, origin, radius, expected}) => {
+        expect(V3.fuzzyEquals(V3.applyCurve(p1, origin, radius), expected, 0.1)).is.true;
     })
 })

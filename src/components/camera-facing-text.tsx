@@ -1,15 +1,16 @@
 import { Text } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { JSXElementConstructor, ReactElement, ReactFragment, ReactPortal, useRef } from "react";
-import { Mesh } from "three";
+import * as THREE from "three";
 
 export type textProps = {
     children: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | ReactFragment | ReactPortal,
     position: any
 }
 
+const v = new THREE.Vector3();
 export function CameraFacingText(props: textProps) {
-    const ref = useRef<Mesh>();
+    const ref = useRef<THREE.Mesh>();
     const fontProps = { 
         fontSize: 0.25, 
         letterSpacing: -0.05, 
@@ -24,7 +25,10 @@ export function CameraFacingText(props: textProps) {
     }
     useFrame(({ camera }) => {
         // Make text face the camera
-        ref.current.quaternion.copy(camera.quaternion)
+        ref.current.quaternion.copy(camera.quaternion);
+        ref.current.position.copy(camera.position);
+        camera.getWorldDirection(v);
+        ref.current.position.addScaledVector(v, 6);
     });
-    return <Text ref={ref} {...fullProps} children={props.children} renderOrder={999} depthOffset={-999} />;
+    return <Text ref={ref} {...fullProps} children={props.children} renderOrder={99999} depthOffset={-99999} />;
 }

@@ -1,10 +1,12 @@
 import { Quad } from "./quad";
 import { QuadLogger, QuadLoggerLevel } from "./quad-logger";
 import { QuadRegistry } from "./quad-registry";
-import { QuadMeshData, QuadSphereFace } from "./quad-types";
+import { QuadSphereFace, QuadSphereMeshData } from "./quad-types";
 import { QuadUtils } from "./quad-utils";
 import { UV } from "./v2";
 import { V3 } from "./v3"
+
+export type QuadSphereTextureMapping = 'cube' | 'unwrapped';
 
 export type QuadSphereOptions = {
     centre?: V3,
@@ -14,6 +16,7 @@ export type QuadSphereOptions = {
     maxlevel?: number;
     utils?: QuadUtils;
     addSkirts?: boolean;
+    textureMapping?: QuadSphereTextureMapping;
 }
 
 export class QuadSphere {
@@ -22,25 +25,27 @@ export class QuadSphere {
     readonly registry: QuadRegistry;
     readonly maxlevel: number;
     readonly segments: number;
+    readonly textureMapping: QuadSphereTextureMapping;
+    readonly utils: QuadUtils;
     
     private readonly _faces = new Map<QuadSphereFace, Quad>();
     private readonly _loglevel: QuadLoggerLevel;
     private readonly _logger: QuadLogger;
-    private readonly _utils: QuadUtils;
-
+    
     private _triangleCount: number;
     
     constructor(options: QuadSphereOptions) {
         this.centre = options.centre ?? {x: 0, y: 0, z: 0};
         this.radius = options.radius ?? 1;
         this.segments = options.segments; // default set in Quad if unset
-        this.registry = new QuadRegistry();
+        this.registry = new QuadRegistry(this.radius, this.segments);
         this.maxlevel = options.maxlevel ?? 100;
+        this.textureMapping = options.textureMapping ?? 'unwrapped';
         this._loglevel = options.loglevel ?? 'warn';
         this._logger = new QuadLogger({
             level: this._loglevel
         });
-        this._utils = options.utils ?? new QuadUtils({loglevel: this._logger.level});
+        this.utils = options.utils ?? new QuadUtils({loglevel: this._logger.level});
         this._triangleCount = 0;
         this._createFaces();
     }
@@ -102,31 +107,21 @@ export class QuadSphere {
         return this._faces.get('bottom');
     }
 
-    get meshData(): QuadMeshData {
-        const tris = new Array<number>();
-        const verts = new Array<number>();
-        const norms = new Array<number>();
-        const uvs = new Array<number>();
-
-        let offset = 0;
-        this._faces.forEach((quad: Quad, face: QuadSphereFace) => {
+    get meshData(): QuadSphereMeshData {
+        // below array order is important so we match Box in Threejs
+        const sphereData = {} as QuadSphereMeshData;
+        let indicesCount = 0;
+        let index = 0;
+        while (index<6) {
+            const face = this.utils.faceByIndex(index);
+            const quad = this._faces.get(face);
             const data = quad.meshData;
-            tris.push(...data.indices.map(i => i+offset));
-            offset += data.vertices.length / 3;
-            verts.push(...data.vertices);
-            norms.push(...data.normals);
-            uvs.push(...data.uvs);
-        });
-
-        // merge any duplicate vertices
-        const cubeData = { // this.utils.mergeVertices({
-            indices: tris,
-            vertices: verts,
-            normals: norms,
-            uvs: uvs
-        } // , 4);
-        this._triangleCount = tris.length / 3;
-        return cubeData;
+            indicesCount += data.indices.length;
+            sphereData[face] = data;
+            index++;
+        }
+        this._triangleCount = indicesCount / 3; // three per triangle
+        return sphereData;
     }
 
     get triangleCount(): number {
@@ -146,32 +141,8 @@ export class QuadSphere {
      * @param point the `V3` in local space against which to compare
      * @returns the deepest quad that is closest to the specified `point`
      */
-    getClosestQuad(point: V3, ...from: Array<Quad>): Quad {
-        if (from.length === 0) {
-            from = new Array<Quad>(
-                this.front,
-                this.back,
-                this.left,
-                this.right,
-                this.top,
-                this.bottom
-            );
-        }
-        // sort quads in ascending order by distance to point
-        const sortedQuads = from.sort((a, b) => V3.length(this._utils.applyCurve(a.centre, this.centre), point) - V3.length(this._utils.applyCurve(b.centre, this.centre), point));
-        this._logger.log('debug', 'quads sorted by distance to', point, sortedQuads.map(q => q.centre));
-        let closest = sortedQuads
-            .find(q => q != null);
-        if (closest.hasChildren()) {
-            closest = this.getClosestQuad(point, 
-                closest.bottomleftChild,
-                closest.bottomrightChild,
-                closest.topleftChild,
-                closest.toprightChild
-            );
-        }
-        this._logger.log('debug', 'closest quad is', closest.fingerprint);
-        return closest;
+    getClosestQuad(point: V3): Quad {
+        return this.utils.getClosestQuad(point, true, this.front, this.back, this.left, this.right, this.top, this.bottom);
     }
 
     /**
@@ -181,37 +152,12 @@ export class QuadSphere {
      * @param distance the distance within which the length from `point` to `quad.centre` must be
      * @returns an array of the deepest quads that are within the specified `distance` from the `point`
      */
-    getQuadsWithinDistance(point: V3, distance: number, ...from: Array<Quad>): Array<Quad> {
-        if (from.length === 0) {
-            from = new Array<Quad>(
-                this.front,
-                this.back,
-                this.left,
-                this.right,
-                this.top,
-                this.bottom
-            );
-        }
-        const within = new Array<Quad>();
-        from.forEach(q => {
-            if (V3.length(point, q.centre) <= distance) {
-                if (q.hasChildren()) {
-                    within.push(
-                        ...q.bottomleftChild.getQuadsWithinDistance(point, distance),
-                        ...q.bottomrightChild.getQuadsWithinDistance(point, distance),
-                        ...q.topleftChild.getQuadsWithinDistance(point, distance),
-                        ...q.toprightChild.getQuadsWithinDistance(point, distance)
-                    );
-                } else {
-                    within.push(q);
-                }
-            }
-        });
-        return within;
+    getQuadsWithinDistance(point: V3, distance: number): Array<Quad> {
+        return this.utils.getQuadsWithinDistance(point, distance, true, this.front, this.back, this.left, this.right, this.top, this.bottom);
     }
 
     private _createFaces(): void {
-        const faces = new Array<QuadSphereFace>('front', 'back', 'left', 'right', 'top', 'bottom');
+        const faces = this.utils.orderedFaces();
         faces.forEach(f => {
             const offset = V3.zero();
             let angle = 0;
@@ -223,54 +169,66 @@ export class QuadSphere {
                     offset.y=-this.radius;
                     angle=90;
                     axis.x=1;
-                    startUv.u = 1/4;
-                    startUv.v = 0;
-                    endUv.u = 1/2;
-                    endUv.v = 1/3;
+                    if (this.textureMapping === 'unwrapped') {
+                        startUv.u = 1/4;
+                        startUv.v = 0;
+                        endUv.u = 1/2;
+                        endUv.v = 1/4;
+                    }
                     break;
                 case 'top': // +Y
                     offset.y=this.radius;
                     angle=-90;
                     axis.x=1;
-                    startUv.u = 1/4;
-                    startUv.v = 2/3;
-                    endUv.u = 1/2;
-                    endUv.v = 1;
+                    if (this.textureMapping === 'unwrapped') {
+                        startUv.u = 1/4;
+                        startUv.v = 1/2;
+                        endUv.u = 1/2;
+                        endUv.v = 3/4;
+                    }
                     break;
                 case 'right': // +X
                     offset.x=this.radius;
                     angle=90;
                     axis.y=1;
-                    startUv.u = 1/2;
-                    startUv.v = 1/3;
-                    endUv.u = 3/4;
-                    endUv.v = 2/3;
+                    if (this.textureMapping === 'unwrapped') {
+                        startUv.u = 1/2;
+                        startUv.v = 1/4;
+                        endUv.u = 3/4;
+                        endUv.v = 1/2;
+                    }
                     break;
                 case 'left': // -X
                     offset.x=-this.radius;
                     angle=-90;
                     axis.y=1;
-                    startUv.u = 0;
-                    startUv.v = 1/3;
-                    endUv.u = 1/4;
-                    endUv.v = 2/3;
+                    if (this.textureMapping === 'unwrapped') {
+                        startUv.u = 0;
+                        startUv.v = 1/4;
+                        endUv.u = 1/4;
+                        endUv.v = 1/2;
+                    }
                     break;
                 case 'back': // -Z
                     offset.z=-this.radius;
                     angle=180;
                     axis.y=1;
-                    startUv.u = 3/4;
-                    startUv.v = 1/3;
-                    endUv.u = 1;
-                    endUv.v = 2/3;
+                    if (this.textureMapping === 'unwrapped') {
+                        startUv.u = 3/4;
+                        startUv.v = 1/4;
+                        endUv.u = 1;
+                        endUv.v = 1/2;
+                    }
                     break;
                 case 'front': // +Z
                 default:
                     offset.z=this.radius;
-                    startUv.u = 1/4;
-                    startUv.v = 1/3;
-                    endUv.u = 1/2;
-                    endUv.v = 2/3;
+                    if (this.textureMapping === 'unwrapped') {
+                        startUv.u = 1/4;
+                        startUv.v = 1/4;
+                        endUv.u = 1/2;
+                        endUv.v = 1/2;
+                    }
                     break;
             }
             this._faces.set(f, new Quad({
@@ -281,13 +239,13 @@ export class QuadSphere {
                 maxlevel: this.maxlevel,
                 angle: angle,
                 rotationAxis: axis,
-                utils: this._utils,
+                utils: this.utils,
                 uvStart: startUv,
                 uvEnd: endUv,
                 applyCurve: true,
                 curveOrigin: this.centre,
                 segments: this.segments
-            }
-        ))});
+            }))
+        });
     }
 }

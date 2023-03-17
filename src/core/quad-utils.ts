@@ -1,7 +1,6 @@
-import * as THREE from "three";
 import { Quad } from "./quad";
 import { QuadLogger, QuadLoggerLevel } from "./quad-logger";
-import { QuadMeshData } from "./quad-types";
+import { QuadMeshData, QuadSide, QuadSphereFace } from "./quad-types";
 import { V3 } from "./v3";
 
 export type QuadUtilsOptions = {
@@ -13,6 +12,267 @@ export class QuadUtils {
 
     constructor(options?: QuadUtilsOptions) {
         this._logger = new QuadLogger({level: options?.loglevel ?? 'warn'});
+    }
+
+    /**
+     * assuming a `Quad` like below
+     * ```
+     * 20--21--22--23--24
+     * | \   / | \   / |
+     * 15  16--17--18  19
+     * | / | / | / | \ |
+     * 10--11--12--13--14
+     * | \ | / | / | / |
+     * 5   6---7---8   9
+     * | /   \ | /   \ |
+     * 0---1---2---3---4
+     * ```
+     * would return [6, 7, 12, 12, 11, 6, 7, 8, 13, 13, 12, 7, 11, 12, 17, 17, 16, 11, 12, 13, 18, 18, 17, 12]
+     */
+    getCentreTriangleIndices(segments: number): Array<number> {
+        const indices = new Array<number>();
+        for (let y=1; y<segments-2; y++) {
+            for (let x=1; x<segments-2; x++) {
+                const a1 = this.xyToI(x, y, segments);
+                const b1 = a1 + 1;
+                const c1 = this.xyToI(x+1, y+1, segments);
+                
+                const a2 = c1;
+                const b2 = a2-1;
+                const c2 = a1;
+
+                indices.push(a1, b1, c1, a2, b2, c2);
+            }
+        }
+        return indices;
+    }
+
+    /**
+     * assuming a `Quad` like below
+     * ```
+     * deactivated          activated
+     * 20--21--22--23--24   20--21--22--23--24
+     * | \   / | \   / |    | \   / | \   / |
+     * 15  16--17--18  19   15--16--17--18  19
+     * | / | / | / | \ |    | / | / | / | \ |
+     * 10--11--12--13--14   10--11--12--13--14
+     * | \ | / | / | / |    | \ | / | / | / |
+     * 5   6---7---8   9    5---6---7---8   9
+     * | /   \ |  /  \ |    | /   \ | /   \ |
+     * 0---1---2---3---4 or 0---1---2---3---4
+     * ```
+     * would return: 
+     * ```
+     * [6, ........ 10, 0, 6, 11, 10, 16, 10, 11, 16, ........... 20, 10] (deactivated) or
+     * [6, 5, 0, 6, 10, 5, 6, 11, 10, 16, 10, 11, 16, 15, 10, 16, 20, 15] (activated)
+     * ```
+     */
+    getLeftTriangleIndices(segments: number, activeSides: Array<QuadSide>): Array<number> {
+        const indices = new Array<number>();
+        const x = 1;
+        for (let y=1; y<segments; y+=2) {
+            const index = this.xyToI(x, y, segments);
+            if (y > 1) {
+                const a = index;
+                const b = this.xyToI(x-1, y-1, segments);
+                const c = this.xyToI(x, y-1, segments);
+                indices.push(a, b, c);
+            }
+
+            if (activeSides.includes('left')) {
+                const a1 = index;
+                const b1 = index-1;
+                const c1 = this.xyToI(x-1, y-1, segments);
+                const a2 = index;
+                const b2 = this.xyToI(x-1, y+1, segments);
+                const c2 = b1;
+                indices.push(a1, b1, c1, a2, b2, c2);
+            } else {
+                const a = index;
+                const b = this.xyToI(x-1, y+1, segments);
+                const c = this.xyToI(x-1, y-1, segments);
+                indices.push(a, b, c);
+            }
+
+            if (y < segments-2) {
+                const a = index;
+                const b = this.xyToI(x, y+1, segments);
+                const c = b-1;
+                indices.push(a, b, c);
+            }
+        }
+        return indices;
+    }
+
+    /**
+     * assuming a `Quad` like below
+     * ```
+     * deactivated          activated
+     * 20--21--22--23--24   20--21--22--23--24
+     * | \   / | \   / |    | \   / | \   / |
+     * 15  16--17--18  19   15  16--17--18  19
+     * | / | / | / | \ |    | / | / | / | \ |
+     * 10--11--12--13--14   10--11--12--13--14
+     * | \ | / | / | / |    | \ | / | / | / |
+     * 5   6---7---8   9    5   6---7---8   9
+     * | /   \ | /   \ |    | / | \ | / | \ |
+     * 0---1---2---3---4 or 0---1---2---3---4
+     * ```
+     * would return: 
+     * ```
+     * [6, 0, ........ 2, 6, 2, 7, 8, 7, 2, 8, 2, ........ 4] (deactivated) or
+     * [6, 0, 1, 6, 1, 2, 6, 2, 7, 8, 7, 2, 8, 2, 3, 8, 3, 4] (activated)
+     * ```
+     */
+    getBottomTriangleIndices(segments: number, activeSides: Array<QuadSide>): Array<number> {
+        const indices = new Array<number>();
+        const y = 1;
+        for (let x=1; x<segments; x+=2) {
+            const index = this.xyToI(x, y, segments);
+            if (x > 1) {
+                const a = index;
+                const b = index-1;
+                const c = this.xyToI(x-1, y-1, segments);
+                indices.push(a, b, c);
+            }
+
+            if (activeSides.includes('bottom')) {
+                const a1 = index;
+                const b1 = this.xyToI(x-1, y-1, segments);
+                const c1 = this.xyToI(x, y-1, segments);
+                const a2 = index;
+                const b2 = c1;
+                const c2 = this.xyToI(x+1, y-1, segments);
+                indices.push(a1, b1, c1, a2, b2, c2);
+            } else {
+                const a = index;
+                const b = this.xyToI(x-1, y-1, segments);
+                const c = this.xyToI(x+1, y-1, segments);
+                indices.push(a, b, c);
+            }
+
+            if (x < segments-2) {
+                const a = index;
+                const b = this.xyToI(x+1, y-1, segments);
+                const c = this.xyToI(x+1, y, segments);
+                indices.push(a, b, c);
+            }
+        }
+        return indices;
+    }
+
+    /**
+     * assuming a `Quad` like below
+     * ```
+     * deactivated          activated
+     * 20--21--22--23--24   20--21--22--23--24
+     * | \   / | \   / |    | \   / | \   / |
+     * 15  16--17--18  19   15  16--17--18--19
+     * | / | / | / | \ |    | / | / | / | \ |
+     * 10--11--12--13--14   10--11--12--13--14
+     * | \ | / | / | / |    | \ | / | / | / |
+     * 5   6---7---8   9    5   6---7---8---9
+     * | /   \ |  /  \ |    | /   \ | /   \ |
+     * 0---1---2---3---4 or 0---1---2---3---4
+     * ```
+     * would return: 
+     * ```
+     * [8, 4, ........ 14, 8, 14, 13, 18, 13, 14, 18, 14, ........... 24] (deactivated) or
+     * [8, 4, 9, 8, 9, 14, 8, 14, 13, 18, 13, 14, 18, 14, 19, 18, 19, 24] (activated)
+     * ```
+     */
+    getRightTriangleIndices(segments: number, activeSides: Array<QuadSide>): Array<number> {
+        const indices = new Array<number>();
+        const x = segments-2;
+        for (let y=1; y<segments-1; y+=2) {
+            const index = this.xyToI(x, y, segments);
+            if (y > 2) {
+                const a = index;
+                const b = this.xyToI(x, y-1, segments);
+                const c = this.xyToI(x+1, y-1, segments);
+                indices.push(a, b, c);
+            }
+
+            if (activeSides.includes('right')) {
+                const a1 = index;
+                const b1 = this.xyToI(x+1, y-1, segments);
+                const c1 = this.xyToI(x+1, y, segments);
+                const a2 = index;
+                const b2 = c1;
+                const c2 = this.xyToI(x+1, y+1, segments);
+                indices.push(a1, b1, c1, a2, b2, c2);
+            } else {
+                const a = index;
+                const b = this.xyToI(x+1, y-1, segments);
+                const c = this.xyToI(x+1, y+1, segments);
+                indices.push(a, b, c);
+            }
+
+            if (y < segments-2) {
+                const a = index;
+                const b = this.xyToI(x+1, y+1, segments);
+                const c = this.xyToI(x, y+1, segments);
+                indices.push(a, b, c);
+            }
+        }
+        return indices;
+    }
+
+    /**
+     * assuming a `Quad` like below
+     * ```
+     * deactivated          activated
+     * 20--21--22--23--24   20--21--22--23--24
+     * | \   / | \   / |    | \ | / | \ | / |
+     * 15  16--17--18  19   15  16--17--18  19
+     * | / | / | / | \ |    | / | / | / | \ |
+     * 10--11--12--13--14   10--11--12--13--14
+     * | \ | / | / | / |    | \ | / | / | / |
+     * 5   6---7---8   9    5   6---7---8   9
+     * | /   \ | /   \ |    | /   \ | /   \ |
+     * 0---1---2---3---4 or 0---1---2---3---4
+     * ```
+     * would return: 
+     * ```
+     * [16, ........... 22, 20, 16, 17, 22, 18, 22, 17, 18, ........... 24, 22] (deactivated) or
+     * [16, 21, 20, 16, 22, 21, 16, 17, 22, 18, 22, 17, 18, 23, 22, 18, 24, 23] (activated)
+     * ```
+     */
+    getTopTriangleIndices(segments: number, activeSides: Array<QuadSide>): Array<number> {
+        const indices = new Array<number>();
+        const y = segments-2;
+        for (let x=1; x<segments; x+=2) {
+            const index = this.xyToI(x, y, segments);
+            if (x > 1) {
+                const a = index;
+                const b = this.xyToI(x-1, y+1, segments);
+                const c = index-1;
+                indices.push(a, b, c);
+            }
+
+            if (activeSides.includes('top')) {
+                const a1 = index;
+                const b1 = this.xyToI(x, y+1, segments);
+                const c1 = b1-1;
+                const a2 = index;
+                const b2 = this.xyToI(x+1, y+1, segments);
+                const c2 = b2-1;
+                indices.push(a1, b1, c1, a2, b2, c2);
+            } else {
+                const a = index;
+                const b = this.xyToI(x+1, y+1, segments);
+                const c = this.xyToI(x-1, y+1, segments);
+                indices.push(a, b, c);
+            }
+
+            if (x < segments-2) {
+                const a = index;
+                const b = index+1;
+                const c = this.xyToI(x+1, y+1, segments);
+                indices.push(a, b, c);
+            }
+        }
+        return indices;
     }
 
     /**
@@ -99,24 +359,70 @@ export class QuadUtils {
 		return updated;
 	}
 
+    removeUnusedVertices(data: QuadMeshData): QuadMeshData {
+        let removedVertexCount = 0;
+        const updatedVerts = new Array<number>();
+        const updatedTris = new Array<number>();
+        const updatedUvs = new Array<number>();
+        const updatedNorms = new Array<number>();
+        const referencedVertices = new Set<number>(); // key = index of referenced vertices (x value)
+		const remappedIndices = new Map<number, number>(); // key = old index, value = new index
+
+        // loop through indices creating map of used vertices indexes
+        // index points to the x value of a given vertices
+        for (let i=0; i<data.indices.length; i++) {
+            referencedVertices.add(data.indices[i]);
+        }
+
+        // loop through vertices removing any not referenced
+        for (let x=0, u=0; x<data.vertices.length; x+=3, u+=2) {
+            const index = x / 3;
+            if (referencedVertices.has(index)) {
+                remappedIndices.set(index, updatedVerts.length / 3);
+                updatedVerts.push(data.vertices[x], data.vertices[x+1], data.vertices[x+2]);
+                updatedNorms.push(data.normals[x], data.normals[x+1], data.normals[x+2]);
+                updatedUvs.push(data.uvs[u], data.uvs[u+1]);
+            } else {
+                removedVertexCount++;
+            }
+        }
+
+        // loop through indices updating referenced index
+        for (let i=0; i<data.indices.length; i++) {
+            const oldIndex = data.indices[i];
+            const newIndex = remappedIndices.get(oldIndex);
+            updatedTris.push(newIndex);
+        }
+
+        const updated: QuadMeshData = {
+            indices: updatedTris,
+            vertices: updatedVerts,
+            normals: updatedNorms,
+            uvs: updatedUvs
+        };
+        this._logger.log('info', 'removed', removedVertexCount, 'unused vertices');
+		return updated;
+    }
+
     /**
      * recursively searches the passed in `from` array for the `Quad`
      * whose `centre` point is closest to the specified `point`
      * @param point the `V3` in local space against which to compare
+     * @param recurse if `true` the function will recursively check for child quads within distance @default true
      * @param from an array of `Quad` objects to recursively iterate over
      * @returns the deepest quad that is closest to the specified `point`
      */
-    getClosestQuad(point: V3, ...from: Array<Quad>): Quad {
+    getClosestQuad(point: V3, recurse: boolean = true, ...from: Array<Quad>): Quad {
         if (from.length === 0) {
             return null;
         }
         // sort quads in ascending order by distance to point
-        const sortedQuads = from.sort((a, b) => V3.length(a.centre, point) - V3.length(b.centre, point));
+        const sortedQuads = from.sort((a, b) => V3.length((a.applyCurve) ? a.curvedCentre : a.centre, point) - V3.length((b.applyCurve) ? b.curvedCentre : b.centre, point));
         this._logger.log('debug', 'quads sorted by distance to', point, sortedQuads.map(q => q.centre));
         let closest = sortedQuads
             .find(q => q != null);
-        if (closest.hasChildren()) {
-            closest = this.getClosestQuad(point, 
+        if (recurse && closest.hasChildren()) {
+            closest = this.getClosestQuad(point, recurse,
                 closest.bottomleftChild,
                 closest.bottomrightChild,
                 closest.topleftChild,
@@ -132,15 +438,16 @@ export class QuadUtils {
      * and whose `centre` is within the specified `distance` from the specified `point`
      * @param point the `V3` in local space against which to compare
      * @param distance the distance within which the length from `point` to `quad.centre` must be
+     * @param recurse if `true` the function will recursively check for child quads within distance @default true
      * @param from an array of `Quad` objects to recursively interate over
      * @returns an array of the deepest quads that are within the specified `distance` from the `point`
      */
-    getQuadsWithinDistance(point: V3, distance: number, ...from: Array<Quad>): Array<Quad> {
+    getQuadsWithinDistance(point: V3, distance: number, recurse: boolean = true, ...from: Array<Quad>): Array<Quad> {
         const within = new Array<Quad>();
         from.forEach(q => {
-            if (V3.length(point, q.centre) <= distance) {
-                if (q.hasChildren()) {
-                    within.push(...this.getQuadsWithinDistance(point, distance,
+            if (this.isWithinDistance(q, distance, point)) {
+                if (recurse && q.hasChildren()) {
+                    within.push(...this.getQuadsWithinDistance(point, distance, recurse,
                         q.bottomleftChild,
                         q.bottomrightChild,
                         q.topleftChild,
@@ -154,39 +461,8 @@ export class QuadUtils {
         return within;
     }
 
-    rotatePoint(point: V3, angle: number, axis: V3, around?: V3): V3 {
-        if (angle === 0) {
-            return point;
-        }
-        around ??= {x: point.x, y: point.y, z: point.z};
-        const radians = angle * (Math.PI / 180);
-        const p = new THREE.Vector3(point.x, point.y, point.z);
-        const ar = new THREE.Vector3(around.x, around.y, around.z);
-        const ax = new THREE.Vector3(axis.x, axis.y, axis.z).normalize();
-        
-        return p.sub(ar)
-            .applyAxisAngle(ax, radians)
-            .add(ar);
-    }
-
-    /**
-     * applies a curvature around the `curveOrigin` for the passed in point
-     * @param point the point to be adjusted for curvature
-     * @param curveOrigin the point around which to curve
-     * @returns the curve-adjusted point
-     */
-    applyCurve(point: V3, curveOrigin: V3): V3 {
-        const offset = V3.subtract(point, curveOrigin.x, curveOrigin.y, curveOrigin.z);
-        // const curvedOffset = V3.multiply(V3.normalise(offset), this.radius);
-        const curvedOffset = V3.zero();
-        const x2 = offset.x * offset.x;
-        const y2 = offset.y * offset.y;
-        const z2 = offset.z * offset.z;
-        curvedOffset.x = offset.x * Math.sqrt(1 - y2 / 2 - z2 / 2 + y2 * z2 / 3);
-        curvedOffset.y = offset.y * Math.sqrt(1 - x2 / 2 - z2 / 2 + x2 * z2 / 3);
-        curvedOffset.z = offset.z * Math.sqrt(1 - x2 / 2 - y2 / 2 + x2 * y2 / 3);
-        const curved = V3.add(curvedOffset, curveOrigin.x, curveOrigin.y, curveOrigin.z);
-        return curved;
+    isWithinDistance(quad: Quad, distance: number, point: V3): boolean {
+        return (V3.length(point, (quad.applyCurve) ? quad.curvedCentre : quad.centre) <= distance);
     }
 
     /**
@@ -200,5 +476,48 @@ export class QuadUtils {
      */
     xyToI(x: number, y: number, segments: number): number {
         return (segments * y) + x;
+    }
+
+    /**
+     * returns the `QuadSphereFace` values as an array ordered to match the material groups
+     * used by `THREE.BoxGeometry`
+     * @returns `QuadSphereFace` strings ordered in `[+x, -x, +y, -y, +z, -z]`
+     */
+    orderedFaces(): Array<QuadSphereFace> {
+        const faces = new Array<QuadSphereFace>(
+            this.faceByIndex(0),
+            this.faceByIndex(1),
+            this.faceByIndex(2),
+            this.faceByIndex(3),
+            this.faceByIndex(4),
+            this.faceByIndex(5)
+        );
+        return faces;
+    }
+
+    /**
+     * returns the `QuadSphereFace` at the specified index matching the material groups
+     * used by `THREE.BoxGeometry`, specifically `+x=0, -x=1, +y=2, -y=3, +z=4, -z=5`
+     * @param index a number from 0 to 5, inclusive
+     * @returns the `QuadSphereFace` at the specified index
+     */
+    faceByIndex(index: number): QuadSphereFace {
+        switch (index) {
+            case 0:
+                return 'right';
+            case 1:
+                return 'left';
+            case 2:
+                return 'top';
+            case 3:
+                return 'bottom';
+            case 4:
+                return 'front';
+            case 5:
+                return 'back';
+            default:
+                this._logger.log('warn', 'invalid face index provided', index);
+                return 'front';
+        }
     }
 }

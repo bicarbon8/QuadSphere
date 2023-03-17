@@ -6,33 +6,55 @@ export type QuadRegistryKeys = Record<QuadSide, string>;
 
 export class QuadRegistry {
     private readonly _maxDifference: number;
-    private readonly _levelQuadMap = new Map<number, Map<number, Quad>>();
+    // key=level -> key=id -> Quad
+    private readonly _levelQuadMap = new Map<number, Map<string, Quad>>();
 
-    private _id: number;
-
-    constructor(maxDifference?: number) {
-        this._maxDifference = maxDifference ?? 0.00001;
-        this._id = 0;
+    constructor(startingRadius: number, segments: number) {
+        this._maxDifference = (startingRadius / (segments-2)) / 3;
     }
 
+    /**
+     * returns the maximum deepest, active, `Quad` tracked in this registry
+     * 
+     * NOTE: inactive quads are not included in the results
+     */
     get depth(): number {
         let d: number = 0; // no registered quads at any level
         if (this._levelQuadMap.size > 0) {
-            d += Array.from(this._levelQuadMap.keys())
+            const activeLevels = new Array<number>();
+            Array.from(this._levelQuadMap.keys()).forEach(level => {
+                const map = this._levelQuadMap.get(level);
+                if (map.size > 0) {
+                    activeLevels.push(level);
+                }
+            });
+            d += activeLevels
                 .sort((a, b) => b - a) // sorts in descending
                 .find(v => v > 0); // returns first value (max)
         }
         return d;
     }
 
+    /**
+     * registers the passed in `Quad` for reuse and to enable locating
+     * neighbor quads
+     * @param quad the `Quad` to add to this registry
+     * @returns `this`
+     */
     register(quad: Quad): this {
         if (!this._levelQuadMap.has(quad.level)) {
-            this._levelQuadMap.set(quad.level, new Map<number, Quad>());
+            this._levelQuadMap.set(quad.level, new Map<string, Quad>());
         }
         this._levelQuadMap.get(quad.level).set(quad.id, quad);
         return this;
     }
 
+    /**
+     * removes the specified `Quad` from this registry meaning it can
+     * no longer be reused or located as a neighbor
+     * @param quad the `Quad` to remove from this registry
+     * @returns `this`
+     */
     deregister(quad: Quad): this {
         if (this._levelQuadMap.has(quad.level)) {
             this._levelQuadMap.get(quad.level).delete(quad.id);
@@ -40,6 +62,19 @@ export class QuadRegistry {
         return this;
     }
 
+    getQuad(centre: V3, radius: number, segments: number, level: number): Quad {
+        const levelQuads = this.getQuadsAtLevel(level, true);
+        const id = this.getId(centre, radius, segments, level);
+        return levelQuads.find(q => q.id === id);
+    }
+
+    /**
+     * searches for a `Quad` on the specified `QuadSide` whose edge matches
+     * @param side the `QuadSide` on which to look for neighbors
+     * @param quad the `Quad` whose neighbor we're searching for
+     * @returns a `Quad` at the same `level` as the passed in `Quad` whose
+     * edge matches
+     */
     getNeighbor(side: QuadSide, quad: Quad): Quad {
         if (quad) {
             const possibleNeighbors = this.getQuadsAtLevel(quad.level)
@@ -122,16 +157,38 @@ export class QuadRegistry {
         return neighbors;
     }
 
-    getQuadsAtLevel(level: number = 0): Array<Quad> {
+    /**
+     * returns any active `Quad` objects at the specified level
+     * @param level the `level` to returns `Quad` objects at @default 0
+     * @param includeInactive if `true` include deactivated quads in the results @default false
+     * @returns an array of active `Quad` objects at the specified level
+     */
+    getQuadsAtLevel(level: number = 0, includeInactive: boolean = false): Array<Quad> {
         const quads = new Array<Quad>();
         if (this._levelQuadMap.has(level)) {
-            quads.push(...Array.from(this._levelQuadMap.get(level).values()));
+            const allLevelQuads = Array.from(this._levelQuadMap.get(level).values());
+            if (includeInactive) {
+                quads.push(...allLevelQuads);
+            } else {
+                quads.push(...allLevelQuads.filter(q => q.active));
+            }
         }
         return quads;
     }
 
-    getId(): number {
-        return this._id++;
+    /**
+     * generates a unique id for a `Quad` based on what makes
+     * it unique
+     * @param centre the un-rounded centre of the `Quad`
+     * @param radius the `radius` of the `Quad`
+     * @param segments the number of `segments` the `Quad` uses
+     * @param level the `level` of the `Quad`
+     * @returns an id made up of the passed in values
+     */
+    getId(centre: V3, radius: number, segments: number, level: number): string {
+        const precision = 1 + level + (segments-3);
+        const id = V3.reducePrecision(centre, precision);
+        return `x${id.x}:y${id.y}:z${id.z}:r${radius}:s${segments}:l${level}`;
     }
 
     private _edgeMatches(edge1: Array<V3>, edge2: Array<V3>, level: number): boolean {
