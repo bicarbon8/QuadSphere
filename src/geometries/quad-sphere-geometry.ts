@@ -45,7 +45,6 @@ export class QuadSphereGeometry extends BufferGeometry {
     updateAttributes(): void {
         this.clearGroups();
         let materialGroupStart = 0;
-        let materialGroupCount = 0;
         let materialIndex = 0;
         const indices = new Array<number>();
         const vertices = new Array<number>();
@@ -57,9 +56,8 @@ export class QuadSphereGeometry extends BufferGeometry {
         while (index<6) {
             const face = this.sphere.utils.faceByIndex(index);
             const faceData = this.sphere.utils.removeUnusedVertices(data[face]);
-            materialGroupCount += faceData.indices.length;
-            this.addGroup(materialGroupStart, materialGroupCount, materialIndex);
-            materialGroupStart += materialGroupCount;
+            this.addGroup(materialGroupStart, faceData.indices.length, materialIndex);
+            materialGroupStart += faceData.indices.length;
             materialIndex++;
             indices.push(...faceData.indices.map(i => i+offset));
             offset += faceData.vertices.length / 3;

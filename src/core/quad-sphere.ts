@@ -6,7 +6,7 @@ import { QuadUtils } from "./quad-utils";
 import { UV } from "./v2";
 import { V3 } from "./v3"
 
-export type QuadSphereTextureMapping = 'cube' | 'unwrapped';
+export type QuadSphereTextureMapping = 'split' | 'unified';
 
 export type QuadSphereOptions = {
     centre?: V3,
@@ -40,7 +40,7 @@ export class QuadSphere {
         this.segments = options.segments; // default set in Quad if unset
         this.registry = new QuadRegistry(this.radius, this.segments);
         this.maxlevel = options.maxlevel ?? 100;
-        this.textureMapping = options.textureMapping ?? 'unwrapped';
+        this.textureMapping = options.textureMapping ?? 'unified';
         this._loglevel = options.loglevel ?? 'warn';
         this._logger = new QuadLogger({
             level: this._loglevel
@@ -169,7 +169,7 @@ export class QuadSphere {
                     offset.y=-this.radius;
                     angle=90;
                     axis.x=1;
-                    if (this.textureMapping === 'unwrapped') {
+                    if (this.textureMapping === 'unified') {
                         startUv.u = 1/4;
                         startUv.v = 0;
                         endUv.u = 1/2;
@@ -180,7 +180,7 @@ export class QuadSphere {
                     offset.y=this.radius;
                     angle=-90;
                     axis.x=1;
-                    if (this.textureMapping === 'unwrapped') {
+                    if (this.textureMapping === 'unified') {
                         startUv.u = 1/4;
                         startUv.v = 1/2;
                         endUv.u = 1/2;
@@ -191,7 +191,7 @@ export class QuadSphere {
                     offset.x=this.radius;
                     angle=90;
                     axis.y=1;
-                    if (this.textureMapping === 'unwrapped') {
+                    if (this.textureMapping === 'unified') {
                         startUv.u = 1/2;
                         startUv.v = 1/4;
                         endUv.u = 3/4;
@@ -202,7 +202,7 @@ export class QuadSphere {
                     offset.x=-this.radius;
                     angle=-90;
                     axis.y=1;
-                    if (this.textureMapping === 'unwrapped') {
+                    if (this.textureMapping === 'unified') {
                         startUv.u = 0;
                         startUv.v = 1/4;
                         endUv.u = 1/4;
@@ -213,7 +213,7 @@ export class QuadSphere {
                     offset.z=-this.radius;
                     angle=180;
                     axis.y=1;
-                    if (this.textureMapping === 'unwrapped') {
+                    if (this.textureMapping === 'unified') {
                         startUv.u = 3/4;
                         startUv.v = 1/4;
                         endUv.u = 1;
@@ -223,7 +223,7 @@ export class QuadSphere {
                 case 'front': // +Z
                 default:
                     offset.z=this.radius;
-                    if (this.textureMapping === 'unwrapped') {
+                    if (this.textureMapping === 'unified') {
                         startUv.u = 1/4;
                         startUv.v = 1/4;
                         endUv.u = 1/2;

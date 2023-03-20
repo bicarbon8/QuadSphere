@@ -118,14 +118,14 @@ export function InCanvas() {
                 segments={segments}
                 maxlevel={maxLevels}
                 // onCreateMesh={() => console.debug('created new QuadSphereMesh!')}
-                // textureMapping={'cube'}
+                // textureMapping="split"
             >
                 {/* <meshBasicMaterial attach="material-0" color="red" />
                 <meshBasicMaterial attach="material-1" color="blue" />
                 <meshBasicMaterial attach="material-2" color="green" />
-                <meshBasicMaterial attach="material-3" color={0xc3208a} />
-                <meshBasicMaterial attach="material-4" color={0x51e784} />
-                <meshBasicMaterial attach="material-5" color={0x6077e7} /> */}
+                <meshBasicMaterial attach="material-3" color="purple" />
+                <meshBasicMaterial attach="material-4" color="white" />
+                <meshBasicMaterial attach="material-5" color="black" /> */}
                 <meshStandardMaterial 
                     map={tessellation} 
                     displacementMap={tessellation}

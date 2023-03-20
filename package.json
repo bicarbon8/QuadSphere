@@ -1,6 +1,6 @@
 {
   "name": "quadsphere",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "a quadsphere implementation in javascript using THREE.js supporting distance based level of detail adjustment",
   "main": "index.js",
   "types": "index.d.ts",
