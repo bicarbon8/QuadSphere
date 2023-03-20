@@ -9,6 +9,7 @@ import { QuadGeometry } from '../geometries/quad-geometry';
 import { QuadSphereGeometry } from '../geometries/quad-sphere-geometry';
 import { V3 } from '../core/v3';
 import { useControls } from 'leva';
+import { QuadSphereTextureMapping } from '../core/quad-sphere';
 
 const assetPath = import.meta.env.VITE_ASSET_PATH;
 const distanceValues = new Array<number>();
@@ -27,21 +28,13 @@ export function InCanvas() {
     const earth = useLoader(THREE.TextureLoader, `${assetPath}/EarthTexture.png`);
     const tessellation = useLoader(THREE.TextureLoader, `${assetPath}/cube.png`);
     const bump = useLoader(THREE.TextureLoader, `${assetPath}/bump.jpg`);
-    // bump.wrapS = bump.wrapT = THREE.RepeatWrapping;
-    // bump.repeat.set(3, 3);
-    const cube = useCubeTexture([
-        'grid.png',
-        'bump.jpg',
-        'grid.png',
-        'bump.jpg',
-        'grid.png',
-        'bump.jpg'
-    ], {path: `${assetPath}/`});
+    const bumpRepeat = useLoader(THREE.TextureLoader, `${assetPath}/bump_repeat.png`);
     const quadMesh = useRef<THREE.Mesh>(null);
     const quadSphereMesh = useRef<THREE.Mesh>(null);
     const quadTriangles = useMemo<number>(() => (quadMesh.current?.geometry as QuadGeometry)?.quad?.triangleCount ?? 0, [quadKey]);
     const sphereTriangles = useMemo<number>(() => (quadSphereMesh.current?.geometry as QuadSphereGeometry)?.sphere?.triangleCount ?? 0, [sphereKey]);
-    const { segments, distances, maxLevels, freqency, applyCurve, flatShading, showEdges, radius, displacement } = useControls({ 
+    const { textureMapping, segments, distances, maxLevels, freqency, applyCurve, flatShading, showEdges, radius, displacement } = useControls({ 
+        textureMapping: { value: 'split', options: ['unified', 'split'] },
         segments: { value: 5, min: 3, max: 21, step: 2 },
         distances: { min: 0, max: 100, value: [0, 5], step: 1 },
         maxLevels: { value: 5, min: 0, max: 20, step: 1},
@@ -104,12 +97,19 @@ export function InCanvas() {
                 // onClick={(e) => setQuadKey(subdivide(e, quadMesh.current))}
                 // onContextMenu={(e) => setQuadKey(unify(e, quadMesh.current))}
             >
+                {(textureMapping === 'split') ?
                 <meshStandardMaterial 
-                    map={bump} 
-                    displacementMap={bump}
+                    map={bumpRepeat} 
+                    displacementMap={bumpRepeat}
                     displacementScale={displacement}
                     flatShading={flatShading}
-                />
+                /> :
+                <meshStandardMaterial 
+                    map={tessellation} 
+                    displacementMap={tessellation}
+                    displacementScale={displacement}
+                    flatShading={flatShading}
+                />}
                 {(showEdges) ? <Edges threshold={0} /> : <></>}
             </QuadMesh>
             <QuadSphereMesh ref={quadSphereMesh}
@@ -118,20 +118,22 @@ export function InCanvas() {
                 segments={segments}
                 maxlevel={maxLevels}
                 // onCreateMesh={() => console.debug('created new QuadSphereMesh!')}
-                // textureMapping="split"
+                textureMapping={textureMapping as QuadSphereTextureMapping}
             >
-                {/* <meshBasicMaterial attach="material-0" color="red" />
-                <meshBasicMaterial attach="material-1" color="blue" />
-                <meshBasicMaterial attach="material-2" color="green" />
-                <meshBasicMaterial attach="material-3" color="purple" />
-                <meshBasicMaterial attach="material-4" color="white" />
-                <meshBasicMaterial attach="material-5" color="black" /> */}
+                {(textureMapping === 'split') ? <>
+                <meshStandardMaterial attach="material-0" map={bumpRepeat} displacementMap={bumpRepeat} displacementScale={displacement} flatShading={flatShading} />
+                <meshStandardMaterial attach="material-1" map={bumpRepeat} displacementMap={bumpRepeat} displacementScale={displacement} flatShading={flatShading} />
+                <meshStandardMaterial attach="material-2" map={bumpRepeat} displacementMap={bumpRepeat} displacementScale={displacement} flatShading={flatShading} />
+                <meshStandardMaterial attach="material-3" map={bumpRepeat} displacementMap={bumpRepeat} displacementScale={displacement} flatShading={flatShading} />
+                <meshStandardMaterial attach="material-4" map={bumpRepeat} displacementMap={bumpRepeat} displacementScale={displacement} flatShading={flatShading} />
+                <meshStandardMaterial attach="material-5" map={bumpRepeat} displacementMap={bumpRepeat} displacementScale={displacement} flatShading={flatShading} />
+                </> : 
                 <meshStandardMaterial 
                     map={tessellation} 
                     displacementMap={tessellation}
                     displacementScale={displacement}
                     flatShading={flatShading}
-                />
+                />}
                 {(showEdges) ? <Edges threshold={0} /> : <></>}
             </QuadSphereMesh>
             {/* <fog args={[0xcccccc, 0, 1]} /> */}

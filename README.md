@@ -21,7 +21,7 @@ all `@react-three/fiber` `MeshProps` are supported in addition to the following:
 - `radius` one half the number of units width of the rendered `QuadSphere` (without factoring in any displacement material offsets)
 - `segments` the number of divisions plus edges in each direction of each `Quad` of the `QuadSphere` (i.e. a value of `3` means one division and two edges when all sides activated). values must be odd numbers starting from 3 or greater
 - `maxlevel` the maximum depth minus 1, starting from 0 meaning no subdivision allowed, that each `Quad` in the `QuadSphere` can be. a value of 2 means that the top-level `Quad` can be subdivided as can it's child quads, but no further subdivision is allowed
-- `textureMapping` a value of either `unified` _(default)_ or `split` which indicates the type of UVs to generate for the `QuadSphere`. if `unified` then an unwrapped cube texture should be used [example](./public/assets/EarthTexture.png), but if `split` then six separate materials should be supplied each mapping to a face of the `QuadSphere` in the following order: [`positive-x`, `negative-x`, `positive-y`, `negative-y`, `positive-z`, `negative-z`]
+- `textureMapping` a value of either `unified` _(default)_ or `split` which indicates the type of UVs to generate for the `QuadSphere`. if `unified` then an unwrapped cube texture should be used [example](./public/assets/uvunwrapped.png), but if `split` then six separate materials should be supplied each mapping to a face of the `QuadSphere` in the following order: [`positive-x`, `negative-x`, `positive-y`, `negative-y`, `positive-z`, `negative-z`]
 - `onCreateMesh` a function that will be called every time a new `THREE.Mesh` is created (each subdivision or unification results in the need to generate a new mesh otherwise the view will not update)
 - `onCreateSphere` a function that will be called every time a new `QuadSphereGeometry` is created (changing any of the above `props` values results in a new `QuadSphereGeometry` being created and the prior being disposed of)
 ### Usage
@@ -112,7 +112,7 @@ function App() {
 ```
 ### Using a different material for each face of the QuadSphere
 by default the `QuadSphere` uses a `unified` texture mapping that assumes all faces are contained in a single unwrapped cube texture that
-like the following [example](./public/assets/EarthTexture.png), but you can also assign each face individually by specifying a `textureMapping` of
+like the following [example](./public/assets/uvunwrapped.png), but you can also assign each face individually by specifying a `textureMapping` of
 `split`
 ```typescript
 import { Canvas, useLoader } from '@react-three/fiber';
