@@ -128,7 +128,7 @@ export module V3 {
             .add(_around).clone();
     }
 
-    const _curvedOffset = V3.zero();
+    const _adjustedOffset = V3.zero();
     /**
      * applies a curvature around the `curveOrigin` for the passed in point
      * @param point the point to be adjusted for curvature
@@ -136,18 +136,15 @@ export module V3 {
      * @returns the curve-adjusted point
      */
     export function applyCurve(point: V3, curveOrigin: V3, radius: number): V3 {
-        const offset = V3.normalise(V3.subtract(point, curveOrigin.x, curveOrigin.y, curveOrigin.z));
-        // TODO:  get below working for radius !== 1
-        // for radius === 1, below code provides smoother curve mesh distribution
-        // NOTE: commented parts only work for radius === 1 and un-normalised offset
-        // ====================================================================================
-        // const x2 = offset.x * offset.x;
-        // const y2 = offset.y * offset.y;
-        // const z2 = offset.z * offset.z;
-        _curvedOffset.x = offset.x; // * Math.sqrt(1 - y2 / 2 - z2 / 2 + y2 * z2 / 3);
-        _curvedOffset.y = offset.y; // * Math.sqrt(1 - x2 / 2 - z2 / 2 + x2 * z2 / 3);
-        _curvedOffset.z = offset.z; // * Math.sqrt(1 - x2 / 2 - y2 / 2 + x2 * y2 / 3);
-        const curved = V3.add(V3.multiply(_curvedOffset, radius), curveOrigin.x, curveOrigin.y, curveOrigin.z);
+        const offset = V3.subtract(point, curveOrigin.x, curveOrigin.y, curveOrigin.z);
+        const x2 = offset.x * offset.x;
+        const y2 = offset.y * offset.y;
+        const z2 = offset.z * offset.z;
+        const r2 = radius * radius;
+        _adjustedOffset.x = offset.x * Math.sqrt(r2 - y2 / 2 - z2 / 2 + y2 * z2 / (3 * r2));
+        _adjustedOffset.y = offset.y * Math.sqrt(r2 - x2 / 2 - z2 / 2 + x2 * z2 / (3 * r2));
+        _adjustedOffset.z = offset.z * Math.sqrt(r2 - x2 / 2 - y2 / 2 + x2 * y2 / (3 * r2));
+        const curved = V3.add(V3.multiply(V3.normalise(_adjustedOffset), radius), curveOrigin.x, curveOrigin.y, curveOrigin.z);
         return curved;
     }
 }

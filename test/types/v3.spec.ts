@@ -90,6 +90,8 @@ describe.concurrent('V3', () => {
     test.each([
         {p1: {x: -1, y: 2, z: -2}, origin: {x: 0, y: 0, z: 0}, radius: 2, expected: {x: -0.6, y: 1.3, z: -1.3}}
     ])('applyCurve($p1, $origin, $radius) -> $expected', ({p1, origin, radius, expected}) => {
-        expect(V3.fuzzyEquals(V3.applyCurve(p1, origin, radius), expected, 0.1)).is.true;
+        const actual = V3.applyCurve(p1, origin, radius);
+        expect(V3.fuzzyEquals(actual, expected, 0.1)).is.true;
+        expect(V3.length(actual, origin)).toEqual(radius);
     })
 })
